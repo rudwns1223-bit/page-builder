@@ -118,36 +118,45 @@ SUBJECT_KW = {
 
 # ── AI 호출 (REST API 직접 — SDK 없음) ──
 def call_gemini(prompt, system="", json_mode=True, max_tokens=3000):
+    """systemInstruction 완전 제거 — 400 오류 원인.
+    시스템 프롬프트를 유저 메시지 앞에 직접 삽입."""
     key = st.session_state.api_key.strip()
     if not key:
         raise ValueError("API 키가 없습니다. 사이드바에서 입력해주세요.")
-    json_instr = "\n\nReturn ONLY valid JSON. No markdown fences. No extra text." if json_mode else ""
-    sys_txt = (system or "") + json_instr
+
+    # system + json 지시를 프롬프트 앞에 직접 합침 (systemInstruction 사용 안 함)
+    prefix_parts = []
+    if system:
+        prefix_parts.append(system)
+    if json_mode:
+        prefix_parts.append("Return ONLY valid JSON. No markdown. No extra text.")
+    full_prompt = "\n\n".join(prefix_parts + [prompt]) if prefix_parts else prompt
+
     last_err = None
     for model in GEMINI_MODELS:
         url = (f"https://generativelanguage.googleapis.com"
                f"/v1beta/models/{model}:generateContent?key={key}")
         body = {
-            "contents": [{"parts": [{"text": prompt}]}],
+            "contents": [{"parts": [{"text": full_prompt}]}],
             "generationConfig": {"maxOutputTokens": max_tokens, "temperature": 0.7},
         }
-        if sys_txt.strip():
-            body["systemInstruction"] = {"parts": [{"text": sys_txt}]}
         try:
             resp = requests.post(url, json=body, timeout=60)
         except Exception as e:
             last_err = Exception(f"네트워크 오류: {e}"); continue
+
         if resp.status_code == 429:
             last_err = Exception(f"⏳ 429 한도 초과 ({model}) — 잠시 후 재시도")
             time.sleep(2); continue
         if resp.status_code == 403:
-            raise Exception("🔑 API 키 오류 — aistudio.google.com에서 확인해주세요.")
+            raise Exception("🔑 API 키 오류 — aistudio.google.com에서 키를 확인해주세요.")
         if resp.status_code in (400, 404):
             try: err_msg = resp.json().get("error",{}).get("message","")
             except Exception: err_msg = resp.text[:100]
             last_err = Exception(f"HTTP {resp.status_code} ({model}): {err_msg}"); continue
         if not resp.ok:
             last_err = Exception(f"HTTP {resp.status_code} ({model}): {resp.text[:150]}"); continue
+
         try:
             data = resp.json()
             if data.get("promptFeedback",{}).get("blockReason"):
@@ -158,7 +167,8 @@ def call_gemini(prompt, system="", json_mode=True, max_tokens=3000):
                 return text
         except (KeyError, StopIteration, IndexError):
             last_err = Exception(f"응답 파싱 실패 ({model})"); continue
-    raise last_err or Exception("Gemini 모든 모델 실패")
+
+    raise last_err or Exception("Gemini 모든 모델 실패 — API 키를 다시 확인해주세요.")
 
 def safe_json(raw):
     s = re.sub(r"```json\s*","",raw.strip())
