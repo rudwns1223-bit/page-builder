@@ -24,6 +24,8 @@ _DEFAULTS = {
     "ai_mood": "",
     "inst_profile": None,
     "last_seed": None,
+    "custom_section_topic": "",
+    "custom_section_on": False,
 }
 for _k, _v in _DEFAULTS.items():
     if _k not in st.session_state:
@@ -37,7 +39,13 @@ if not st.session_state.api_key:
         pass
 
 # ── 상수 ──
-GEMINI_MODELS = ["gemini-2.0-flash", "gemini-1.5-flash"]
+# (model_name, api_version) 쌍 — v1beta/v1 모두 시도
+GEMINI_MODELS = [
+    ("gemini-2.0-flash",   "v1beta"),
+    ("gemini-2.0-flash",   "v1"),
+    ("gemini-1.5-flash",   "v1"),
+    ("gemini-1.5-flash",   "v1beta"),
+]
 
 THEMES = {
     "sakura":  {"label":"🌸 벚꽃 봄",    "dark":False,
@@ -85,6 +93,7 @@ SECTION_LABELS = {
     "target":"🎯 수강 대상","reviews":"⭐ 수강평","faq":"❓ FAQ","cta":"📣 수강신청 CTA",
     "event_overview":"📅 이벤트 개요","event_benefits":"🎁 이벤트 혜택","event_deadline":"⏰ 마감 안내",
     "fest_hero":"🏆 기획전 히어로","fest_lineup":"👥 강사 라인업","fest_benefits":"🎁 기획전 혜택","fest_cta":"📣 기획전 CTA",
+    "custom_section":"✏️ 기타 (직접 입력)",
 }
 RANDOM_SEEDS = [
     {"mood":"사이버펑크 보라 네온사인, 비오는 다크 도시","layout":"brutalist","font":"display"},
@@ -134,8 +143,9 @@ def call_gemini(prompt, system="", json_mode=True, max_tokens=3000):
 
     last_err = None
     for model in GEMINI_MODELS:
+        model_name, api_ver = model
         url = (f"https://generativelanguage.googleapis.com"
-               f"/v1beta/models/{model}:generateContent?key={key}")
+               f"/{api_ver}/models/{model_name}:generateContent?key={key}")
         body = {
             "contents": [{"parts": [{"text": full_prompt}]}],
             "generationConfig": {"maxOutputTokens": max_tokens, "temperature": 0.7},
@@ -146,27 +156,27 @@ def call_gemini(prompt, system="", json_mode=True, max_tokens=3000):
             last_err = Exception(f"네트워크 오류: {e}"); continue
 
         if resp.status_code == 429:
-            last_err = Exception(f"⏳ 429 한도 초과 ({model}) — 잠시 후 재시도")
+            last_err = Exception(f"⏳ 429 한도 초과 ({model_name}/{api_ver}) — 잠시 후 재시도")
             time.sleep(2); continue
         if resp.status_code == 403:
             raise Exception("🔑 API 키 오류 — aistudio.google.com에서 키를 확인해주세요.")
         if resp.status_code in (400, 404):
             try: err_msg = resp.json().get("error",{}).get("message","")
             except Exception: err_msg = resp.text[:100]
-            last_err = Exception(f"HTTP {resp.status_code} ({model}): {err_msg}"); continue
+            last_err = Exception(f"HTTP {resp.status_code} ({model_name}/{api_ver}): {err_msg}"); continue
         if not resp.ok:
-            last_err = Exception(f"HTTP {resp.status_code} ({model}): {resp.text[:150]}"); continue
+            last_err = Exception(f"HTTP {resp.status_code} ({model_name}/{api_ver}): {resp.text[:150]}"); continue
 
         try:
             data = resp.json()
             if data.get("promptFeedback",{}).get("blockReason"):
-                last_err = Exception(f"안전 필터 차단 ({model})"); continue
+                last_err = Exception(f"안전 필터 차단 ({model_name}/{api_ver})"); continue
             parts = data["candidates"][0]["content"]["parts"]
             text = next(p["text"] for p in parts if "text" in p)
             if text and text.strip():
                 return text
         except (KeyError, StopIteration, IndexError):
-            last_err = Exception(f"응답 파싱 실패 ({model})"); continue
+            last_err = Exception(f"응답 파싱 실패 ({model_name}/{api_ver})"); continue
 
     raise last_err or Exception("Gemini 모든 모델 실패 — API 키를 다시 확인해주세요.")
 
@@ -226,6 +236,24 @@ def gen_copy(ctx, ptype, name, subj, tgt, plabel):
 목적별 강조 — 신규 커리큘럼:전문성·체계·신뢰 / 이벤트:기간한정·긴박감·혜택 / 기획전:라인업·규모·통합혜택
 JSON만 반환 (마크다운 없이, 값에 줄바꿈 없이): {schemas.get(ptype, schemas['신규 커리큘럼'])}""",
         "한국어 교육 카피라이터. 유효한 JSON만 반환.", max_tokens=4000))
+def gen_custom_section(topic, subj, name, purpose_label):
+    """기타 섹션 AI 생성 — 사용자 입력 토픽에 맞게"""
+    inst = f"강사: {name}." if name else ""
+    return safe_json(call_gemini(
+        f"""한국어 교육 랜딩페이지 카피라이터.
+섹션 주제: "{topic}"
+과목: {subj} | 브랜드: {purpose_label}
+{inst}
+
+주제에 맞는 섹션 내용을 생성하라. 수강평 이벤트, 특별 혜택, 합격 후기, 학습 팁, 공지사항 등 어떤 주제든 자유롭게.
+
+다음 JSON만 반환 (마크다운 없이, 줄바꿈 없이):
+{{"tag":"섹션 태그(8자이내)","title":"섹션 제목(20자이내)","desc":"설명 문구(60자이내, items가 없을 때만 표시)","items":[{{"icon":"이모지","title":"항목 제목(15자이내)","desc":"항목 설명(45자이내)"}},{{"icon":"이모지","title":"항목 제목","desc":"항목 설명"}},{{"icon":"이모지","title":"항목 제목","desc":"항목 설명"}}]}}
+
+항목이 있는 경우 desc는 빈 문자열로.""",
+        "Korean education copywriter. Return ONLY valid JSON.", max_tokens=1500))
+
+
 
 # ── 테마 리졸버 ──
 def get_theme():
@@ -364,6 +392,28 @@ def sec_fest_cta(d,cp,T):
     t=cp.get("festCtaTitle",f"지금 바로 {d['subject']} 기획전<br>전체 강사 라인업을 만나세요"); s=cp.get("festCtaSub",f"최고의 강사들과 함께 {d['subject']} 1등급 완성.")
     return f'<section style="padding:clamp(64px,9vw,104px) clamp(24px,6vw,72px);text-align:center;position:relative;overflow:hidden;background:{T["cta"]}"><div style="position:absolute;top:-120px;left:50%;transform:translateX(-50%);width:700px;height:700px;border-radius:50%;background:rgba(255,255,255,.03);pointer-events:none"></div><div style="position:relative;z-index:1"><div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);padding:6px 20px;border-radius:100px;font-size:11px;font-weight:700;color:#fff;margin-bottom:24px;border:1px solid rgba(255,255,255,.2)">🏆 {d["subject"]} 기획전 통합 신청</div><h2 style="font-family:var(--fh);font-size:clamp(28px,4.8vw,56px);font-weight:900;line-height:1.08;letter-spacing:-.03em;color:#fff;margin-bottom:16px">{t}</h2><p style="color:rgba(255,255,255,.62);font-size:15px;line-height:1.75;margin-bottom:42px;max-width:480px;margin-left:auto;margin-right:auto">{s}</p><div style="display:flex;gap:13px;justify-content:center;flex-wrap:wrap"><a style="display:inline-flex;align-items:center;gap:8px;background:#fff;color:#0A0A0A;font-weight:800;padding:17px 48px;border-radius:100px;font-size:16px;text-decoration:none" href="#">기획전 통합 신청 →</a><a style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);backdrop-filter:blur(8px);color:rgba(255,255,255,.82);font-weight:600;padding:16px 30px;border-radius:100px;border:1.5px solid rgba(255,255,255,.3);font-size:14px;text-decoration:none" href="#">강사 개별 신청</a></div></div></section>'
 
+
+def sec_custom(d, cp, T):
+    """기타 섹션 — 사용자가 제목을 입력하면 AI가 내용 생성"""
+    c = cp.get("custom_section_data", {})
+    if not c:
+        return ""
+    tag   = c.get("tag",   "추가 안내")
+    title = c.get("title", "추가 섹션")
+    items = c.get("items", [])
+    desc  = c.get("desc",  "")
+    items_html = "".join(
+        f'<div class="card" style="padding:20px 22px">'
+        f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">'
+        f'<div style="width:36px;height:36px;min-width:36px;border-radius:50%;background:var(--c1);display:flex;align-items:center;justify-content:center;font-size:16px">{it.get("icon","✦")}</div>'
+        f'<div style="font-family:var(--fh);font-size:14px;font-weight:700" class="st">{it.get("title","")}</div></div>'
+        f'<p style="font-size:12.5px;line-height:1.85;color:var(--t70)">{it.get("desc","")}</p></div>'
+        for it in items
+    ) if items else f'<p style="font-size:14px;line-height:1.9;color:var(--t70)">{desc}</p>'
+    cols = "repeat(3,1fr)" if len(items) >= 3 else ("repeat(2,1fr)" if len(items) == 2 else "1fr")
+    grid_or_p = f'<div style="display:grid;grid-template-columns:{cols};gap:12px" class="rv d1">{items_html}</div>' if items else f'<div class="rv d1">{items_html}</div>'
+    return f'<section class="sec" id="custom-section"><div class="rv"><div class="tag-line">{tag}</div><h2 class="sec-h2 st">{title}</h2></div>{grid_or_p}</section>'
+
 # ── HTML 빌더 ──
 def build_html(secs):
     T = get_theme()
@@ -374,7 +424,8 @@ def build_html(secs):
     mp = {"banner":sec_banner,"intro":sec_intro,"why":sec_why,"curriculum":sec_curriculum,
           "target":sec_target,"reviews":sec_reviews,"faq":sec_faq,"cta":sec_cta,
           "event_overview":sec_event_overview,"event_benefits":sec_event_benefits,"event_deadline":sec_event_deadline,
-          "fest_hero":sec_fest_hero,"fest_lineup":sec_fest_lineup,"fest_benefits":sec_fest_benefits,"fest_cta":sec_fest_cta}
+          "fest_hero":sec_fest_hero,"fest_lineup":sec_fest_lineup,"fest_benefits":sec_fest_benefits,"fest_cta":sec_fest_cta,
+          "custom_section":sec_custom}
     body = "\n".join(mp[s](d,cp,T) for s in secs if s in mp)
     ttl = cp.get("bannerTitle", cp.get("festHeroTitle", d["purpose_label"]))
     return (f'<!DOCTYPE html>\n<html lang="ko"><head><meta charset="UTF-8"/>'
@@ -553,6 +604,50 @@ with st.sidebar:
             st.session_state.active_sections.append(sid)
         elif not chk and sid in st.session_state.active_sections:
             st.session_state.active_sections.remove(sid)
+
+    # ── 기타(직접 입력) 섹션 ──
+    st.markdown("---")
+    custom_on = st.checkbox("✏️ 기타 (직접 입력) 섹션 추가",
+                            value=st.session_state.custom_section_on, key="chk_custom")
+    st.session_state.custom_section_on = custom_on
+    if custom_on:
+        if "custom_section" not in st.session_state.active_sections:
+            st.session_state.active_sections.append("custom_section")
+        topic_in = st.text_input(
+            "섹션 주제 입력",
+            value=st.session_state.custom_section_topic,
+            placeholder="예: 수강평 이벤트, 합격 후기, 특별 혜택, 공지사항",
+            label_visibility="collapsed",
+            key="custom_topic_inp",
+        )
+        st.session_state.custom_section_topic = topic_in
+        if st.button("✦ AI로 섹션 생성", use_container_width=True, key="gen_custom_sec"):
+            if not topic_in.strip():
+                st.warning("섹션 주제를 입력해주세요")
+            elif not st.session_state.api_key:
+                st.warning("API 키를 먼저 입력해주세요")
+            else:
+                with st.spinner(f"'{topic_in}' 섹션 생성 중..."):
+                    try:
+                        result = gen_custom_section(
+                            topic_in,
+                            st.session_state.subject,
+                            st.session_state.instructor_name,
+                            st.session_state.purpose_label,
+                        )
+                        if st.session_state.custom_copy is None:
+                            st.session_state.custom_copy = {}
+                        st.session_state.custom_copy["custom_section_data"] = result
+                        st.success(f"✓ '{result.get('title','섹션')}' 생성됨!")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"생성 실패: {e}")
+        if st.session_state.custom_copy and st.session_state.custom_copy.get("custom_section_data"):
+            d_cs = st.session_state.custom_copy["custom_section_data"]
+            st.caption(f"현재: {d_cs.get('title','—')} ({len(d_cs.get('items',[]))}개 항목)")
+    else:
+        if "custom_section" in st.session_state.active_sections:
+            st.session_state.active_sections.remove("custom_section")
 
 # ── MAIN ──
 ordered = [s for s in PURPOSE_SECTIONS[st.session_state.purpose_type]
