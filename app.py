@@ -177,6 +177,37 @@ def call_gemini(prompt, system="", json_mode=True, max_tokens=3000):
     raise last_err or Exception("모든 모델 실패 — API 키를 확인해주세요.")
 
 
+
+import unicodedata
+
+def strip_hanja(text: str) -> str:
+    """한자(CJK 통합 한자) 제거 — 한글/영문/숫자/특수문자만 남김"""
+    if not text:
+        return text
+    result = []
+    for ch in text:
+        cat = unicodedata.category(ch)
+        cp = ord(ch)
+        # CJK 통합 한자 범위 제거
+        if 0x4E00 <= cp <= 0x9FFF:  # CJK Unified Ideographs
+            continue
+        if 0x3400 <= cp <= 0x4DBF:  # CJK Extension A
+            continue
+        if 0x20000 <= cp <= 0x2A6DF:  # CJK Extension B
+            continue
+        result.append(ch)
+    return "".join(result).strip()
+
+def clean_dict(obj):
+    """딕셔너리/리스트의 모든 문자열에서 한자 제거"""
+    if isinstance(obj, str):
+        return strip_hanja(obj)
+    if isinstance(obj, dict):
+        return {k: clean_dict(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [clean_dict(i) for i in obj]
+    return obj
+
 def safe_json(raw):
     """AI 응답에서 JSON 안전하게 파싱 — Extra data / 잘린 JSON 모두 처리"""
     s = re.sub(r"```json\s*", "", raw.strip())
@@ -188,12 +219,12 @@ def safe_json(raw):
     lb = s.rfind("}")
     if lb >= 0: s = s[:lb+1]
     try:
-        return json.loads(s)
+        return clean_dict(json.loads(s))
     except json.JSONDecodeError as e:
         # 줄바꿈 제거 후 재시도
         s2 = s.replace("\n", " ").replace("\r", "")
         try:
-            return json.loads(s2)
+            return clean_dict(json.loads(s2))
         except Exception:
             pass
         # 문자열 값의 줄바꿈 제거
@@ -212,7 +243,7 @@ def safe_json(raw):
                 if depth == 0: last_complete = i
         if last_complete > 0:
             try:
-                return json.loads(s[:last_complete+1])
+                return clean_dict(json.loads(s[:last_complete+1]))
             except Exception:
                 pass
         raise ValueError(f"JSON 파싱 실패: {e}\n원본: {raw[:300]}")
@@ -252,20 +283,40 @@ def gen_copy(ctx, ptype, name, subj, tgt, plabel):
         "이벤트": '{"bannerSub":"8자","bannerTitle":"15자","bannerLead":"40자","ctaCopy":"8자","ctaTitle":"CTA제목","ctaSub":"25자","ctaBadge":"15자","statBadges":[["수치","라벨"],["수치","라벨"],["수치","라벨"]],"eventTitle":"이벤트제목20자","eventDesc":"설명40자","eventDetails":[["📅","이벤트 기간","날짜"],["🎯","대상","값"],["💰","할인율","값"]],"benefitsTitle":"혜택제목20자","eventBenefits":[{"icon":"이모지","title":"혜택명","desc":"설명35자","badge":"뱃지8자","no":"01"},{"icon":"이모지","title":"혜택명","desc":"설명","badge":"뱃지","no":"02"},{"icon":"이모지","title":"혜택명","desc":"설명","badge":"뱃지","no":"03"}],"deadlineTitle":"마감제목20자","deadlineMsg":"마감메시지60자","reviews":[["인용문","이름","뱃지"],["인용문","이름","뱃지"],["인용문","이름","뱃지"]]}',
         "기획전": '{"festHeroTitle":"기획전제목20자","festHeroCopy":"서브카피30자","festHeroSub":"설명40자","festHeroStats":[["수치","라벨"],["수치","라벨"],["수치","라벨"],["수치","라벨"]],"festLineupTitle":"라인업제목20자","festLineupSub":"설명40자","festLineup":[{"name":"강사명","tag":"분야8자","tagline":"한줄소개30자","badge":"뱃지8자","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"소개","badge":"뱃지","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"소개","badge":"뱃지","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"소개","badge":"뱃지","emoji":"이모지"}],"festBenefitsTitle":"혜택제목20자","festBenefits":[{"icon":"이모지","title":"혜택명","desc":"설명35자","badge":"뱃지8자","no":"01"},{"icon":"이모지","title":"혜택명","desc":"설명","badge":"뱃지","no":"02"},{"icon":"이모지","title":"혜택명","desc":"설명","badge":"뱃지","no":"03"},{"icon":"이모지","title":"혜택명","desc":"설명","badge":"뱃지","no":"04"}],"festCtaTitle":"CTA제목줄바꿈은<br>","festCtaSub":"서브문구40자"}',
     }
-    inst = f"강사: {name} {subj}." if name else ""
+    inst_ctx = ""
+    ip = st.session_state.get("inst_profile", {}) or {}
+    if ip.get("found"):
+        methods = ",".join(ip.get("signatureMethods",[]))
+        slogan  = ip.get("slogan","")
+        style   = ip.get("teachingStyle","")
+        inst_ctx = f"강사: {name}. 학습법: {methods}. 슬로건: {slogan}. 스타일: {style}"
+    elif name:
+        inst_ctx = f"강사: {name} {subj}."
+
     return safe_json(call_gemini(
-        f"""한국어 교육 마케팅 카피라이터.
-맥락: "{ctx}" | 목적: {ptype} | 과목: {subj} | 대상: {tgt} | 브랜드: {plabel}
-{inst}
-목적별 강조 — 신규 커리큘럼:전문성·체계·신뢰 / 이벤트:기간한정·긴박감·혜택 / 기획전:라인업·규모·통합혜택
+        f"""당신은 대한민국 최고의 수능 교육 랜딩페이지 카피라이터입니다.
+실제 대성마이맥, 메가스터디 수준의 설득력 있는 문구를 작성하세요.
 
-⚠️ 중요 규칙:
-- statBadges: 모르는 수치(만족도%, 합격생 수, 경력 년수 등)는 절대 넣지 마라. 알 수 없으면 빈 배열 [] 반환
-- introBadges: 동일. 확실한 정보가 없으면 [] 반환
-- 수치가 필요한 경우 "최고의", "최강의" 같은 정성적 표현 사용
+===입력 정보===
+맥락: "{ctx}"
+목적: {ptype} | 과목: {subj} | 대상: {tgt} | 브랜드: {plabel}
+{inst_ctx}
 
-JSON만 반환 (마크다운 없이, 값에 줄바꿈 없이): {schemas.get(ptype, schemas['신규 커리큘럼'])}""",
-        "한국어 교육 카피라이터. 유효한 JSON만 반환.", max_tokens=4000))
+===필수 규칙===
+1. 수험생 심리를 정확히 자극하는 구체적 문구 (예: "빈칸 하나가 등급을 가른다" "3주 만에 독해 속도가 달라진다")
+2. 추상적 표현 금지 (예: "최고의 강의" "최강 커리큘럼" 같은 공허한 표현 금지)
+3. 확인되지 않은 수치(합격률, 만족도%, 합격생 수 등) 절대 금지 — statBadges, introBadges는 빈 배열 []
+4. 한자 절대 사용 금지
+5. 강사 고유 학습법이 있으면 문구에 녹여넣기
+6. curriculumSteps: 각 단계가 왜 필요한지 학생 입장에서 설득하는 설명
+
+===목적별 강조===
+- 신규 커리큘럼: 학습 과정의 구체적 변화, 단계별 성장 스토리
+- 이벤트: 놓치면 후회하는 긴박감, 혜택의 구체적 가치
+- 기획전: 각 강사의 영역별 독보적 전문성, 시너지 효과
+
+JSON만 반환 (마크다운 없이, 줄바꿈 없이): {schemas.get(ptype, schemas['신규 커리큘럼'])}""",
+        "수능 교육 카피라이터. 유효한 JSON만 반환. 한자 절대 금지.", max_tokens=4000))
 def gen_custom_section(topic, subj, name, purpose_label):
     """기타 섹션 AI 생성 — 사용자 입력 토픽에 맞게"""
     inst = f"강사: {name}." if name else ""
@@ -310,8 +361,10 @@ def gen_single_section(section_id, subj, name, target, purpose_label, concept_de
 과목: {subj} | 대상: {target} | 브랜드: {purpose_label}
 {inst}{concept_hint}
 
-창의적이고 설득력 있게, 이전과 다른 새로운 문구로 생성하라.
-⚠️ statBadges/introBadges는 확실한 수치가 없으면 빈 배열 [] 반환
+수험생 심리를 자극하는 구체적이고 설득력 있는 문구로 생성하라.
+- 추상적/공허한 표현 금지 ("최고의", "최강의" 등)
+- 확인되지 않은 수치 금지 → statBadges/introBadges 빈 배열 []
+- 한자 절대 금지
 JSON만 반환 (마크다운 없이, 줄바꿈 없이): {schema}""",
         "Korean education copywriter. Return ONLY valid JSON.", max_tokens=800))
 
@@ -405,10 +458,18 @@ KO_TO_EN = {
 def build_bg_url(mood_text: str) -> str:
     """한글/영어 무드 → loremflickr 실사 이미지 URL"""
     if not mood_text: return ""
-    kws = _extract_english_keywords(mood_text)
+    text = mood_text.lower()
+    found = []
+    for ko, en in sorted(KO_TO_EN.items(), key=lambda x: -len(x[0])):
+        if ko in text:
+            found.extend(en.split()[:2])
+            text = text.replace(ko, " ")
+    eng_words = [w for w in re.findall(r"[a-zA-Z]+", mood_text) if len(w) > 3]
+    found.extend(eng_words[:2])
+    kws = list(dict.fromkeys(found))[:4]
     if not kws:
-        kws = ["education", "study"]
-    tags = ",".join(kws[:4])
+        kws = ["study", "education"]
+    tags = ",".join(kws)
     lock = random.randint(1, 9999)
     return f"https://loremflickr.com/1920/900/{tags}?lock={lock}"
 
@@ -565,21 +626,31 @@ def sec_intro(d,cp,T):
             f'</section>')
 
 def sec_why(d,cp,T):
-    t=cp.get("whyTitle","이 강의가 필요한 이유"); s=cp.get("whySub",f"{d['subject']} 1등급의 비결")
+    t=strip_hanja(cp.get("whyTitle","이 강의가 필요한 이유")); s=strip_hanja(cp.get("whySub",f"{d['subject']} 1등급의 비결"))
     reasons=cp.get("whyReasons",[["🎯","유형별 완전 정복","수능 출제 유형을 완전히 분석하여 어떤 문제도 흔들리지 않는 실력을 만듭니다."],["📊","데이터 기반 학습","10년간의 기출 데이터를 분석하여 효율적으로 학습합니다."],["⚡","실전 속도 훈련","정확도와 속도를 동시에 잡아 실전 완벽 대비합니다."]])
     rh="".join(f'<div class="card"><div style="display:flex;align-items:center;gap:12px;margin-bottom:14px"><div style="width:44px;height:44px;border-radius:var(--r,12px);background:var(--c1);display:flex;align-items:center;justify-content:center;font-size:20px">{ic}</div><div style="font-family:var(--fh);font-size:15px;font-weight:700" class="st">{tt}</div></div><p style="font-size:13px;line-height:1.85;color:var(--t70)">{dc}</p></div>' for ic,tt,dc in reasons)
     return f'<section class="sec" id="why"><div class="rv"><div class="tag-line">수강 이유</div><h2 class="sec-h2 st">{t}</h2><p class="sec-sub">{s}</p></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px" class="rv d1">{rh}</div></section>'
 
 def sec_curriculum(d,cp,T):
-    t=cp.get("curriculumTitle",f"{d['purpose_label']} 커리큘럼"); s=cp.get("curriculumSub","체계적인 4단계 완성 로드맵")
+    t=strip_hanja(cp.get("curriculumTitle",f"{d['purpose_label']} 커리큘럼")); s=strip_hanja(cp.get("curriculumSub","체계적인 4단계 완성 로드맵"))
     steps=cp.get("curriculumSteps",[["01","개념 완성","핵심 개념 정리","4주"],["02","유형 훈련","기출 완전 분석","4주"],["03","심화 특훈","고난도 완전 정복","4주"],["04","파이널","실전 마무리","4주"]])
     sh="".join(f'<div class="card" style="position:relative;overflow:hidden"><div style="position:absolute;top:-12px;right:-8px;font-family:var(--fh);font-size:80px;font-weight:900;color:var(--c1);opacity:.05;line-height:1">{no}</div><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--c1);margin-bottom:8px">STEP {no}</div><div style="font-family:var(--fh);font-size:16px;font-weight:700;margin-bottom:6px" class="st">{tt}</div><div style="font-size:12px;color:var(--t70);margin-bottom:8px">{dc}</div><span style="font-size:10px;background:var(--c1);color:#fff;padding:3px 10px;border-radius:100px;font-weight:700">{du}</span></div>' for no,tt,dc,du in steps)
     return f'<section class="sec alt" id="curriculum"><div class="rv"><div class="tag-line">커리큘럼</div><h2 class="sec-h2 st">{t}</h2><p class="sec-sub">{s}</p></div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px" class="rv d1">{sh}</div></section>'
 
 def sec_target(d,cp,T):
-    t=cp.get("targetTitle","이런 분들께 추천합니다")
-    items=cp.get("targetItems",[f"수능까지 {d['subject']} 점수를 확실히 올리고 싶은 분","개념은 아는데 실전 점수가 안 나오는 분","N수를 준비하며 전략적 커리큘럼이 필요한 분",f"{d['subject']} 상위권 도약을 위한 마지막 기회를 찾는 분"])
-    ih="".join(f'<div class="card" style="display:flex;align-items:center;gap:13px;padding:16px 20px"><div style="width:26px;height:26px;min-width:26px;border-radius:50%;background:var(--c1);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff">{i+1}</div><span style="font-size:14px;font-weight:500">{txt}</span></div>' for i,txt in enumerate(items))
+    t    = strip_hanja(cp.get("targetTitle","이런 분들께 추천합니다"))
+    items_raw = cp.get("targetItems",[
+        f"수능까지 {d['subject']} 점수를 확실히 올리고 싶은 분",
+        "개념은 아는데 실전에서 점수가 안 나오는 분",
+        "N수를 준비하며 체계적인 커리큘럼이 필요한 분",
+        f"{d['subject']} 상위권 도약을 원하는 분"])
+    items = [strip_hanja(str(it)) for it in items_raw]
+    ih = "".join(
+        f'<div class="card" style="display:flex;align-items:center;gap:13px;padding:16px 20px">'
+        f'<div style="width:26px;height:26px;min-width:26px;border-radius:50%;background:var(--c1);'
+        f'display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff">{i+1}</div>'
+        f'<span style="font-size:14px;font-weight:500;line-height:1.5">{txt}</span></div>'
+        for i, txt in enumerate(items))
     return f'<section class="sec" id="target"><div class="rv"><div class="tag-line">수강 대상</div><h2 class="sec-h2 st">{t}</h2></div><div style="display:flex;flex-direction:column;gap:8px" class="rv d1">{ih}</div></section>'
 
 def sec_reviews(d,cp,T):
@@ -612,7 +683,7 @@ def sec_faq(d,cp,T):
     return f'<section class="sec" id="faq"><div class="rv"><div class="tag-line">FAQ</div><h2 class="sec-h2 st">자주 묻는 질문</h2></div><div class="rv d1">{fh}</div></section>'
 
 def sec_cta(d,cp,T):
-    tt=cp.get("ctaTitle",f"지금 바로 시작해<br>{d['subject']} 1등급을 확보하세요"); sub=cp.get("ctaSub",f"{d['name']} 선생님과 함께라면 가능합니다."); cc=cp.get("ctaCopy","지금 수강신청하기"); badge=cp.get("ctaBadge",f"{d['target']} 전용")
+    tt=strip_hanja(cp.get("ctaTitle",f"지금 바로 시작해<br>{d['subject']} 1등급을 확보하세요")); sub=cp.get("ctaSub",f"{d['name']} 선생님과 함께라면 가능합니다."); cc=cp.get("ctaCopy","지금 수강신청하기"); badge=cp.get("ctaBadge",f"{d['target']} 전용")
     return f'<section style="padding:clamp(64px,9vw,100px) clamp(24px,6vw,72px);text-align:center;position:relative;overflow:hidden;background:{T["cta"]}"><div style="position:absolute;top:-100px;right:-100px;width:400px;height:400px;border-radius:50%;background:rgba(255,255,255,.04);pointer-events:none"></div><div style="position:relative;z-index:1"><div style="display:inline-block;background:rgba(255,255,255,.10);padding:5px 16px;border-radius:100px;font-size:10px;font-weight:700;color:#fff;margin-bottom:18px">{badge}</div><h2 style="font-family:var(--fh);font-size:clamp(26px,4.5vw,48px);font-weight:900;line-height:1.15;letter-spacing:-.03em;color:#fff;margin-bottom:12px">{tt}</h2><p style="color:rgba(255,255,255,.65);font-size:15px;margin-bottom:36px">{sub}</p><div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap"><a style="display:inline-flex;align-items:center;gap:7px;background:#fff;color:#0A0A0A;font-weight:800;padding:14px 40px;border-radius:100px;font-size:15px;text-decoration:none" href="#">{cc} →</a><a style="display:inline-flex;align-items:center;gap:7px;background:transparent;color:rgba(255,255,255,.8);font-weight:600;padding:13px 28px;border-radius:100px;border:1.5px solid rgba(255,255,255,.3);font-size:14px;text-decoration:none" href="#">카카오톡 문의</a></div></div></section>'
 
 def sec_event_overview(d,cp,T):
@@ -849,20 +920,14 @@ with st.sidebar:
             with st.spinner(f"{nm} 선생님 정보 검색 중..."):
                 try:
                     p = safe_json(call_gemini(
-                        f"""당신은 한국 수능 교육 전문가입니다. 강사 "{nm}"에 대해 아는 정보를 최대한 구체적으로 알려주세요.
-강사 과목: {sb}
-플랫폼: 메가스터디, EBSi, 대성마이맥, 이투스, 강남구청, 공단기 등
+                        f"""당신은 한국 수능 교육 전문가입니다. 강사 "{nm}"({sb} 과목)에 대해 실제로 아는 정보만 답해주세요.
 
-반드시 이 강사의 실제 특징을 담아야 합니다:
-1. 시그니처 학습법/방법론 (예: ABPS, 강기분, 씽킹맵, 로직트리 등 고유 브랜드명)
-2. 유명한 슬로건/명언
-3. 강의 스타일 특징 (판서 방식, 개념 설명 방식 등)
-4. 대표 커리큘럼 이름
-5. 학생들이 자주 언급하는 강점
+중요: 모르는 정보는 절대 지어내지 마세요. 확실하지 않으면 빈 문자열로.
+signatureMethods: 이 강사 고유의 학습법 브랜드명만 (예: 강기분, 씽킹맵, 기출쎈 등). 모르면 빈 배열.
 
-JSON만 반환:
-{{"found":true,"bio":"강사 이력 2-3문장 (플랫폼, 경력 포함)","slogan":"이 강사의 유명한 슬로건 (모르면 빈 문자열)","signatureMethods":["고유 학습법1","고유 학습법2"],"signatureCurriculum":"대표 커리큘럼 브랜드명","teachingStyle":"강의 스타일 1문장","studentFeedback":"학생들이 자주 하는 후기 테마 1문장","desc":"이 강사만의 차별화 포인트 2문장","badges":[["특징1","라벨1"],["특징2","라벨2"],["특징3","라벨3"]]}}""",
-                        "Korean 수능 education expert. Return ONLY valid compact JSON. Be specific to this instructor."))
+아래 JSON만 반환 (간결하게, 100자 이내로):
+{{"found":true,"bio":"활동 플랫폼과 전공 1문장","slogan":"유명한 한 마디 (모르면 빈 문자열)","signatureMethods":["실제 고유 학습법만"],"teachingStyle":"강의 특징 1문장","desc":"이 강사 차별점 1문장"}}""",
+                        "Korean 수능 education expert. Return ONLY valid compact JSON. Be specific to this instructor.", max_tokens=500))
                     st.session_state.inst_profile = p
                     if p.get("found"):
                         # 강사 정보 미리보기 표시
