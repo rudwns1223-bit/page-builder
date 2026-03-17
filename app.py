@@ -1,10 +1,10 @@
 import streamlit as st
-import google.generativeai as genai
+import requests
 import json, re, time, random
 
 st.set_page_config(page_title="강사 페이지 빌더 Pro", page_icon="🎓", layout="wide", initial_sidebar_state="expanded")
 
-GEMINI_MODELS = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-flash-latest"]
+GEMINI_MODELS = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"]
 
 THEMES = {
     "sakura":  {"label":"🌸 벚꽃 봄",    "dark":False, "fonts":"https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Noto+Serif+KR:wght@300;400;600;900&family=DM+Sans:wght@300;400;700&display=swap", "vars":"--c1:#B5304A;--c2:#E89BB5;--c3:#F5CEDA;--c4:#2A111A;--bg:#FBF6F4;--bg2:#F7EFF1;--bg3:#F2E5E9;--text:#2A111A;--t70:rgba(42,17,26,.7);--t45:rgba(42,17,26,.45);--bd:rgba(42,17,26,.10);--fh:'Playfair Display','Noto Serif KR',serif;--fb:'DM Sans','Noto Serif KR',sans-serif;--r:12px;--r-btn:100px;", "extra_css":".st{font-style:italic}", "cta":"linear-gradient(135deg,#2A111A,#B5304A)"},
@@ -68,24 +68,45 @@ for k,v in {"api_key":"","concept":"sakura","custom_theme":None,"instructor_name
 
 # ── AI helpers ──
 def call_gemini(prompt, system="", json_mode=True, max_tokens=3000):
+    """Gemini REST API 직접 호출 SDK 불필요"""
     key = st.session_state.api_key.strip()
-    if not key: raise ValueError("API 키가 없습니다.")
-    genai.configure(api_key=key)
+    if not key:
+        raise ValueError("API 키가 없습니다. 사이드바에서 입력해주세요.")
     last_err = None
-    for mn in GEMINI_MODELS:
+    sys_txt = (system or "Return only valid JSON.") + ("\nReturn strictly valid JSON only. No markdown." if json_mode else "")
+    for model in GEMINI_MODELS:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+        body = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"maxOutputTokens": max_tokens},
+            "systemInstruction": {"parts": [{"text": sys_txt}]},
+        }
+        if json_mode:
+            body["generationConfig"]["responseMimeType"] = "application/json"
         try:
-            kw = {"max_output_tokens": max_tokens}
-            if json_mode: kw["response_mime_type"] = "application/json"
-            cfg = genai.GenerationConfig(**kw)
-            sys_t = (system or "Return only valid JSON.") + ("\n\nReturn strictly valid JSON only. No markdown." if json_mode else "")
-            m = genai.GenerativeModel(mn, generation_config=cfg, system_instruction=sys_t)
-            return m.generate_content(prompt).text
+            resp = requests.post(url, json=body, timeout=60)
         except Exception as e:
-            last_err = e
-            s = str(e)
-            if any(x in s for x in ["429","quota","rate"]): time.sleep(1.5); continue
-            if any(x in s for x in ["400","404"]): continue
-            raise
+            last_err = Exception(f"네트워크 오류: {e}")
+            continue
+        if resp.status_code == 429:
+            last_err = Exception(f"429 한도 초과 ({model})")
+            time.sleep(2)
+            continue
+        if resp.status_code in (400, 404):
+            last_err = Exception(f"HTTP {resp.status_code} ({model}): 모델 미지원")
+            continue
+        if not resp.ok:
+            last_err = Exception(f"HTTP {resp.status_code} ({model}): {resp.text[:200]}")
+            continue
+        data = resp.json()
+        try:
+            parts = data["candidates"][0]["content"]["parts"]
+            text = next(p["text"] for p in parts if "text" in p)
+            if text:
+                return text
+        except (KeyError, StopIteration):
+            last_err = Exception(f"응답 파싱 실패 ({model})")
+            continue
     raise last_err or Exception("Gemini 모든 모델 실패")
 
 def safe_json(raw):
