@@ -258,6 +258,12 @@ def gen_copy(ctx, ptype, name, subj, tgt, plabel):
 맥락: "{ctx}" | 목적: {ptype} | 과목: {subj} | 대상: {tgt} | 브랜드: {plabel}
 {inst}
 목적별 강조 — 신규 커리큘럼:전문성·체계·신뢰 / 이벤트:기간한정·긴박감·혜택 / 기획전:라인업·규모·통합혜택
+
+⚠️ 중요 규칙:
+- statBadges: 모르는 수치(만족도%, 합격생 수, 경력 년수 등)는 절대 넣지 마라. 알 수 없으면 빈 배열 [] 반환
+- introBadges: 동일. 확실한 정보가 없으면 [] 반환
+- 수치가 필요한 경우 "최고의", "최강의" 같은 정성적 표현 사용
+
 JSON만 반환 (마크다운 없이, 값에 줄바꿈 없이): {schemas.get(ptype, schemas['신규 커리큘럼'])}""",
         "한국어 교육 카피라이터. 유효한 JSON만 반환.", max_tokens=4000))
 def gen_custom_section(topic, subj, name, purpose_label):
@@ -305,6 +311,7 @@ def gen_single_section(section_id, subj, name, target, purpose_label, concept_de
 {inst}{concept_hint}
 
 창의적이고 설득력 있게, 이전과 다른 새로운 문구로 생성하라.
+⚠️ statBadges/introBadges는 확실한 수치가 없으면 빈 배열 [] 반환
 JSON만 반환 (마크다운 없이, 줄바꿈 없이): {schema}""",
         "Korean education copywriter. Return ONLY valid JSON.", max_tokens=800))
 
@@ -361,6 +368,16 @@ a{text-decoration:none;color:inherit}
 
 # ── 배경 이미지: 한글 키워드 → loremflickr URL ──
 KO_TO_EN = {
+    # 스포츠
+    "축구장":"soccer stadium crowd night",
+    "야구장":"baseball stadium crowd lights",
+    "농구장":"basketball court arena",
+    "경기장":"sports stadium arena crowd",
+    "관중":"stadium crowd cheering",
+    "축구":"soccer football pitch",
+    "야구":"baseball game stadium",
+    "운동장":"sports field outdoor",
+
     "야구장":"baseball stadium","축구장":"soccer field","농구장":"basketball court",
     "경기장":"sports stadium","밤":"night","야간":"night","새벽":"dawn",
     "조명":"lights","관중":"crowd","도서관":"library books","책":"books",
@@ -385,105 +402,167 @@ KO_TO_EN = {
     "플라네타리움":"planetarium stars","악기":"music instrument",
 }
 
-def build_bg_url(mood_text):
-    """한글 무드 텍스트 → 배경 이미지 URL (loremflickr)"""
+def build_bg_url(mood_text: str) -> str:
+    """한글/영어 무드 → loremflickr 실사 이미지 URL"""
     if not mood_text: return ""
-    text = mood_text.lower()
-    keywords = []
-    # 한글 키워드 매핑
-    for ko, en in KO_TO_EN.items():
-        if ko in text:
-            keywords.extend(en.split())
-    # 이미 영어면 바로 사용
-    if not keywords:
-        words = re.sub(r"[가-힣]+", "", text).split()
-        keywords = [w for w in words if len(w) > 2][:5]
-    if not keywords:
-        keywords = ["study", "education"]
-    tags = ",".join(dict.fromkeys(keywords[:4]))  # 중복 제거, 4개 제한
-    lock = random.randint(1, 999)
+    kws = _extract_english_keywords(mood_text)
+    if not kws:
+        kws = ["education", "study"]
+    tags = ",".join(kws[:4])
+    lock = random.randint(1, 9999)
     return f"https://loremflickr.com/1920/900/{tags}?lock={lock}"
 
 # ── 섹션 빌더 ──
-def sec_banner(d,cp,T):
-    sub   = cp.get("bannerSub", d["subject"]+" 완성")
+def sec_banner(d, cp, T):
+    sub   = cp.get("bannerSub", d["subject"] + " 완성")
     title = cp.get("bannerTitle", d["purpose_label"])
-    lead  = cp.get("bannerLead", f"{d['target']}을 위한 최강 커리큘럼")
+    lead  = cp.get("bannerLead", f"{d['target']}을 위한 커리큘럼")
     cta   = cp.get("ctaCopy", "수강신청하기")
-    stats = cp.get("statBadges", [["98%","수강 만족도"],["1,200+","합격생"],["15년+","강의 경력"]])
+    stats = cp.get("statBadges", [])
     kws   = SUBJECT_KW.get(d["subject"], ["개념","기출","실전","파이널"])
-    bg_url = cp.get("bg_photo_url","")
+    bg_url = cp.get("bg_photo_url", "")
+    hero_layout = T.get("hero_layout", "split")
+
+    kh = "".join(
+        f'<span style="font-size:9.5px;font-weight:700;padding:5px 12px;border-radius:var(--r-btn,100px);color:var(--c1);border:1px solid var(--bd);margin:2px">{k}</span>'
+        for k in kws)
 
     sh = "".join(
-        f'<div><div style="font-family:var(--fh);font-size:clamp(20px,3vw,28px);font-weight:900;color:var(--c1)">{sv}</div>'
+        f'<div><div style="font-family:var(--fh);font-size:clamp(18px,2.8vw,26px);font-weight:900;color:var(--c1)">{sv}</div>'
         f'<div style="font-size:9px;color:var(--t45);font-weight:600;letter-spacing:.1em;text-transform:uppercase;margin-top:2px">{sl}</div></div>'
         for sv, sl in stats)
-    kh = "".join(
-        f'<span style="font-size:9.5px;font-weight:700;padding:5px 12px;border-radius:var(--r-btn,100px);color:var(--c1);border:1px solid var(--bd)">{k}</span>'
-        for k in kws)
-    inst = (f'<div style="display:inline-flex;align-items:center;gap:8px;margin-top:20px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:4px;padding:6px 14px">'
-            f'<span style="font-size:11px;color:var(--t45)">{d["name"]} 선생님</span></div>') if d["name"] else ""
 
+    inst = (f'<div style="display:inline-flex;align-items:center;gap:8px;margin-top:20px;'
+            f'background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);'
+            f'border-radius:4px;padding:6px 14px">'
+            f'<span style="font-size:11px;color:rgba(255,255,255,.7)">{d["name"]} 선생님</span></div>') if d["name"] else ""
+
+    # 배경 스타일
     if bg_url:
-        hero_bg   = f'background:var(--bg) url("{bg_url}") center/cover no-repeat;'
-        overlay   = '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.52);z-index:1;pointer-events:none"></div>'
-        txt_col   = "color:#fff"
-        t70_col   = "color:rgba(255,255,255,.8)"
-        c1_col    = "#fff"
-        bd_col    = "rgba(255,255,255,.2)"
-        card_bg   = "rgba(0,0,0,.6)"
-        border_l  = "rgba(255,255,255,.15)"
-        btn_s_ext = "color:#fff;border-color:rgba(255,255,255,.5)"
-        div_top_b = "rgba(255,255,255,.2)"
+        hero_bg  = f'background:var(--bg) url("{bg_url}") center/cover no-repeat;'
+        overlay  = '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.55);z-index:1;pointer-events:none"></div>'
+        tc       = "color:#fff"
+        t70c     = "color:rgba(255,255,255,.8)"
+        c1c      = "#fff"
+        bdc      = "rgba(255,255,255,.25)"
+        card_bg  = "rgba(0,0,0,.65)"
+        btn_s    = "color:#fff;border-color:rgba(255,255,255,.5)"
+        top_brd  = "rgba(255,255,255,.2)"
+        blur_val = "backdrop-filter:blur(12px);"
     else:
-        hero_bg   = "background:var(--bg);"
-        overlay   = ""
-        txt_col   = "color:var(--text)"
-        t70_col   = "color:var(--t70)"
-        c1_col    = "var(--c1)"
-        bd_col    = "var(--bd)"
-        card_bg   = "rgba(255,255,255,.05)" if T["dark"] else "var(--bg)"
-        border_l  = "var(--bd)"
-        btn_s_ext = ""
-        div_top_b = "var(--bd)"
+        hero_bg  = "background:var(--bg);"
+        overlay  = ""
+        tc       = "color:var(--text)"
+        t70c     = "color:var(--t70)"
+        c1c      = "var(--c1)"
+        bdc      = "var(--bd)"
+        card_bg  = "rgba(255,255,255,.05)" if T["dark"] else "var(--bg)"
+        btn_s    = ""
+        top_brd  = "var(--bd)"
+        blur_val = ""
 
-    ci = "".join(
-        f'<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--bd)">'
-        f'<span style="font-size:11px;color:var(--t45);font-weight:600">{l}</span>'
-        f'<span style="font-size:11.5px;font-weight:700">{v}</span></div>'
-        for l, v in [["강의 대상",d["target"]],["과목",d["subject"]],["목적",d["purpose_label"][:12]+"…"]])
+    # ── 레이아웃 A: SPLIT (기본) ──
+    if hero_layout != "immersive":
+        ci = "".join(
+            f'<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid {bdc}">'
+            f'<span style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600">{l}</span>'
+            f'<span style="font-size:11.5px;font-weight:700;color:#fff">{v}</span></div>'
+            for l, v in [["강의 대상",d["target"]],["과목",d["subject"]],["목적",d["purpose_label"][:14]+"…"]])
 
-    db = "rgba(255,255,255,.03)" if T["dark"] else "var(--bg3)"
+        return (
+            f'<section id="hero" style="position:relative;min-height:100vh;overflow:hidden;{hero_bg}display:grid;grid-template-columns:1fr 360px">'
+            + overlay +
+            f'<div style="position:relative;z-index:2;display:flex;flex-direction:column;justify-content:center;'
+            f'padding:clamp(60px,8vw,100px) clamp(24px,4vw,52px) clamp(60px,8vw,100px) clamp(32px,6vw,88px)">'
+            f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:28px">'
+            f'<div style="width:32px;height:2px;background:{c1c}"></div>'
+            f'<span style="font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;{tc}">{sub}</span></div>'
+            f'<h1 style="font-family:var(--fh);font-size:clamp(40px,6vw,84px);font-weight:900;line-height:.88;letter-spacing:-.05em;{tc}" class="st">{title}</h1>'
+            f'<p style="font-size:clamp(13px,1.4vw,15.5px);line-height:2;{t70c};margin-top:22px;max-width:420px;padding-left:14px;border-left:2px solid {c1c}">{lead}</p>'
+            f'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:18px">{kh}</div>'
+            + inst +
+            f'<div style="display:flex;gap:12px;margin-top:28px">'
+            f'<a class="btn-p" href="#">{cta} →</a>'
+            f'<a class="btn-s" href="#" style="{btn_s}">강의 미리보기</a></div>'
+            + (f'<div style="display:flex;gap:28px;margin-top:48px;padding-top:24px;border-top:1px solid {top_brd}">{sh}</div>' if stats else "")
+            + f'</div>'
+            f'<div style="background:{"rgba(0,0,0,.25)" if bg_url else ("rgba(255,255,255,.03)" if T["dark"] else "var(--bg3)")};'
+            f'border-left:1px solid {bdc};display:flex;align-items:center;justify-content:center;padding:48px 24px;position:relative;z-index:2">'
+            f'<div style="width:100%;background:{card_bg};border:1px solid {bdc};border-radius:var(--r,12px);overflow:hidden;{blur_val}">'
+            f'<div style="background:var(--c1);padding:18px 22px;text-align:center">'
+            f'<div style="font-family:var(--fh);font-size:20px;font-weight:900;color:#fff;line-height:1.2">{title}</div></div>'
+            f'<div style="padding:18px 22px">{ci}'
+            f'<a class="btn-p" href="#" style="width:100%;justify-content:center;margin-top:14px;display:flex">{cta} →</a>'
+            f'</div></div></div></section>'
+        )
 
-    return (
-        f'<section id="hero" style="position:relative;min-height:100vh;overflow:hidden;{hero_bg}display:grid;grid-template-columns:1fr 380px">'
-        + overlay +
-        f'<div style="position:relative;z-index:2;display:flex;flex-direction:column;justify-content:center;padding:clamp(60px,8vw,100px) clamp(24px,4vw,52px) clamp(60px,8vw,100px) clamp(32px,6vw,88px)">'
-        f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:32px">'
-        f'<div style="width:24px;height:1.5px;background:{c1_col}"></div>'
-        f'<span style="font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;{txt_col}">{sub}</span></div>'
-        f'<h1 style="font-family:var(--fh);font-size:clamp(44px,6.5vw,90px);font-weight:900;line-height:.88;letter-spacing:-.05em;{txt_col}" class="st">{title}</h1>'
-        f'<p style="font-size:clamp(13px,1.4vw,15.5px);line-height:2.05;{t70_col};margin-top:24px;max-width:400px;padding-left:14px;border-left:2px solid {c1_col}">{lead}</p>'
-        f'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:20px">{kh}</div>'
-        + inst +
-        f'<div style="display:flex;gap:12px;margin-top:30px">'
-        f'<a class="btn-p" href="#">{cta} →</a>'
-        f'<a class="btn-s" href="#" style="{btn_s_ext}">강의 미리보기</a></div>'
-        f'<div style="display:flex;gap:28px;margin-top:52px;padding-top:28px;border-top:1px solid {div_top_b}">{sh}</div></div>'
-        f'<div style="background:{db};border-left:1px solid {border_l};display:flex;align-items:center;justify-content:center;padding:52px 28px;position:relative;z-index:2">'
-        f'<div style="width:100%;background:{card_bg};border:1px solid {bd_col};border-radius:var(--r,12px);overflow:hidden;backdrop-filter:blur(12px)">'
-        f'<div style="background:var(--c1);padding:20px 24px;text-align:center">'
-        f'<div style="font-family:var(--fh);font-size:22px;font-weight:900;color:#fff">{title}</div></div>'
-        f'<div style="padding:20px 24px">{ci}'
-        f'<a class="btn-p" href="#" style="width:100%;justify-content:center;margin-top:16px;display:flex">{cta} →</a>'
-        f'</div></div></div></section>'
-    )
+    # ── 레이아웃 B: IMMERSIVE (풀스크린 센터) ──
+    else:
+        return (
+            f'<section id="hero" style="position:relative;min-height:100vh;overflow:hidden;{hero_bg}'
+            f'display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-start;">'
+            + overlay +
+            f'<div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.85) 0%,rgba(0,0,0,.2) 60%,transparent 100%);z-index:1;pointer-events:none"></div>'
+            f'<div style="position:relative;z-index:2;padding:clamp(48px,7vw,80px) clamp(32px,6vw,88px);max-width:900px">'
+            f'<div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);'
+            f'backdrop-filter:blur(8px);padding:5px 16px;border-radius:100px;margin-bottom:24px;'
+            f'border:1px solid rgba(255,255,255,.2);font-size:10px;font-weight:700;color:#fff;letter-spacing:.12em;text-transform:uppercase">{sub}</div>'
+            f'<h1 style="font-family:var(--fh);font-size:clamp(52px,8vw,110px);font-weight:900;line-height:.85;'
+            f'letter-spacing:-.05em;color:#fff;margin-bottom:20px" class="st">{title}</h1>'
+            f'<p style="font-size:clamp(14px,1.6vw,17px);line-height:1.9;color:rgba(255,255,255,.75);max-width:520px;margin-bottom:28px">{lead}</p>'
+            f'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px">{kh}</div>'
+            f'<div style="display:flex;gap:12px;flex-wrap:wrap">'
+            f'<a class="btn-p" href="#" style="box-shadow:0 0 28px rgba(255,255,255,.12)">{cta} →</a>'
+            f'<a href="#" style="display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.1);'
+            f'backdrop-filter:blur(8px);color:#fff;font-weight:600;padding:13px 28px;border-radius:100px;'
+            f'border:1.5px solid rgba(255,255,255,.3);font-size:14px;text-decoration:none">강의 미리보기</a></div>'
+            + (f'<div style="display:flex;gap:36px;margin-top:40px;padding-top:24px;border-top:1px solid rgba(255,255,255,.2)">{sh}</div>' if stats else "")
+            + f'</div></section>'
+        )
+
 
 def sec_intro(d,cp,T):
-    t=cp.get("introTitle",f"{d['name']} 선생님 소개"); desc=cp.get("introDesc",f"{d['subject']} 최상위권 합격의 비결"); bio=cp.get("introBio","압도적인 합격 실적으로 검증된 강의력")
-    badges=cp.get("introBadges",[["98%","수강 만족도"],["1,200+","합격생 수"],["15년+","강의 경력"],["#1","과목 랭킹"]])
-    bh="".join(f'<div style="text-align:center;padding:16px;border:1px solid var(--bd);border-radius:var(--r,10px)"><div style="font-family:var(--fh);font-size:22px;font-weight:900;color:var(--c1)">{bv}</div><div style="font-size:9px;color:var(--t45);font-weight:600;letter-spacing:.1em;text-transform:uppercase;margin-top:3px">{bl}</div></div>' for bv,bl in badges)
-    return f'<section class="sec alt" id="intro"><div class="rv"><div class="tag-line">강사 소개</div><h2 class="sec-h2 st">{t}</h2><p class="sec-sub">{desc}</p></div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px" class="rv d1">{bh}</div><div style="margin-top:20px;padding:16px 20px;border-left:3px solid var(--c1);background:var(--bg3);border-radius:0 var(--r,8px) var(--r,8px) 0" class="rv d2"><p style="font-size:13px;line-height:1.9;color:var(--t70)">{bio}</p></div></section>'
+    # 강사 프로필에서 정보 가져오기
+    ip = st.session_state.get("inst_profile", {}) or {}
+    default_bio = ip.get("desc", ip.get("bio", f"{d['subject']} 분야 검증된 강사"))
+    default_title = f"{d['name']} 선생님" if d["name"] else f"{d['subject']} 강사 소개"
+    default_desc = ip.get("teachingStyle", f"{d['subject']} 최상위권 합격의 비결")
+
+    t    = cp.get("introTitle", default_title)
+    desc = cp.get("introDesc", default_desc)
+    bio  = cp.get("introBio", default_bio)
+    badges = cp.get("introBadges", ip.get("badges", []))  # 강사 검색 결과 badges 활용
+
+    # 시그니처 학습법 태그
+    methods = ip.get("signatureMethods", [])
+    method_tags = "".join(
+        f'<span style="display:inline-flex;align-items:center;background:var(--c1);color:#fff;font-size:10px;font-weight:700;padding:4px 14px;border-radius:100px;margin:3px 4px 3px 0">{m}</span>'
+        for m in methods[:3]
+    ) if methods else ""
+
+    # 슬로건
+    slogan = ip.get("slogan", "")
+    slogan_html = (f'<div style="margin-top:12px;padding:12px 16px;background:var(--bg3);border-radius:var(--r,8px);border-left:3px solid var(--c1)">'
+                   f'<span style="font-size:12px;color:var(--c1);font-weight:700">"</span>'
+                   f'<span style="font-size:13px;color:var(--text);font-style:italic">{slogan}</span>'
+                   f'<span style="font-size:12px;color:var(--c1);font-weight:700">"</span></div>') if slogan else ""
+
+    bh = "".join(
+        f'<div style="text-align:center;padding:16px;border:1px solid var(--bd);border-radius:var(--r,10px)">' +
+        f'<div style="font-family:var(--fh);font-size:22px;font-weight:900;color:var(--c1)">{bv}</div>' +
+        f'<div style="font-size:9px;color:var(--t45);font-weight:600;letter-spacing:.1em;text-transform:uppercase;margin-top:3px">{bl}</div></div>'
+        for bv, bl in badges
+    ) if badges else ""
+
+    badges_section = f'<div style="display:grid;grid-template-columns:repeat({min(len(badges),4)},1fr);gap:10px" class="rv d1">{bh}</div>' if badges else ""
+
+    return (f'<section class="sec alt" id="intro">' +
+            f'<div class="rv"><div class="tag-line">강사 소개</div><h2 class="sec-h2 st">{t}</h2><p class="sec-sub">{desc}</p></div>' +
+            badges_section +
+            (f'<div style="margin-top:14px;display:flex;flex-wrap:wrap">{method_tags}</div>' if method_tags else "") +
+            f'<div style="margin-top:16px;padding:16px 20px;border-left:3px solid var(--c1);background:var(--bg3);border-radius:0 var(--r,8px) var(--r,8px) 0" class="rv d2"><p style="font-size:13px;line-height:1.9;color:var(--t70)">{bio}</p></div>' +
+            slogan_html +
+            f'</section>')
 
 def sec_why(d,cp,T):
     t=cp.get("whyTitle","이 강의가 필요한 이유"); s=cp.get("whySub",f"{d['subject']} 1등급의 비결")
@@ -612,6 +691,16 @@ def build_html(secs):
           "event_overview":sec_event_overview,"event_benefits":sec_event_benefits,"event_deadline":sec_event_deadline,
           "fest_hero":sec_fest_hero,"fest_lineup":sec_fest_lineup,"fest_benefits":sec_fest_benefits,"fest_cta":sec_fest_cta,
           "custom_section":sec_custom}
+    # heroStyle에 따라 배너 레이아웃 변형 적용
+    T["hero_layout"] = T.get("hero_layout", "split")
+    if st.session_state.concept == "custom" and st.session_state.custom_theme:
+        hs = st.session_state.custom_theme.get("heroStyle","split")
+        if hs in ("editorial","magazine","brutalist"):
+            T["hero_layout"] = "editorial"
+        elif hs in ("immersive","dark","mono"):
+            T["hero_layout"] = "immersive"
+        else:
+            T["hero_layout"] = "split"
     body = "\n".join(mp[s](d,cp,T) for s in secs if s in mp)
     ttl = cp.get("bannerTitle", cp.get("festHeroTitle", d["purpose_label"]))
     return (f'<!DOCTYPE html>\n<html lang="ko"><head><meta charset="UTF-8"/>'
@@ -760,14 +849,32 @@ with st.sidebar:
             with st.spinner(f"{nm} 선생님 정보 검색 중..."):
                 try:
                     p = safe_json(call_gemini(
-                        f'Find Korean 수능 educator "{nm}" teaching "{sb}". '
-                        f'Return ONLY JSON: {{"found":true,"bio":"2-3 sentences","slogan":"motto or empty","signatureMethods":["method"],"desc":"value prop"}}',
-                        "Korean education researcher. Return ONLY valid compact JSON."))
+                        f"""당신은 한국 수능 교육 전문가입니다. 강사 "{nm}"에 대해 아는 정보를 최대한 구체적으로 알려주세요.
+강사 과목: {sb}
+플랫폼: 메가스터디, EBSi, 대성마이맥, 이투스, 강남구청, 공단기 등
+
+반드시 이 강사의 실제 특징을 담아야 합니다:
+1. 시그니처 학습법/방법론 (예: ABPS, 강기분, 씽킹맵, 로직트리 등 고유 브랜드명)
+2. 유명한 슬로건/명언
+3. 강의 스타일 특징 (판서 방식, 개념 설명 방식 등)
+4. 대표 커리큘럼 이름
+5. 학생들이 자주 언급하는 강점
+
+JSON만 반환:
+{{"found":true,"bio":"강사 이력 2-3문장 (플랫폼, 경력 포함)","slogan":"이 강사의 유명한 슬로건 (모르면 빈 문자열)","signatureMethods":["고유 학습법1","고유 학습법2"],"signatureCurriculum":"대표 커리큘럼 브랜드명","teachingStyle":"강의 스타일 1문장","studentFeedback":"학생들이 자주 하는 후기 테마 1문장","desc":"이 강사만의 차별화 포인트 2문장","badges":[["특징1","라벨1"],["특징2","라벨2"],["특징3","라벨3"]]}}""",
+                        "Korean 수능 education expert. Return ONLY valid compact JSON. Be specific to this instructor."))
                     st.session_state.inst_profile = p
                     if p.get("found"):
-                        st.success("✓ 강사 정보 검색 완료!")
+                        # 강사 정보 미리보기 표시
+                        st.success(f"✓ {nm} 선생님 정보 검색 완료!")
+                        if p.get("slogan"):
+                            st.caption(f"💬 슬로건: {p['slogan']}")
+                        if p.get("signatureMethods"):
+                            st.caption(f"📚 학습법: {', '.join(p['signatureMethods'])}")
+                        if p.get("teachingStyle"):
+                            st.caption(f"🎯 스타일: {p['teachingStyle'][:50]}")
                     else:
-                        st.info("정보를 찾지 못했습니다.")
+                        st.info("정보를 찾지 못했습니다. 직접 입력된 강사명으로 생성합니다.")
                 except Exception as e:
                     st.error(f"검색 실패: {e}")
 
