@@ -131,6 +131,10 @@ SUBJ_KW = {
 KO_BG = {
     "관중이 가득찬 야구장": "baseball stadium crowd night lights",
     "야구장": "baseball stadium crowd night",
+    "사람 많은 야구장": "baseball stadium crowd night",
+    "사람많은 야구장": "baseball stadium crowd night",
+    "야구": "baseball game crowd stadium",
+    "경기장": "sports arena stadium crowd",
     "축구장": "soccer stadium crowd night",
     "농구장": "basketball court arena",
     "관중": "stadium crowd cheering",
@@ -217,21 +221,30 @@ def safe_json(raw: str) -> dict:
     raise ValueError(f"JSON 파싱 실패\n원본: {raw[:300]}")
 
 def build_bg_url(mood: str) -> str:
+    """한글/영어 무드 → 실사 배경 이미지 URL
+    loremflickr.com: 키워드 기반 Flickr 실사 이미지 (무료, 안정적)
+    """
     if not mood: return ""
     text = mood.lower()
     found = []
-    # 긴 키워드부터 매칭
+    # 긴 키워드부터 매칭 (가장 구체적인 표현 우선)
     for ko, en in sorted(KO_BG.items(), key=lambda x: -len(x[0])):
         if ko.lower() in text:
-            found.extend(en.split()[:3])
+            found.extend(en.split())
             text = text.replace(ko.lower(), " ")
+            if len(found) >= 6:
+                break
     # 영어 단어 직접 사용
-    eng = [w for w in re.findall(r"[a-zA-Z]{4,}", mood) if w.lower() not in ("this","that","with","from","have","been")]
-    found.extend(eng[:2])
+    eng = [w for w in re.findall(r"[a-zA-Z]{4,}", mood)
+           if w.lower() not in ("this","that","with","from","have","been","just","very")]
+    found.extend(eng[:3])
     if not found:
-        found = ["study","education","learning"]
-    tags = ",".join(list(dict.fromkeys(found))[:4])
-    return f"https://loremflickr.com/1920/900/{tags}?lock={random.randint(1,9999)}"
+        found = ["stadium","crowd","sports","night"]
+    # 중복 제거, 최대 3개 (loremflickr는 키워드가 적을수록 정확)
+    tags = ",".join(list(dict.fromkeys(found))[:3])
+    lock = random.randint(1, 99999)
+    # loremflickr: 실제 Flickr 사진 키워드 검색 제공
+    return f"https://loremflickr.com/1920/900/{tags}?lock={lock}"
 
 # ══════════════════════════════════════
 # AI 호출
@@ -297,8 +310,16 @@ def gen_concept(seed: dict) -> dict:
 - heroStyle: "split"(2컬럼), "immersive"(풀스크린), "editorial"(에디토리얼) 중 하나
 
 다음 JSON만 반환 (한 줄, 줄바꿈 없음):
-{{"name":"2-4한글+이모지","dark":true,"heroStyle":"immersive","c1":"#hex","c2":"#hex","c3":"#hex","c4":"#hex","bg":"#hex","bg2":"#hex","bg3":"#hex","textHex":"#hex","textRgb":"r,g,b","bdAlpha":"rgba(r,g,b,.12)","displayFont":"Google Font","bodyFont":"Noto Sans KR","fontWeights":"400;700;900","displayFontWeights":"400;700","borderRadiusPx":8,"btnBorderRadiusPx":100,"particle":"none","ctaGradient":"linear-gradient(135deg,#hex,#hex)","extraCSS":"CSS min 120 chars single quotes only"}}"""
-    return safe_json(call_ai(prompt, max_tokens=800))
+{{"name":"2-4글자+이모지(교육/한국/랜딩/페이지/수능 같은 단어 절대금지 — 무드 분위기를 담은 창의적 이름)","dark":true,"heroStyle":"immersive","c1":"#hex","c2":"#hex","c3":"#hex","c4":"#hex","bg":"#hex","bg2":"#hex","bg3":"#hex","textHex":"#hex","textRgb":"r,g,b","bdAlpha":"rgba(r,g,b,.12)","displayFont":"Google Font","bodyFont":"Noto Sans KR","fontWeights":"400;700;900","displayFontWeights":"400;700","borderRadiusPx":8,"btnBorderRadiusPx":100,"particle":"none","ctaGradient":"linear-gradient(135deg,#hex,#hex)","extraCSS":"CSS min 120 chars single quotes only"}}"""
+    result = safe_json(call_ai(prompt, max_tokens=800))
+    # 컨셉 이름이 너무 일반적이면 무드 기반으로 직접 생성
+    name = result.get("name","")
+    generic = ["한국","교육","랜딩","페이지","강사","수능","학습","공부","스터디"]
+    if not name or any(g in name for g in generic) or len(name) > 12:
+        # 무드 첫 단어로 컨셉명 생성
+        mood_word = seed.get("mood","").split()[0][:4] if seed.get("mood") else "새 컨셉"
+        result["name"] = mood_word + " 🎨"
+    return result
 
 
 def _get_instructor_context() -> str:
@@ -379,13 +400,99 @@ def gen_custom_sec(topic: str) -> dict:
     return safe_json(call_ai(prompt, max_tokens=600))
 
 
+# ── 엑셀 기반 강사 DB (정확한 정보) ──
+INSTRUCTOR_DB = {
+    "이명학": {"found":True,"subject":"영어","platform":"대성마이맥",
+        "bio":"대성마이맥 영어 강사. Syntax·R'gorithm·Read N' Logic 시리즈 운영.",
+        "slogan":"영어, 논리로 끝낸다",
+        "signatureMethods":["R'gorithm (독해 알고리즘)","Syntax (구문 분석)"],
+        "signatureCurriculum":"Read N' Logic (빈칸·순서·삽입)",
+        "teachingStyle":"구문 분석과 독해 논리를 체계적으로 연결",
+        "desc":"R'gorithm으로 영어 지문 구조를 논리적으로 파악하게 만드는 강사"},
+    "션티": {"found":True,"subject":"영어","platform":"대성마이맥",
+        "bio":"대성마이맥 영어 강사. KISS 시리즈(KISSAVE·KISSCHEMA·KISS Logic)로 수능 영어 완성.",
+        "slogan":"KISS — Keep It Simple, Suneung",
+        "signatureMethods":["KISS Logic (독해·빈칸·순삽)","KISSAVE (입문)","KISSCHEMA (유형별)"],
+        "signatureCurriculum":"주간 KISS FULL — 실전 반복 훈련",
+        "teachingStyle":"수능 영어 핵심 원리를 KISS 방법론으로 단순화하여 반복 훈련",
+        "desc":"KISS 시리즈로 처음부터 끝까지 체계적으로 수능 영어를 완성하는 강사"},
+    "이미지": {"found":True,"subject":"수학","platform":"대성마이맥",
+        "bio":"대성마이맥 수학 강사. 세젤쉬·미친개념·미친기분 시리즈 운영.",
+        "slogan":"수학, 미치도록 쉽게",
+        "signatureMethods":["세젤쉬 (세상에서 제일 쉬운)","미친개념","미친기분 (기출 분석)"],
+        "signatureCurriculum":"미친기분 — 기출 완전 정복",
+        "teachingStyle":"복잡한 수학 개념을 직관적으로 쉽게 설명",
+        "desc":"세젤쉬·미친개념으로 수학이 어려운 학생도 쉽게 따라올 수 있게 만드는 강사"},
+    "김범준": {"found":True,"subject":"수학","platform":"대성마이맥",
+        "bio":"대성마이맥 수학 강사. Starting Block·KICE Anatomy·The Hurdling 시리즈 운영.",
+        "slogan":"수능 수학의 뼈대를 세워라",
+        "signatureMethods":["KICE Anatomy (기출 해부)","Starting Block (개념 기초)","The Hurdling (문제풀이)"],
+        "signatureCurriculum":"KICE Anatomy — 수능 수학 기출 해부",
+        "teachingStyle":"수능 기출을 철저히 해부하여 출제 원리를 파악",
+        "desc":"KICE Anatomy로 수능 수학 기출의 원리를 완전히 이해시키는 강사"},
+    "김승리": {"found":True,"subject":"국어","platform":"대성마이맥",
+        "bio":"대성마이맥 국어 강사. All Of KICE·VIC-FLIX(EBS 연계) 시리즈 운영.",
+        "slogan":"국어, 승리로 끝낸다",
+        "signatureMethods":["All Of KICE (수능 국어 전 범위)","VIC-FLIX (EBS 연계)"],
+        "signatureCurriculum":"All Of KICE predator — 독서·문학 완성",
+        "teachingStyle":"수능 국어 출제 원리 파악 후 실전 풀이 능력 강화",
+        "desc":"All Of KICE 시리즈로 수능 국어를 원리부터 실전까지 완성하는 강사"},
+    "유대종": {"found":True,"subject":"국어","platform":"대성마이맥",
+        "bio":"대성마이맥 국어 강사. 인셉션 시리즈·파노라마 문학/독서·O.V.S(EBS 연계) 운영.",
+        "slogan":"국어의 인셉션을 시작하라",
+        "signatureMethods":["인셉션 (독해·문학·독서)","O.V.S (EBS 연계)","파노라마 (문학·독서 문제풀이)"],
+        "signatureCurriculum":"인셉션 독서·문학 — 국어 개념 완성",
+        "teachingStyle":"국어 독해와 문학을 인셉션 방식으로 깊이 이해시키는 체계적 강의",
+        "desc":"인셉션 시리즈로 국어의 깊은 원리를 차근차근 이해시키는 강사"},
+    "임정환": {"found":True,"subject":"사회","platform":"대성마이맥",
+        "bio":"대성마이맥 사회탐구 강사. LIM IT·IMFACT·ALL LIM'S PICK 시리즈로 사문·생윤·윤사 전문.",
+        "slogan":"사탐은 LIM이 끝낸다",
+        "signatureMethods":["LIM IT (개념 완성)","IMFACT (심화)","ALL LIM'S PICK (문제풀이)"],
+        "signatureCurriculum":"LIM IT → IMFACT → ALL LIM'S PICK 3단계",
+        "teachingStyle":"사회탐구 개념을 LIM 3단계로 체계적으로 완성",
+        "desc":"사회문화·생활과윤리·윤리와사상을 LIM 시리즈로 완전 정복하는 강사"},
+    "최여름": {"found":True,"subject":"사회","platform":"대성마이맥",
+        "bio":"대성마이맥 사회탐구 강사. BLZA SUMMER 시리즈로 사회문화 전 범위 완성.",
+        "slogan":"여름처럼 뜨겁게, 사탐을 정복하라",
+        "signatureMethods":["BLZA SUMMER (개념·기출·심화 통합)","SUMMER N제"],
+        "signatureCurriculum":"BLZA SUMMER 1~5 — 사회문화 완전 정복",
+        "teachingStyle":"BLZA SUMMER 시리즈로 개념부터 모의고사까지 단계별 완성",
+        "desc":"BLZA SUMMER 시리즈로 사회문화를 처음부터 끝까지 완성하는 강사"},
+    "방인혁": {"found":True,"subject":"과학","platform":"대성마이맥",
+        "bio":"대성마이맥 물리학 강사. The Fundamentals·BIG BANG 모의고사 시리즈 운영.",
+        "slogan":"물리학, 본질을 꿰뚫어라",
+        "signatureMethods":["The Fundamentals (개념완성)","Problem Solving (기출)","BIG BANG 모의고사"],
+        "signatureCurriculum":"The Fundamentals — 물리학 개념 완성",
+        "teachingStyle":"물리학 본질적 원리부터 체계적으로 접근",
+        "desc":"물리학 개념의 본질을 The Fundamentals로 완전히 이해시키는 강사"},
+    "배기범": {"found":True,"subject":"과학","platform":"메가스터디",
+        "bio":"메가스터디 물리학 강사. PLAN B 시리즈·기범비급·3순환 기출특강으로 물리학 완성.",
+        "slogan":"물리학은 PLAN B가 있다",
+        "signatureMethods":["PLAN B (문제풀이 Tool)","기범비급 (심화)","3순환 기출특강"],
+        "signatureCurriculum":"PLAN B — 물리학 문제풀이 Tool 완전 정복",
+        "teachingStyle":"물리학 문제풀이 핵심 도구를 PLAN B로 체계적 훈련",
+        "desc":"PLAN B 시리즈로 물리학 문제풀이 핵심 기술을 완전히 습득시키는 강사"},
+}
+
 def search_instructor(name: str, subj: str) -> dict:
-    prompt = f"""한국 수능 교육 강사 "{name}" ({subj} 과목) 정보.
-모르는 정보는 빈 문자열. 절대 지어내지 마세요.
-특히 signatureMethods: 이 강사만의 고유 학습법 브랜드명 (예: 강기분, 씽킹맵, 로직트리 등). 없으면 빈 배열.
-한자 금지. JSON만:
-{{"found":true,"bio":"활동 플랫폼과 전공 1문장","slogan":"유명한 한마디 또는 빈문자열","signatureMethods":["고유학습법"],"teachingStyle":"강의 특징 1문장","desc":"이 강사만의 차별점 1문장"}}"""
-    return safe_json(call_ai(prompt, max_tokens=400))
+    """엑셀 DB 우선 검색, 없으면 AI 보조 (환각 방지)"""
+    # 이름 정확 매칭 먼저
+    if name in INSTRUCTOR_DB:
+        return INSTRUCTOR_DB[name]
+    # 부분 매칭 시도
+    for db_name, info in INSTRUCTOR_DB.items():
+        if name in db_name or db_name in name:
+            return info
+    # DB에 없는 강사 — AI에게 묻되 매우 보수적으로
+    prompt = f"""한국 수능 강사 "{name}" ({subj} 과목). 
+정말 확실히 아는 정보만 답하세요. 모르면 반드시 빈 문자열.
+절대 지어내지 마세요. 한자 금지.
+JSON만: {{"found":true,"bio":"1문장","slogan":"","signatureMethods":[],"teachingStyle":"1문장","desc":"1문장"}}"""
+    try:
+        return safe_json(call_ai(prompt, max_tokens=300))
+    except Exception:
+        return {"found": True, "bio": f"{subj} 강사", "slogan": "",
+                "signatureMethods": [], "teachingStyle": "", "desc": ""}
 
 # ══════════════════════════════════════
 # 테마 리졸버
@@ -536,7 +643,15 @@ def sec_why(d, cp, T):
     t = strip_hanja(cp.get("whyTitle","이 강의가 필요한 이유"))
     s = strip_hanja(cp.get("whySub", f"{d['subject']} 1등급의 비결"))
     reasons = cp.get("whyReasons",[["🎯","유형별 완전 정복","수능 출제 유형을 완전히 분석하여 어떤 문제도 흔들리지 않는 실력을 만듭니다."],["📊","기출 데이터 분석","최근 5년 기출을 철저히 분석하여 실전에서 반드시 나오는 유형만 집중 훈련합니다."],["⚡","실전 속도 훈련","정확도와 속도를 동시에 잡아 70분 안에 45문항을 완벽히 소화하는 훈련을 합니다."]])
-    rh = "".join(f'<div class="card"><div style="display:flex;align-items:center;gap:12px;margin-bottom:14px"><div style="width:44px;height:44px;border-radius:var(--r,12px);background:var(--c1);display:flex;align-items:center;justify-content:center;font-size:20px">{ic}</div><div style="font-family:var(--fh);font-size:15px;font-weight:700" class="st">{strip_hanja(tt)}</div></div><p style="font-size:13px;line-height:1.85;color:var(--t70)">{strip_hanja(dc)}</p></div>' for ic,tt,dc in reasons)
+    safe_reasons = []
+    for item in reasons:
+        if isinstance(item, (list, tuple)) and len(item) >= 3:
+            safe_reasons.append((str(item[0]), str(item[1]), str(item[2])))
+        elif isinstance(item, (list, tuple)) and len(item) == 2:
+            safe_reasons.append(("✦", str(item[0]), str(item[1])))
+        elif isinstance(item, dict):
+            safe_reasons.append((item.get("icon","✦"), item.get("title",""), item.get("desc","")))
+    rh = "".join(f'<div class="card"><div style="display:flex;align-items:center;gap:12px;margin-bottom:14px"><div style="width:44px;height:44px;border-radius:var(--r,12px);background:var(--c1);display:flex;align-items:center;justify-content:center;font-size:20px">{ic}</div><div style="font-family:var(--fh);font-size:15px;font-weight:700" class="st">{strip_hanja(tt)}</div></div><p style="font-size:13px;line-height:1.85;color:var(--t70)">{strip_hanja(dc)}</p></div>' for ic,tt,dc in safe_reasons)
     return f'<section class="sec" id="why"><div class="rv"><div class="tag-line">수강 이유</div><h2 class="sec-h2 st">{t}</h2><p class="sec-sub">{s}</p></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px" class="rv d1">{rh}</div></section>'
 
 def sec_curriculum(d, cp, T):
@@ -745,7 +860,13 @@ div[data-testid="stMetric"] div{color:#E8EDF5!important;font-weight:700!importan
     font-size:12px!important;
 }
 /* 메인 영역 배경 */
-.stMainBlockContainer{background:#060810;}
+.stMainBlockContainer{background:#0D1117;color:#E8EDF5;}
+/* 메인 영역 기본 텍스트 색상 강제 */
+.stMainBlockContainer p, .stMainBlockContainer span,
+.stMainBlockContainer label, .stMainBlockContainer div {color:#C8D4EA;}
+.stMainBlockContainer h1,.stMainBlockContainer h2,
+.stMainBlockContainer h3,.stMainBlockContainer h4{color:#E8EDF5!important;}
+.stMarkdown{color:#C8D4EA!important;}
 /* 성공/정보 메시지 */
 .stSuccess{background:rgba(52,211,153,.08)!important;border:1px solid rgba(52,211,153,.2)!important;}
 .stInfo{background:rgba(99,102,241,.08)!important;border:1px solid rgba(99,102,241,.2)!important;}
@@ -1005,20 +1126,39 @@ with L:
     st.markdown("### 🎲 섹션별 문구 랜덤 재생성")
     st.caption("버튼 클릭 시 해당 섹션 문구만 새롭게 바뀝니다")
     regen_secs = [s for s in ordered if s in SEC_LABELS and s not in ("custom_section",)]
+    # 섹션별 재생성 — 이모지만 사용해서 한 줄에 표시
+    SEC_SHORT = {
+        "banner":"배너","intro":"소개","why":"이유","curriculum":"커리큘럼",
+        "target":"대상","reviews":"수강평","faq":"FAQ","cta":"CTA",
+        "event_overview":"개요","event_benefits":"혜택","event_deadline":"마감",
+        "fest_hero":"히어로","fest_lineup":"라인업","fest_benefits":"혜택","fest_cta":"CTA",
+    }
     if regen_secs and st.session_state.api_key:
-        cols_r = st.columns(min(4, len(regen_secs)))
-        for i, sid in enumerate(regen_secs):
-            with cols_r[i % 4]:
-                if st.button(f"🎲 {SEC_LABELS[sid]}", key=f"regen_{sid}", use_container_width=True):
-                    with st.spinner(f"{SEC_LABELS[sid]} 재생성 중..."):
-                        try:
-                            r = gen_section(sid)
-                            if st.session_state.custom_copy is None:
-                                st.session_state.custom_copy = {}
-                            st.session_state.custom_copy.update(r)
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"실패: {e}")
+        # CSS로 버튼 크기 통일
+        st.markdown("""<style>
+        div[data-testid="stHorizontalBlock"] .stButton>button{
+            font-size:11px!important;padding:6px 4px!important;
+            white-space:nowrap!important;overflow:hidden!important;
+            text-overflow:ellipsis!important;
+        }
+        </style>""", unsafe_allow_html=True)
+        # 4열씩 묶어서 표시
+        for row_start in range(0, len(regen_secs), 4):
+            chunk = regen_secs[row_start:row_start+4]
+            cols_r = st.columns(len(chunk))
+            for i, sid in enumerate(chunk):
+                label = SEC_SHORT.get(sid, sid)
+                with cols_r[i]:
+                    if st.button(f"🎲 {label}", key=f"regen_{sid}", use_container_width=True):
+                        with st.spinner(f"{label} 재생성 중..."):
+                            try:
+                                r = gen_section(sid)
+                                if st.session_state.custom_copy is None:
+                                    st.session_state.custom_copy = {}
+                                st.session_state.custom_copy.update(r)
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"실패: {e}")
     elif not st.session_state.api_key:
         st.caption("API 키를 입력하면 버튼이 활성화됩니다.")
 
