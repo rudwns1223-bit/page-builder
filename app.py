@@ -34,14 +34,14 @@ for _k, _v in _DEFAULTS.items():
 # Secrets 자동 로드
 if not st.session_state.api_key:
     try:
-        st.session_state.api_key = st.secrets.get("GEMINI_API_KEY", "")
+        st.session_state.api_key = st.secrets.get("GROQ_API_KEY", "")
     except Exception:
         pass
 
 # ── 상수 ──
-# Gemini 모델 — 확실히 작동하는 모델만
-GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
-GEMINI_MODELS = ["gemini-2.0-flash", "gemini-2.0-flash-lite"]
+# Groq — 완전 무료, 카드 불필요 (console.groq.com)
+GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_MODELS  = ["llama-3.3-70b-versatile", "llama3-70b-8192", "mixtral-8x7b-32768"]
 
 THEMES = {
     "sakura":  {"label":"🌸 벚꽃 봄",    "dark":False,
@@ -123,70 +123,59 @@ SUBJECT_KW = {
 
 # ── AI 호출 (REST API 직접 — SDK 없음) ──
 def call_gemini(prompt, system="", json_mode=True, max_tokens=3000):
-    """Gemini REST API — systemInstruction 미사용, 프롬프트에 직접 포함"""
+    """Groq API 호출 — 완전 무료, 카드 불필요"""
     key = st.session_state.api_key.strip()
     if not key:
-        raise ValueError("API 키가 없습니다. 사이드바에서 입력해주세요.")
+        raise ValueError("API 키가 없습니다. 사이드바에서 gsk_... 키를 입력해주세요.")
 
-    # 시스템 지시 + JSON 요청을 프롬프트 앞에 직접 붙임
-    prefix = []
+    messages = []
+    sys_parts = []
     if system:
-        prefix.append(system)
+        sys_parts.append(system)
     if json_mode:
-        prefix.append("Return ONLY valid JSON. No markdown. No extra text.")
-    full_prompt = "\n\n".join(prefix + [prompt])
+        sys_parts.append("Return ONLY valid JSON. No markdown fences. No extra text.")
+    if sys_parts:
+        messages.append({"role": "system", "content": "\n\n".join(sys_parts)})
+    messages.append({"role": "user", "content": prompt})
 
     last_err = None
-    for model in GEMINI_MODELS:
-        url = f"{GEMINI_API_BASE}/{model}:generateContent?key={key}"
-        body = {
-            "contents": [{"parts": [{"text": full_prompt}]}],
-            "generationConfig": {"maxOutputTokens": max_tokens, "temperature": 0.7},
-        }
+    for model in GROQ_MODELS:
         try:
-            resp = requests.post(url, json=body, timeout=60)
+            resp = requests.post(
+                GROQ_API_URL,
+                headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                json={"model": model, "messages": messages,
+                      "max_tokens": max_tokens, "temperature": 0.7},
+                timeout=60,
+            )
         except Exception as e:
             last_err = Exception(f"네트워크 오류: {e}"); continue
 
-        if resp.status_code == 400:
-            try: msg = resp.json().get("error",{}).get("message","")
-            except Exception: msg = resp.text[:100]
-            last_err = Exception(f"400 ({model}): {msg}"); continue
-        if resp.status_code == 403:
-            raise Exception("🔑 API 키 오류 — aistudio.google.com에서 키를 확인해주세요.")
+        if resp.status_code == 401:
+            raise Exception("🔑 API 키 오류 — console.groq.com에서 키를 확인해주세요.")
         if resp.status_code == 429:
-            last_err = Exception(f"⏳ 429 한도 초과 ({model}) — 잠시 후 재시도")
+            last_err = Exception(f"⏳ 한도 초과 ({model}) — 잠시 후 재시도")
             time.sleep(2); continue
-        if not resp.ok:
-            try: msg = resp.json().get("error",{}).get("message", resp.text[:100])
+        if resp.status_code in (400, 404):
+            try: msg = resp.json().get("error", {}).get("message", "")
             except Exception: msg = resp.text[:100]
+            last_err = Exception(f"HTTP {resp.status_code} ({model}): {msg}"); continue
+        if not resp.ok:
+            try: msg = resp.json().get("error", {}).get("message", resp.text[:150])
+            except Exception: msg = resp.text[:150]
             last_err = Exception(f"HTTP {resp.status_code} ({model}): {msg}"); continue
 
         try:
-            data = resp.json()
-            if data.get("promptFeedback",{}).get("blockReason"):
-                last_err = Exception(f"안전 필터 차단 ({model})"); continue
-            text = data["candidates"][0]["content"]["parts"][0]["text"]
+            text = resp.json()["choices"][0]["message"]["content"]
             if text and text.strip():
                 return text
-        except (KeyError, IndexError):
-            last_err = Exception(f"응답 파싱 실패 ({model}): {str(data)[:100]}"); continue
+            last_err = Exception(f"응답 비어있음 ({model})"); continue
+        except (KeyError, IndexError) as e:
+            last_err = Exception(f"응답 파싱 실패 ({model}): {e}"); continue
 
-    raise last_err or Exception("모든 모델 실패")
+    raise last_err or Exception("모든 모델 실패 — API 키를 확인해주세요.")
 
-def safe_json(raw):
-    s = re.sub(r"```json\s*","",raw.strip())
-    s = re.sub(r"```\s*","",s).strip()
-    fb, lb = s.find("{"), s.rfind("}")
-    if fb > 0: s = s[fb:]
-    if lb >= 0 and lb < len(s)-1: s = s[:lb+1]
-    try: return json.loads(s)
-    except Exception:
-        s2 = re.sub(r'(?<!\\)"((?:[^"\\]|\\.)*)"', lambda m: '"'+m.group(1).replace("\n"," ")+'"', s)
-        try: return json.loads(s2)
-        except Exception as e: raise ValueError(f"JSON 파싱 실패: {e}\n원본: {raw[:200]}")
 
-# ── AI 생성 함수 ──
 def gen_concept(seed):
     lg = {"brutalist":"sharp corners 0-2px, heavy uppercase, stark contrast",
           "editorial":"large serif italic, generous whitespace, asymmetric 2-col",
@@ -448,10 +437,10 @@ with st.sidebar:
     st.divider()
 
     # API Key
-    st.markdown("**🔑 Gemini API Key** ([무료 발급 →](https://aistudio.google.com))")
+    st.markdown("**🔑 Groq API Key** ([무료 발급 →](https://console.groq.com))")
     _secret_key = ""
     try:
-        _secret_key = st.secrets.get("GEMINI_API_KEY", "")
+        _secret_key = st.secrets.get("GROQ_API_KEY", "")
     except Exception:
         pass
     if _secret_key and not st.session_state.api_key:
@@ -460,13 +449,13 @@ with st.sidebar:
         st.success("✓ Secrets에서 자동 로드됨", icon="🔒")
     else:
         api_in = st.text_input("API Key", type="password", value=st.session_state.api_key,
-                               placeholder="AIzaSy...", label_visibility="collapsed")
+                               placeholder="gsk_...", label_visibility="collapsed")
         if api_in != st.session_state.api_key:
             st.session_state.api_key = api_in
         if st.session_state.api_key:
-            st.success("✓ Gemini API 키 입력됨 (무료)", icon="✅")
+            st.success("✓ Groq API 키 입력됨 (완전 무료!)", icon="✅")
         else:
-            st.info("👆 aistudio.google.com → Get API Key (무료)", icon="🔑")
+            st.info("👆 console.groq.com → API Keys → Create API Key", icon="🔑")
 
     st.divider()
 
