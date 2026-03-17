@@ -34,18 +34,14 @@ for _k, _v in _DEFAULTS.items():
 # Secrets 자동 로드
 if not st.session_state.api_key:
     try:
-        st.session_state.api_key = st.secrets.get("GEMINI_API_KEY", "")
+        st.session_state.api_key = st.secrets.get("GROK_API_KEY", "")
     except Exception:
         pass
 
 # ── 상수 ──
-# (model_name, api_version) 쌍 — v1beta/v1 모두 시도
-GEMINI_MODELS = [
-    ("gemini-2.0-flash",   "v1beta"),
-    ("gemini-2.0-flash",   "v1"),
-    ("gemini-1.5-flash",   "v1"),
-    ("gemini-1.5-flash",   "v1beta"),
-]
+# Grok 모델 (xAI) — OpenAI 호환 API
+GROK_MODEL = "grok-3-mini"
+GROK_API_URL = "https://api.x.ai/v1/chat/completions"
 
 THEMES = {
     "sakura":  {"label":"🌸 벚꽃 봄",    "dark":False,
@@ -127,58 +123,59 @@ SUBJECT_KW = {
 
 # ── AI 호출 (REST API 직접 — SDK 없음) ──
 def call_gemini(prompt, system="", json_mode=True, max_tokens=3000):
-    """systemInstruction 완전 제거 — 400 오류 원인.
-    시스템 프롬프트를 유저 메시지 앞에 직접 삽입."""
+    """Grok (xAI) API 호출 — OpenAI 호환 방식"""
     key = st.session_state.api_key.strip()
     if not key:
         raise ValueError("API 키가 없습니다. 사이드바에서 입력해주세요.")
 
-    # system + json 지시를 프롬프트 앞에 직접 합침 (systemInstruction 사용 안 함)
-    prefix_parts = []
+    messages = []
     if system:
-        prefix_parts.append(system)
+        messages.append({"role": "system", "content": system})
     if json_mode:
-        prefix_parts.append("Return ONLY valid JSON. No markdown. No extra text.")
-    full_prompt = "\n\n".join(prefix_parts + [prompt]) if prefix_parts else prompt
+        json_note = "Return ONLY valid JSON. No markdown. No extra text."
+        if messages:
+            messages[0]["content"] += "\n\n" + json_note
+        else:
+            messages.append({"role": "system", "content": json_note})
+    messages.append({"role": "user", "content": prompt})
 
-    last_err = None
-    for model in GEMINI_MODELS:
-        model_name, api_ver = model
-        url = (f"https://generativelanguage.googleapis.com"
-               f"/{api_ver}/models/{model_name}:generateContent?key={key}")
-        body = {
-            "contents": [{"parts": [{"text": full_prompt}]}],
-            "generationConfig": {"maxOutputTokens": max_tokens, "temperature": 0.7},
-        }
-        try:
-            resp = requests.post(url, json=body, timeout=60)
-        except Exception as e:
-            last_err = Exception(f"네트워크 오류: {e}"); continue
+    body = {
+        "model": GROK_MODEL,
+        "messages": messages,
+        "max_tokens": max_tokens,
+        "temperature": 0.7,
+    }
 
-        if resp.status_code == 429:
-            last_err = Exception(f"⏳ 429 한도 초과 ({model_name}/{api_ver}) — 잠시 후 재시도")
-            time.sleep(2); continue
-        if resp.status_code == 403:
-            raise Exception("🔑 API 키 오류 — aistudio.google.com에서 키를 확인해주세요.")
-        if resp.status_code in (400, 404):
-            try: err_msg = resp.json().get("error",{}).get("message","")
-            except Exception: err_msg = resp.text[:100]
-            last_err = Exception(f"HTTP {resp.status_code} ({model_name}/{api_ver}): {err_msg}"); continue
-        if not resp.ok:
-            last_err = Exception(f"HTTP {resp.status_code} ({model_name}/{api_ver}): {resp.text[:150]}"); continue
+    try:
+        resp = requests.post(
+            GROK_API_URL,
+            headers={
+                "Authorization": f"Bearer {key}",
+                "Content-Type": "application/json",
+            },
+            json=body,
+            timeout=60,
+        )
+    except Exception as e:
+        raise Exception(f"네트워크 오류: {e}")
 
-        try:
-            data = resp.json()
-            if data.get("promptFeedback",{}).get("blockReason"):
-                last_err = Exception(f"안전 필터 차단 ({model_name}/{api_ver})"); continue
-            parts = data["candidates"][0]["content"]["parts"]
-            text = next(p["text"] for p in parts if "text" in p)
-            if text and text.strip():
-                return text
-        except (KeyError, StopIteration, IndexError):
-            last_err = Exception(f"응답 파싱 실패 ({model_name}/{api_ver})"); continue
+    if resp.status_code == 401:
+        raise Exception("🔑 API 키 오류 — console.x.ai에서 키를 확인해주세요.")
+    if resp.status_code == 429:
+        raise Exception("⏳ 요청 한도 초과 — 잠시 후 다시 시도해주세요.")
+    if not resp.ok:
+        try: err_msg = resp.json().get("error", {}).get("message", resp.text[:200])
+        except Exception: err_msg = resp.text[:200]
+        raise Exception(f"HTTP {resp.status_code}: {err_msg}")
 
-    raise last_err or Exception("Gemini 모든 모델 실패 — API 키를 다시 확인해주세요.")
+    try:
+        data = resp.json()
+        text = data["choices"][0]["message"]["content"]
+        if text and text.strip():
+            return text
+        raise Exception("응답이 비어있습니다.")
+    except (KeyError, IndexError) as e:
+        raise Exception(f"응답 파싱 실패: {e}\n원본: {str(data)[:200]}")
 
 def safe_json(raw):
     s = re.sub(r"```json\s*","",raw.strip())
@@ -454,25 +451,25 @@ with st.sidebar:
     st.divider()
 
     # API Key
-    st.markdown("**🔑 Gemini API Key** ([무료 발급 →](https://aistudio.google.com))")
+    st.markdown("**🔑 Grok API Key** ([무료 발급 →](https://console.x.ai))")
     _secret_key = ""
     try:
-        _secret_key = st.secrets.get("GEMINI_API_KEY", "")
+        _secret_key = st.secrets.get("GROK_API_KEY", "")
     except Exception:
         pass
     if _secret_key and not st.session_state.api_key:
         st.session_state.api_key = _secret_key
     if _secret_key and st.session_state.api_key == _secret_key:
-        st.success("✓ Secrets에서 자동 로드됨", icon="🔒")
+        st.success("✓ Secrets에서 자동 로드됨 (Grok)", icon="🔒")
     else:
         api_in = st.text_input("API Key", type="password", value=st.session_state.api_key,
-                               placeholder="AIzaSy...", label_visibility="collapsed")
+                               placeholder="xai-...", label_visibility="collapsed")
         if api_in != st.session_state.api_key:
             st.session_state.api_key = api_in
         if st.session_state.api_key:
-            st.success("✓ API 키 입력됨 (무료 · 분당 15회)", icon="✅")
+            st.success("✓ Grok API 키 입력됨 (월 $25 무료)", icon="✅")
         else:
-            st.info("👆 aistudio.google.com → Get API Key", icon="🔑")
+            st.info("👆 console.x.ai → API Keys → Create API Key", icon="🔑")
 
     st.divider()
 
@@ -493,7 +490,7 @@ with st.sidebar:
     st.markdown("**🎨 페이지 컨셉**")
     if st.button("🎲 AI 랜덤 생성 — 누를 때마다 완전히 새 디자인!", use_container_width=True, type="primary"):
         if not st.session_state.api_key:
-            st.warning("API 키를 먼저 입력해주세요")
+            st.warning("Grok API 키를 먼저 입력해주세요")
         else:
             seed = random.choice(RANDOM_SEEDS)
             while len(RANDOM_SEEDS) > 1 and seed == st.session_state.last_seed:
@@ -519,7 +516,7 @@ with st.sidebar:
         if not mood_in.strip():
             st.warning("무드를 입력해주세요")
         elif not st.session_state.api_key:
-            st.warning("API 키를 먼저 입력해주세요")
+            st.warning("Grok API 키를 먼저 입력해주세요")
         else:
             with st.spinner("AI 컨셉 생성 중..."):
                 try:
@@ -564,7 +561,7 @@ with st.sidebar:
         if not nm:
             st.warning("강사명을 먼저 입력해주세요")
         elif not st.session_state.api_key:
-            st.warning("API 키를 먼저 입력해주세요")
+            st.warning("Grok API 키를 먼저 입력해주세요")
         else:
             with st.spinner(f"{nm} 선생님 정보 검색 중..."):
                 try:
@@ -625,7 +622,7 @@ with st.sidebar:
             if not topic_in.strip():
                 st.warning("섹션 주제를 입력해주세요")
             elif not st.session_state.api_key:
-                st.warning("API 키를 먼저 입력해주세요")
+                st.warning("Grok API 키를 먼저 입력해주세요")
             else:
                 with st.spinner(f"'{topic_in}' 섹션 생성 중..."):
                     try:
@@ -671,7 +668,7 @@ with L:
         if not ctx.strip():
             st.warning("페이지 맥락을 입력해주세요")
         elif not st.session_state.api_key:
-            st.warning("API 키를 먼저 입력해주세요")
+            st.warning("Grok API 키를 먼저 입력해주세요")
         else:
             with st.spinner(f"{st.session_state.purpose_type} 맞춤 문구 생성 중... (10~20초)"):
                 try:
