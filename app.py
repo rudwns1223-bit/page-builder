@@ -176,6 +176,22 @@ def call_gemini(prompt, system="", json_mode=True, max_tokens=3000):
     raise last_err or Exception("모든 모델 실패 — API 키를 확인해주세요.")
 
 
+def safe_json(raw):
+    """AI 응답에서 JSON 안전하게 파싱"""
+    s = re.sub(r"```json\s*", "", raw.strip())
+    s = re.sub(r"```\s*", "", s).strip()
+    fb, lb = s.find("{"), s.rfind("}")
+    if fb > 0: s = s[fb:]
+    if lb >= 0 and lb < len(s)-1: s = s[:lb+1]
+    try:
+        return json.loads(s)
+    except Exception:
+        s2 = re.sub(r'(?<!\\)"((?:[^"\\]|\\.)*)"'  , lambda m: '"'+m.group(1).replace("\n"," ")+'"', s)
+        try:
+            return json.loads(s2)
+        except Exception as e:
+            raise ValueError(f"JSON 파싱 실패: {e}\n원본: {raw[:200]}")
+
 def gen_concept(seed):
     lg = {"brutalist":"sharp corners 0-2px, heavy uppercase, stark contrast",
           "editorial":"large serif italic, generous whitespace, asymmetric 2-col",
