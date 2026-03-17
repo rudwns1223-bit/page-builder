@@ -28,6 +28,7 @@ _D = {
     "active_sections": ["banner","intro","why","curriculum","cta"],
     "ai_mood": "", "inst_profile": None, "last_seed": None,
     "custom_section_on": False, "custom_section_topic": "",
+    "uploaded_bg_b64": "",
 }
 for _k, _v in _D.items():
     if _k not in st.session_state:
@@ -107,7 +108,7 @@ RANDOM_SEEDS = [
     {"mood":"다크 아카데미아 빅토리안 고딕 도서관","layout":"editorial","font":"serif"},
     {"mood":"관중이 가득찬 야구장, 밤의 전광판 붉은빛","layout":"brutalist","font":"display"},
     {"mood":"오래된 수학 교실 분필 칠판 먼지 냄새","layout":"editorial","font":"mono"},
-    {"mood":"겨울 새벽 눈 덮인 사찰 고요 집중 먹빛","layout":"minimal","font":"serif"},
+    {"mood":"겨울 새벽 눈 덮인 사찰 고요 집중 먹빛","layout":"minimal","font":"serif","particle_hint":"snow"},
     {"mood":"여름 밤 루프탑 바, 도시 스카이라인 인디고","layout":"immersive","font":"display"},
     {"mood":"19세기 파리 아방가르드 예술 포스터","layout":"magazine","font":"display"},
     {"mood":"네온 팝아트 비비드 원색 90s 리트로","layout":"brutalist","font":"display"},
@@ -314,11 +315,28 @@ def gen_concept(seed: dict) -> dict:
     result = safe_json(call_ai(prompt, max_tokens=800))
     # 컨셉 이름이 너무 일반적이면 무드 기반으로 직접 생성
     name = result.get("name","")
-    generic = ["한국","교육","랜딩","페이지","강사","수능","학습","공부","스터디"]
+    generic = ["한국","교육","랜딩","페이지","강사","수능","학습","공부","스터디","강의"]
     if not name or any(g in name for g in generic) or len(name) > 12:
-        # 무드 첫 단어로 컨셉명 생성
         mood_word = seed.get("mood","").split()[0][:4] if seed.get("mood") else "새 컨셉"
         result["name"] = mood_word + " 🎨"
+    # seed에서 particle 힌트가 있으면 강제 적용
+    if seed.get("particle_hint") and result.get("particle","none") == "none":
+        result["particle"] = seed["particle_hint"]
+    # 무드 키워드로 particle 추론
+    mood_lower = seed.get("mood","").lower()
+    if result.get("particle","none") == "none":
+        if any(k in mood_lower for k in ["눈","겨울","snow","winter","사찰 고요"]):
+            result["particle"] = "snow"
+        elif any(k in mood_lower for k in ["벚꽃","꽃비","봄","spring"]):
+            result["particle"] = "petals"
+        elif any(k in mood_lower for k in ["우주","별","cosmos","space","플라네타리움"]):
+            result["particle"] = "stars"
+        elif any(k in mood_lower for k in ["불꽃","파이어","ember","fire"]):
+            result["particle"] = "embers"
+        elif any(k in mood_lower for k in ["황금","gold","사막","이집트"]):
+            result["particle"] = "gold"
+        elif any(k in mood_lower for k in ["단풍","낙엽","숲","가을","잎"]):
+            result["particle"] = "leaves"
     return result
 
 
@@ -346,7 +364,8 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
         "이벤트": '{"bannerSub":"10자","bannerTitle":"20자","bannerLead":"50자 긴박감","ctaCopy":"10자","ctaTitle":"CTA","ctaSub":"30자","ctaBadge":"15자","statBadges":[],"eventTitle":"20자","eventDesc":"40자","eventDetails":[["📅","이벤트 기간","날짜"],["🎯","대상","값"],["💰","혜택","값"]],"benefitsTitle":"20자","eventBenefits":[{"icon":"이모지","title":"혜택명","desc":"35자","badge":"8자","no":"01"},{"icon":"이모지","title":"혜택명","desc":"35자","badge":"8자","no":"02"},{"icon":"이모지","title":"혜택명","desc":"35자","badge":"8자","no":"03"}],"deadlineTitle":"20자","deadlineMsg":"60자 긴박감","reviews":[["30자 인용문","이름","뱃지"],["인용문","이름","뱃지"],["인용문","이름","뱃지"]]}',
         "기획전": '{"festHeroTitle":"20자","festHeroCopy":"30자","festHeroSub":"40자","festHeroStats":[["수치","라벨"],["수치","라벨"],["수치","라벨"],["수치","라벨"]],"festLineupTitle":"20자","festLineupSub":"40자","festLineup":[{"name":"강사명","tag":"분야8자","tagline":"30자","badge":"8자","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"소개","badge":"뱃지","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"소개","badge":"뱃지","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"소개","badge":"뱃지","emoji":"이모지"}],"festBenefitsTitle":"20자","festBenefits":[{"icon":"이모지","title":"혜택명","desc":"35자","badge":"8자","no":"01"},{"icon":"이모지","title":"혜택명","desc":"35자","badge":"8자","no":"02"},{"icon":"이모지","title":"혜택명","desc":"35자","badge":"8자","no":"03"},{"icon":"이모지","title":"혜택명","desc":"35자","badge":"8자","no":"04"}],"festCtaTitle":"CTA제목","festCtaSub":"40자"}',
     }
-    prompt = f"""당신은 대한민국 수능 교육 랜딩페이지 카피라이터입니다.
+    prompt = f"""당신은 대한민국 최고 수능 교육 랜딩페이지 카피라이터입니다.
+실제 대성마이맥·메가스터디 수준의 설득력 있는 현대적 문구를 작성하세요.
 
 ===강사 정보===
 {inst_ctx}
@@ -355,12 +374,18 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
 맥락: "{ctx}"
 목적: {ptype} | 대상: {tgt} | 브랜드: {plabel}
 
-===필수 규칙===
-1. 강사 고유 학습법/슬로건/스타일이 있으면 반드시 문구에 녹여넣기 (매우 중요)
-2. 수험생의 구체적 고민을 해결하는 문구 (예: "빈칸 하나가 등급을 가른다", "3주 후 독해 속도가 달라진다")
-3. 확인되지 않은 수치(만족도%, 합격생수, 경력년수) 절대 금지 — statBadges, introBadges는 반드시 빈 배열 []
-4. 한자(漢字) 절대 금지 — 한글/영문만 사용
-5. curriculumSteps 설명: 각 단계가 왜 필요한지 학생 입장에서 설득
+===문구 품질 기준 (매우 중요)===
+1. 강사 고유 커리큘럼명/학습법명 그대로 사용 (예: "KISS Logic", "R'gorithm", "KICE Anatomy")
+2. 현대적이고 직접적인 어조 — "체계적 학습" 같은 올드한 표현 금지
+   좋은 예: "빈칸 하나가 등급을 가른다", "지문을 읽는 게 아니라 해석하는 것"
+   나쁜 예: "체계적인 커리큘럼", "최고의 강의", "수능 영어 완성"
+3. bannerLead: 수험생이 지금 느끼는 구체적 고민을 찌르는 문구 (40-55자)
+4. introDesc: 강사만의 차별점을 한 줄로 (예: "R'gorithm으로 지문 논리를 수식처럼 읽는다")
+5. whyReasons: 추상적 이유 금지, 수업에서 실제로 달라지는 것 (예: "빈칸 유형 12개를 논리 패턴으로 분류")
+6. curriculumSteps: 단계 이름에 실제 커리큘럼명 반영, 설명은 학생 입장 구체적 변화
+7. reviews: 실제처럼 들리는 구체적 변화 ("3점→1점" 같은 변화, 강사 특유 방법론 언급)
+8. 수치(만족도%, 합격생수) 절대 금지 — statBadges:[], introBadges:[]
+9. 한자 절대 금지
 
 JSON만 반환 (마크다운 없이, 줄바꿈 없이):
 {schemas.get(ptype, schemas['신규 커리큘럼'])}"""
@@ -386,7 +411,11 @@ def gen_section(sec_id: str) -> dict:
 {inst_ctx}
 과목: {st.session_state.subject} | 브랜드: {st.session_state.purpose_label}
 
-규칙: 강사 고유 특성 반영, 구체적 문구, 한자 금지, 수치 금지([] 사용)
+규칙:
+- 강사 고유 커리큘럼명/학습법명 직접 사용
+- 현대적 직접적 어조 ("체계적", "최고의" 금지)
+- 수험생 구체적 고민 해결하는 문구
+- 한자 금지, 수치 금지(statBadges:[], introBadges:[])
 JSON만 반환: {schema}"""
     return safe_json(call_ai(prompt, max_tokens=600))
 
@@ -777,13 +806,63 @@ def sec_custom(d, cp, T):
         body = f'<div class="rv d1"><p style="font-size:14px;line-height:1.9;color:var(--t70)">{desc}</p></div>'
     return f'<section class="sec" id="custom-section"><div class="rv"><div class="tag-line">{tag}</div><h2 class="sec-h2 st">{title}</h2></div>{body}</section>'
 
+
+def _particle_js(particle: str) -> str:
+    """컨셉별 파티클 효과 JS/CSS"""
+    if particle == "snow" or "snow" in particle:
+        return """<style>
+.snowflake{position:fixed;top:-20px;color:#fff;font-size:1.2em;text-shadow:0 0 8px rgba(180,220,255,.8);animation:snowfall linear infinite;pointer-events:none;z-index:9999;opacity:.8}
+@keyframes snowfall{0%{transform:translateY(-20px) rotate(0deg);opacity:.8}100%{transform:translateY(110vh) rotate(360deg);opacity:0}}
+</style><script>
+(function(){const chars=["❄","❅","❆","✦","·"];for(let i=0;i<25;i++){const el=document.createElement("span");el.className="snowflake";el.textContent=chars[Math.floor(Math.random()*chars.length)];el.style.cssText=`left:${Math.random()*100}vw;font-size:${0.8+Math.random()*1.6}em;animation-duration:${4+Math.random()*8}s;animation-delay:${-Math.random()*8}s;opacity:${0.4+Math.random()*.6}`;document.body.appendChild(el);}})();
+</script>"""
+    if particle == "stars":
+        return """<style>
+.star-p{position:fixed;border-radius:50%;background:#fff;animation:twinkle ease-in-out infinite;pointer-events:none;z-index:9999}
+@keyframes twinkle{0%,100%{opacity:.2;transform:scale(1)}50%{opacity:1;transform:scale(1.4)}}
+</style><script>
+(function(){for(let i=0;i<60;i++){const el=document.createElement("div");el.className="star-p";const s=1+Math.random()*2.5;el.style.cssText=`width:${s}px;height:${s}px;top:${Math.random()*100}vh;left:${Math.random()*100}vw;animation-duration:${1.5+Math.random()*3}s;animation-delay:${-Math.random()*3}s;box-shadow:0 0 ${s*2}px rgba(180,200,255,.8)`;document.body.appendChild(el);}})();
+</script>"""
+    if particle == "petals":
+        return """<style>
+.petal{position:fixed;top:-20px;font-size:1.1em;animation:petalfall linear infinite;pointer-events:none;z-index:9999;opacity:.7}
+@keyframes petalfall{0%{transform:translateY(-20px) rotate(0deg) translateX(0);opacity:.7}50%{transform:translateY(55vh) rotate(180deg) translateX(30px);opacity:.5}100%{transform:translateY(110vh) rotate(360deg) translateX(-10px);opacity:0}}
+</style><script>
+(function(){const p=["🌸","🌺","🌼","✿","❀"];for(let i=0;i<20;i++){const el=document.createElement("span");el.className="petal";el.textContent=p[Math.floor(Math.random()*p.length)];el.style.cssText=`left:${Math.random()*100}vw;font-size:${0.7+Math.random()*1.2}em;animation-duration:${5+Math.random()*8}s;animation-delay:${-Math.random()*8}s`;document.body.appendChild(el);}})();
+</script>"""
+    if particle == "embers":
+        return """<style>
+.ember{position:fixed;bottom:-10px;border-radius:50%;animation:emberrise linear infinite;pointer-events:none;z-index:9999}
+@keyframes emberrise{0%{transform:translateY(0) translateX(0) scale(1);opacity:.9}50%{transform:translateY(-45vh) translateX(20px) scale(.7);opacity:.6}100%{transform:translateY(-95vh) translateX(-10px) scale(.2);opacity:0}}
+</style><script>
+(function(){const colors=["#FF4500","#FF8C00","#FFD700","#FF6347"];for(let i=0;i<30;i++){const el=document.createElement("div");el.className="ember";const s=2+Math.random()*4;el.style.cssText=`width:${s}px;height:${s}px;left:${Math.random()*100}vw;background:${colors[Math.floor(Math.random()*colors.length)]};box-shadow:0 0 ${s}px ${colors[0]};animation-duration:${3+Math.random()*5}s;animation-delay:${-Math.random()*5}s`;document.body.appendChild(el);}})();
+</script>"""
+    if particle == "gold":
+        return """<style>
+.gold-p{position:fixed;top:-10px;font-size:.9em;animation:goldfall linear infinite;pointer-events:none;z-index:9999}
+@keyframes goldfall{0%{transform:translateY(-20px) rotate(0deg);opacity:.9}100%{transform:translateY(110vh) rotate(720deg);opacity:0}}
+</style><script>
+(function(){const g=["✦","★","◆","·","⬥"];for(let i=0;i<35;i++){const el=document.createElement("span");el.className="gold-p";el.textContent=g[Math.floor(Math.random()*g.length)];el.style.cssText=`left:${Math.random()*100}vw;color:${["#FFD700","#C8975A","#F5C842","#FFA500"][Math.floor(Math.random()*4)]};font-size:${0.5+Math.random()*1}em;animation-duration:${4+Math.random()*6}s;animation-delay:${-Math.random()*6}s;text-shadow:0 0 8px #FFD700`;document.body.appendChild(el);}})();
+</script>"""
+    if particle == "leaves":
+        return """<style>
+.leaf{position:fixed;top:-20px;font-size:1em;animation:leaffall linear infinite;pointer-events:none;z-index:9999}
+@keyframes leaffall{0%{transform:translateY(-20px) rotate(0deg) translateX(0);opacity:.8}100%{transform:translateY(110vh) rotate(540deg) translateX(40px);opacity:0}}
+</style><script>
+(function(){const l=["🍃","🍂","🍁","🌿","🌾"];for(let i=0;i<18;i++){const el=document.createElement("span");el.className="leaf";el.textContent=l[Math.floor(Math.random()*l.length)];el.style.cssText=`left:${Math.random()*100}vw;font-size:${0.8+Math.random()*1.2}em;animation-duration:${5+Math.random()*7}s;animation-delay:${-Math.random()*7}s`;document.body.appendChild(el);}})();
+</script>"""
+    return ""  # "none" or unknown
+
 # ══════════════════════════════════════
 # HTML 빌더
 # ══════════════════════════════════════
 def build_html(secs: list) -> str:
     T  = get_theme()
     cp = dict(st.session_state.custom_copy or {})
-    if st.session_state.bg_photo_url:
+    # 업로드 이미지 우선, 없으면 URL 방식
+    if st.session_state.get("uploaded_bg_b64"):
+        cp["bg_photo_url"] = st.session_state.uploaded_bg_b64
+    elif st.session_state.bg_photo_url:
         cp["bg_photo_url"] = st.session_state.bg_photo_url
     d  = {"name": st.session_state.instructor_name or "",
           "subject": st.session_state.subject,
@@ -803,6 +882,11 @@ def build_html(secs: list) -> str:
           "fest_cta":sec_fest_cta,"custom_section":sec_custom}
     body = "\n".join(mp[s](d,cp,T) for s in secs if s in mp)
     ttl  = cp.get("bannerTitle", cp.get("festHeroTitle", d["purpose_label"]))
+    # 파티클 효과 결정
+    particle = ""
+    if st.session_state.concept == "custom" and st.session_state.custom_theme:
+        particle = st.session_state.custom_theme.get("particle","none")
+    particle_js = _particle_js(particle)
     return (f'<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"/>'
             f'<meta name="viewport" content="width=device-width,initial-scale=1.0"/>'
             f'<title>{d["name"]} {d["subject"]} · {ttl}</title>'
@@ -810,7 +894,7 @@ def build_html(secs: list) -> str:
             f'<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>'
             f'<link href="{T["fonts"]}" rel="stylesheet"/>'
             f'<style>:root{{{T["vars"]}}}{BASE_CSS}{T["extra_css"]}{dc}</style>'
-            f'</head><body>{body}'
+            f'</head><body>{body}{particle_js}'
             f'<script>const ro=new IntersectionObserver(es=>{{es.forEach(e=>{{if(e.isIntersecting){{e.target.classList.add("on");ro.unobserve(e.target);}}}});}},{{threshold:.06}});document.querySelectorAll(".rv").forEach(el=>ro.observe(el));</script>'
             f'</body></html>')
 
@@ -841,7 +925,17 @@ st.markdown("""<style>
 .stButton>button[kind="primary"]{
     background:linear-gradient(135deg,#FF6B35,#E84393)!important;
     color:#fff!important;border:none!important;
+    font-size:13px!important;letter-spacing:.02em!important;
+    text-shadow:0 1px 3px rgba(0,0,0,.3)!important;
 }
+/* 랜덤 생성 버튼 특별 강조 */
+[data-testid="stSidebar"] .stButton>button[kind="primary"]{
+    background:linear-gradient(135deg,#FF4500,#FF1493,#7B2FFF)!important;
+    color:#fff!important;font-weight:800!important;
+    box-shadow:0 0 18px rgba(255,69,0,.45)!important;
+    animation:pulse-btn 2.5s ease-in-out infinite!important;
+}
+@keyframes pulse-btn{0%,100%{box-shadow:0 0 18px rgba(255,69,0,.45)}50%{box-shadow:0 0 28px rgba(255,20,147,.7)}}
 /* 메트릭 */
 div[data-testid="stMetric"]{
     background:#0B0F1C;border:1px solid #1E2640;
@@ -947,17 +1041,36 @@ with st.sidebar:
         elif not st.session_state.api_key:
             st.warning("API 키를 먼저 입력해주세요")
         else:
-            with st.spinner("AI 컨셉 + 배경 이미지 생성 중..."):
+            with st.spinner("AI 컨셉 생성 중..."):
                 try:
                     r = gen_concept({"mood":mood_in.strip(),"layout":"auto","font":"auto"})
                     st.session_state.custom_theme = r
                     st.session_state.concept = "custom"
                     bg = build_bg_url(mood_in.strip())
                     st.session_state.bg_photo_url = bg
-                    st.success(f"✓ '{r.get('name','새 컨셉')}' + 배경 이미지 생성됨!")
+                    st.session_state.uploaded_bg_b64 = ""  # 업로드 초기화
+                    st.success(f"✓ '{r.get('name','새 컨셉')}' 생성됨!")
                     st.rerun()
                 except Exception as e:
                     st.error(f"실패: {e}")
+
+    # ── 배경 이미지 직접 업로드 ──
+    st.markdown("**🖼 배경 이미지 직접 업로드**")
+    st.caption("원하는 이미지를 직접 올리면 배너 배경으로 사용됩니다")
+    uploaded_img = st.file_uploader("배경 이미지", type=["jpg","jpeg","png","webp"],
+                                    label_visibility="collapsed", key="bg_uploader")
+    if uploaded_img is not None:
+        import base64
+        b64 = base64.b64encode(uploaded_img.read()).decode()
+        mime = uploaded_img.type or "image/jpeg"
+        st.session_state.uploaded_bg_b64 = f"data:{mime};base64,{b64}"
+        st.session_state.bg_photo_url = ""  # URL 방식 초기화
+        st.success(f"✓ '{uploaded_img.name}' 업로드됨! 배너 배경에 적용됩니다.")
+        st.rerun()
+    if st.session_state.uploaded_bg_b64:
+        if st.button("🗑 업로드 이미지 제거", use_container_width=True, key="rm_bg"):
+            st.session_state.uploaded_bg_b64 = ""
+            st.rerun()
 
     # 프리셋
     st.caption("프리셋:")
