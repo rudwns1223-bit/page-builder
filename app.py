@@ -276,10 +276,26 @@ with st.sidebar:
     st.caption("컨셉별 프리미엄 랜딩페이지 생성기")
     st.divider()
 
+    # Streamlit Secrets에 GEMINI_API_KEY가 있으면 자동 사용
+    if not st.session_state.api_key:
+        try:
+            st.session_state.api_key = st.secrets["GEMINI_API_KEY"]
+        except Exception:
+            pass
+
     st.markdown("**🔑 Gemini API Key** ([무료 발급 →](https://aistudio.google.com))")
-    api_in=st.text_input("API Key",type="password",value=st.session_state.api_key,placeholder="AIzaSy...",label_visibility="collapsed")
-    if api_in!=st.session_state.api_key: st.session_state.api_key=api_in
-    st.success("✓ API 키 입력됨 (무료 · 분당 15회)",icon="✅") if st.session_state.api_key else st.info("👆 aistudio.google.com → Get API Key",icon="🔑")
+    # Secrets에서 키가 로드된 경우 입력창 비활성 표시
+    if st.session_state.api_key and st.session_state.api_key == st.secrets.get("GEMINI_API_KEY","__none__"):
+        st.success("✓ Secrets에서 자동 로드됨", icon="🔒")
+    else:
+        api_in = st.text_input("API Key", type="password", value=st.session_state.api_key,
+                               placeholder="AIzaSy...", label_visibility="collapsed")
+        if api_in != st.session_state.api_key:
+            st.session_state.api_key = api_in
+        if st.session_state.api_key:
+            st.success("✓ API 키 입력됨 (무료 · 분당 15회)", icon="✅")
+        else:
+            st.info("👆 aistudio.google.com → Get API Key", icon="🔑")
 
     st.divider()
 
@@ -346,8 +362,11 @@ with st.sidebar:
             with st.spinner(f"{nm} 선생님 정보 검색 중..."):
                 try:
                     p=safe_json(call_gemini(f'Find Korean 수능 educator "{nm}" teaching "{sb}". Return ONLY JSON: {{"found":true,"bio":"2-3 sentences","slogan":"motto or empty","signatureMethods":["method"],"desc":"value prop"}}','Korean education researcher. Return ONLY valid compact JSON.'))
-                    st.session_state.inst_profile=p
-                    st.success("✓ 강사 정보 검색 완료!") if p.get("found") else st.info("정보를 찾지 못했습니다.")
+                    st.session_state.inst_profile = p
+                    if p.get("found"):
+                        st.success("✓ 강사 정보 검색 완료!")
+                    else:
+                        st.info("정보를 찾지 못했습니다.")
                 except Exception as e: st.error(f"검색 실패: {e}")
     st.divider()
 
