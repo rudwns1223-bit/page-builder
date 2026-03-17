@@ -4,110 +4,71 @@ import json, re, time, random
 
 st.set_page_config(page_title="강사 페이지 빌더 Pro", page_icon="🎓", layout="wide", initial_sidebar_state="expanded")
 
-GEMINI_MODELS = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"]
+GEMINI_MODELS = ["gemini-2.0-flash", "gemini-1.5-flash"]
 
-THEMES = {
-    "sakura":  {"label":"🌸 벚꽃 봄",    "dark":False, "fonts":"https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Noto+Serif+KR:wght@300;400;600;900&family=DM+Sans:wght@300;400;700&display=swap", "vars":"--c1:#B5304A;--c2:#E89BB5;--c3:#F5CEDA;--c4:#2A111A;--bg:#FBF6F4;--bg2:#F7EFF1;--bg3:#F2E5E9;--text:#2A111A;--t70:rgba(42,17,26,.7);--t45:rgba(42,17,26,.45);--bd:rgba(42,17,26,.10);--fh:'Playfair Display','Noto Serif KR',serif;--fb:'DM Sans','Noto Serif KR',sans-serif;--r:12px;--r-btn:100px;", "extra_css":".st{font-style:italic}", "cta":"linear-gradient(135deg,#2A111A,#B5304A)"},
-    "fire":    {"label":"🔥 다크 파이어", "dark":True,  "fonts":"https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+KR:wght@400;700;900&family=DM+Sans:wght@300;400;700&display=swap", "vars":"--c1:#FF4500;--c2:#FF8C00;--c3:#FFD700;--c4:#0D0705;--bg:#0D0705;--bg2:#130A04;--bg3:#1A0E06;--text:#F1F5F9;--t70:rgba(241,245,249,.7);--t45:rgba(241,245,249,.45);--bd:rgba(255,69,0,.22);--fh:'Bebas Neue','Noto Sans KR',sans-serif;--fb:'DM Sans','Noto Sans KR',sans-serif;--r:4px;--r-btn:4px;", "extra_css":".st{letter-spacing:.05em;text-shadow:0 0 20px rgba(255,69,0,.35)}", "cta":"linear-gradient(135deg,#0D0705,#FF4500 60%,#FF8C00)"},
-    "ocean":   {"label":"🌊 오션 블루",   "dark":False, "fonts":"https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Noto+Sans+KR:wght@400;500;700;900&display=swap", "vars":"--c1:#0EA5E9;--c2:#38BDF8;--c3:#BAE6FD;--c4:#0C4A6E;--bg:#F0F9FF;--bg2:#E0F2FE;--bg3:#BAE6FD;--text:#0C1A2E;--t70:rgba(12,26,46,.7);--t45:rgba(12,26,46,.45);--bd:rgba(14,165,233,.15);--fh:'Syne','Noto Sans KR',sans-serif;--fb:'Noto Sans KR',sans-serif;--r:10px;--r-btn:100px;", "extra_css":".st{font-weight:800}", "cta":"linear-gradient(135deg,#0C4A6E,#0EA5E9)"},
-    "luxury":  {"label":"✨ 골드 럭셔리", "dark":True,  "fonts":"https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,500;0,600;1,300;1,500&family=Noto+Serif+KR:wght@300;400;600&family=DM+Sans:wght@300;400;500&display=swap", "vars":"--c1:#C8975A;--c2:#D4AF72;--c3:#EDD8A4;--c4:#0C0B09;--bg:#0C0B09;--bg2:#131108;--bg3:#1A1810;--text:#F5F0E8;--t70:rgba(245,240,232,.7);--t45:rgba(245,240,232,.45);--bd:rgba(200,151,90,.15);--fh:'Cormorant Garamond','Noto Serif KR',serif;--fb:'DM Sans','Noto Serif KR',sans-serif;--r:2px;--r-btn:2px;", "extra_css":".st{font-weight:300;font-style:italic}", "cta":"linear-gradient(135deg,#0C0B09,#2A2010)"},
-    "eco":     {"label":"🌿 에코 그린",   "dark":False, "fonts":"https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Noto+Serif+KR:wght@300;400;600;900&family=DM+Sans:wght@300;400;500;700&display=swap", "vars":"--c1:#059669;--c2:#34D399;--c3:#A7F3D0;--c4:#064E3B;--bg:#F0FDF4;--bg2:#DCFCE7;--bg3:#BBF7D0;--text:#064E3B;--t70:rgba(6,78,59,.7);--t45:rgba(6,78,59,.45);--bd:rgba(5,150,105,.15);--fh:'DM Serif Display','Noto Serif KR',serif;--fb:'DM Sans','Noto Serif KR',sans-serif;--r:14px;--r-btn:100px;", "extra_css":".st{font-style:italic}", "cta":"linear-gradient(135deg,#064E3B,#059669)"},
-    "winter":  {"label":"❄️ 윈터 스노우", "dark":False, "fonts":"https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,600;0,700;0,800&family=Noto+Sans+KR:wght@400;500;700;900&display=swap", "vars":"--c1:#1E40AF;--c2:#3B82F6;--c3:#BFDBFE;--c4:#0F172A;--bg:#F8FAFF;--bg2:#EFF6FF;--bg3:#DBEAFE;--text:#0F172A;--t70:rgba(15,23,42,.7);--t45:rgba(15,23,42,.45);--bd:rgba(30,64,175,.12);--fh:'Plus Jakarta Sans','Noto Sans KR',sans-serif;--fb:'Plus Jakarta Sans','Noto Sans KR',sans-serif;--r:8px;--r-btn:100px;", "extra_css":".st{font-weight:800}", "cta":"linear-gradient(135deg,#1E3A8A,#3B82F6)"},
-    "cosmos":  {"label":"🌌 코스모스",    "dark":True,  "fonts":"https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+KR:wght@300;400;700&family=DM+Sans:wght@300;400;500&display=swap", "vars":"--c1:#7C3AED;--c2:#06B6D4;--c3:#A78BFA;--c4:#030712;--bg:#030712;--bg2:#080C18;--bg3:#0D1220;--text:#F1F5F9;--t70:rgba(241,245,249,.7);--t45:rgba(241,245,249,.45);--bd:rgba(124,58,237,.22);--fh:'Orbitron','Noto Sans KR',sans-serif;--fb:'DM Sans','Noto Sans KR',sans-serif;--r:0px;--r-btn:0px;", "extra_css":".st{letter-spacing:.12em;text-transform:uppercase}", "cta":"linear-gradient(135deg,#030712,#2D1B69)"},
-}
-
-PURPOSE_SECTIONS = {
-    "신규 커리큘럼": ["banner","intro","why","curriculum","target","reviews","faq","cta"],
-    "이벤트":       ["banner","event_overview","event_benefits","event_deadline","reviews","cta"],
-    "기획전":       ["fest_hero","fest_lineup","fest_benefits","fest_cta"],
-}
-PURPOSE_HINTS = {
-    "신규 커리큘럼": "📚 강사 전문성·신뢰감 강조 — 골드 럭셔리, 코스모스, 윈터 추천",
-    "이벤트":       "🎉 기간 한정·긴박감·혜택 강조 — 벚꽃, 에코, 파이어 추천",
-    "기획전":       "🏆 강사 라인업·규모감·통합 혜택 강조 — 파이어, 코스모스, 골드 추천",
-}
-SECTION_LABELS = {
-    "banner":"🏠 메인 배너","intro":"👤 강사 소개","why":"💡 이유","curriculum":"📚 커리큘럼",
-    "target":"🎯 수강 대상","reviews":"⭐ 수강평","faq":"❓ FAQ","cta":"📣 수강신청 CTA",
-    "event_overview":"📅 이벤트 개요","event_benefits":"🎁 이벤트 혜택","event_deadline":"⏰ 마감 안내",
-    "fest_hero":"🏆 기획전 히어로","fest_lineup":"👥 강사 라인업","fest_benefits":"🎁 기획전 혜택","fest_cta":"📣 기획전 CTA",
-}
-RANDOM_SEEDS = [
-    {"mood":"사이버펑크 보라 네온사인, 비오는 다크 도시","layout":"brutalist","font":"display"},
-    {"mood":"고대 이집트 황금 신전, 사막 모래와 오벨리스크","layout":"editorial","font":"serif"},
-    {"mood":"북유럽 스칸디나비아 미니멀, 하얀 안개 자작나무 숲","layout":"minimal","font":"sans"},
-    {"mood":"수험생 새벽 4시 형광등 책상, 집중과 고요","layout":"brutalist","font":"mono"},
-    {"mood":"극지방 오로라 청록 보라 새벽하늘","layout":"immersive","font":"display"},
-    {"mood":"빈티지 옥스퍼드 도서관, 가죽 책 양피지","layout":"magazine","font":"serif"},
-    {"mood":"다크 아카데미아 빅토리안 고딕 도서관","layout":"editorial","font":"serif"},
-    {"mood":"오래된 수학 교실 분필 칠판 먼지 냄새","layout":"editorial","font":"mono"},
-    {"mood":"겨울 새벽 눈 덮인 사찰 고요 집중 먹빛","layout":"minimal","font":"serif"},
-    {"mood":"여름 밤 루프탑 바, 도시 스카이라인 인디고","layout":"immersive","font":"display"},
-    {"mood":"19세기 파리 아방가르드 예술 포스터","layout":"magazine","font":"display"},
-    {"mood":"네온 팝아트 비비드 원색 90s 리트로","layout":"brutalist","font":"display"},
-    {"mood":"미래 우주선 내부 홀로그램 테크 UI","layout":"immersive","font":"mono"},
-    {"mood":"흑백 필름 사진관, 빈티지 모노크롬","layout":"minimal","font":"mono"},
-    {"mood":"그리스 지중해 흰 건물 코발트 블루 바다","layout":"modern","font":"sans"},
-    {"mood":"마젠타 핫핑크 와일드 패션 하이패션","layout":"brutalist","font":"display"},
-    {"mood":"무채색 모더니즘 건축 차가운 강철 콘크리트","layout":"brutalist","font":"sans"},
-    {"mood":"바우하우스 기하학, 원·삼각형·네모 기본 도형","layout":"geometric","font":"sans"},
-    {"mood":"가을 단풍 교정 은행나무, 따뜻한 주황 갈색","layout":"organic","font":"serif"},
-    {"mood":"사파이어 새벽 플라네타리움 별빛 금빛","layout":"immersive","font":"display"},
-]
-SUBJECT_KW = {
-    "영어":["빈칸 추론","EBS 연계","순서·삽입","어법·어휘"],
-    "수학":["수1·수2","미적분","확률과 통계","킬러 문항"],
-    "국어":["독해력","문학","비문학","화법과 작문"],
-    "사회":["생활과 윤리","한국지리","세계사","경제"],
-    "과학":["물리학","화학","생명과학","지구과학"],
-}
-
-# ── Session state ──
-for k,v in {"api_key":"","concept":"sakura","custom_theme":None,"instructor_name":"","subject":"영어","purpose_label":"2026 수능 파이널 완성","purpose_type":"신규 커리큘럼","target":"고3·N수","custom_copy":None,"active_sections":["banner","intro","why","curriculum","cta"],"ai_mood":"","inst_profile":None,"last_seed":None}.items():
-    if k not in st.session_state: st.session_state[k]=v
-
-# ── AI helpers ──
 def call_gemini(prompt, system="", json_mode=True, max_tokens=3000):
-    """Gemini REST API 직접 호출 SDK 불필요"""
+    """Gemini REST API 직접 호출.
+    responseMimeType 제거 — 400 오류 원인이었음.
+    JSON은 프롬프트 지시로만 제어."""
     key = st.session_state.api_key.strip()
     if not key:
         raise ValueError("API 키가 없습니다. 사이드바에서 입력해주세요.")
+
+    # JSON 강제 지시문을 프롬프트에 직접 포함 (responseMimeType 없이)
+    json_instr = "\n\nReturn ONLY valid JSON. No markdown fences. No extra text." if json_mode else ""
+    sys_txt = (system or "") + json_instr
+
     last_err = None
-    sys_txt = (system or "Return only valid JSON.") + ("\nReturn strictly valid JSON only. No markdown." if json_mode else "")
     for model in GEMINI_MODELS:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+        url = (f"https://generativelanguage.googleapis.com"
+               f"/v1beta/models/{model}:generateContent?key={key}")
         body = {
             "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"maxOutputTokens": max_tokens},
-            "systemInstruction": {"parts": [{"text": sys_txt}]},
+            "generationConfig": {"maxOutputTokens": max_tokens, "temperature": 0.7},
         }
-        if json_mode:
-            body["generationConfig"]["responseMimeType"] = "application/json"
+        if sys_txt.strip():
+            body["systemInstruction"] = {"parts": [{"text": sys_txt}]}
+
         try:
             resp = requests.post(url, json=body, timeout=60)
         except Exception as e:
             last_err = Exception(f"네트워크 오류: {e}")
             continue
+
         if resp.status_code == 429:
-            last_err = Exception(f"429 한도 초과 ({model})")
+            last_err = Exception(f"⏳ 429 한도 초과 ({model}) — 잠시 후 재시도")
             time.sleep(2)
             continue
+        if resp.status_code == 403:
+            raise Exception("🔑 API 키 오류 — aistudio.google.com에서 키를 확인해주세요.")
         if resp.status_code in (400, 404):
-            last_err = Exception(f"HTTP {resp.status_code} ({model}): 모델 미지원")
+            # 이 모델 미지원이면 다음 모델 시도
+            try:
+                err_msg = resp.json().get("error", {}).get("message", "")
+            except Exception:
+                err_msg = resp.text[:100]
+            last_err = Exception(f"HTTP {resp.status_code} ({model}): {err_msg}")
             continue
         if not resp.ok:
-            last_err = Exception(f"HTTP {resp.status_code} ({model}): {resp.text[:200]}")
+            last_err = Exception(f"HTTP {resp.status_code} ({model}): {resp.text[:150]}")
             continue
-        data = resp.json()
+
         try:
+            data = resp.json()
+            # 안전 필터에 걸린 경우 처리
+            if data.get("promptFeedback", {}).get("blockReason"):
+                last_err = Exception(f"안전 필터 차단 ({model})")
+                continue
             parts = data["candidates"][0]["content"]["parts"]
             text = next(p["text"] for p in parts if "text" in p)
-            if text:
+            if text and text.strip():
                 return text
-        except (KeyError, StopIteration):
-            last_err = Exception(f"응답 파싱 실패 ({model})")
+        except (KeyError, StopIteration, IndexError):
+            last_err = Exception(f"응답 파싱 실패 ({model}): {str(data)[:200]}")
             continue
-    raise last_err or Exception("Gemini 모든 모델 실패")
+
+    raise last_err or Exception("Gemini 모든 모델 실패 — API 키와 인터넷 연결을 확인해주세요.")
+
 
 def safe_json(raw):
     s = re.sub(r"```json\s*","",raw.strip()); s = re.sub(r"```\s*","",s).strip()
