@@ -6,6 +6,33 @@ st.set_page_config(page_title="강사 페이지 빌더 Pro", page_icon="🎓", l
 
 GEMINI_MODELS = ["gemini-2.0-flash", "gemini-1.5-flash"]
 
+# ── Session state 초기화 (앱 시작 시 가장 먼저 실행) ──
+_DEFAULTS = {
+    "api_key": "",
+    "concept": "sakura",
+    "custom_theme": None,
+    "instructor_name": "",
+    "subject": "영어",
+    "purpose_label": "2026 수능 파이널 완성",
+    "purpose_type": "신규 커리큘럼",
+    "target": "고3·N수",
+    "custom_copy": None,
+    "active_sections": ["banner","intro","why","curriculum","cta"],
+    "ai_mood": "",
+    "inst_profile": None,
+    "last_seed": None,
+}
+for _k, _v in _DEFAULTS.items():
+    if _k not in st.session_state:
+        st.session_state[_k] = _v
+
+# Streamlit Secrets에 GEMINI_API_KEY가 있으면 자동으로 api_key에 로드
+if not st.session_state.api_key:
+    try:
+        st.session_state.api_key = st.secrets.get("GEMINI_API_KEY", "")
+    except Exception:
+        pass
+
 def call_gemini(prompt, system="", json_mode=True, max_tokens=3000):
     """Gemini REST API 직접 호출.
     responseMimeType 제거 — 400 오류 원인이었음.
@@ -258,20 +285,23 @@ with st.sidebar:
     st.caption("컨셉별 프리미엄 랜딩페이지 생성기")
     st.divider()
 
-    # Streamlit Secrets에 GEMINI_API_KEY가 있으면 자동 사용
-    if not st.session_state.api_key:
-        try:
-            st.session_state.api_key = st.secrets["GEMINI_API_KEY"]
-        except Exception:
-            pass
-
     st.markdown("**🔑 Gemini API Key** ([무료 발급 →](https://aistudio.google.com))")
-    # Secrets에서 키가 로드된 경우 입력창 비활성 표시
-    if st.session_state.api_key and st.session_state.api_key == st.secrets.get("GEMINI_API_KEY","__none__"):
+    _secret_key = ""
+    try:
+        _secret_key = st.secrets.get("GEMINI_API_KEY", "")
+    except Exception:
+        pass
+
+    if _secret_key and not st.session_state.api_key:
+        st.session_state.api_key = _secret_key
+
+    if _secret_key and st.session_state.api_key == _secret_key:
         st.success("✓ Secrets에서 자동 로드됨", icon="🔒")
     else:
-        api_in = st.text_input("API Key", type="password", value=st.session_state.api_key,
-                               placeholder="AIzaSy...", label_visibility="collapsed")
+        api_in = st.text_input("API Key", type="password",
+                               value=st.session_state.api_key,
+                               placeholder="AIzaSy...",
+                               label_visibility="collapsed")
         if api_in != st.session_state.api_key:
             st.session_state.api_key = api_in
         if st.session_state.api_key:
