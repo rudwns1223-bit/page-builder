@@ -128,7 +128,7 @@ SUBJ_KW = {
     "과학":["물리학","화학","생명과학","지구과학"],
 }
 
-# 배경 이미지 키워드 맵
+# 배경 이미지 키워드 맵 (축구장 키워드 대폭 추가)
 KO_BG = {
     "관중이 가득찬 야구장": "baseball stadium crowd night lights",
     "야구장": "baseball stadium crowd night",
@@ -136,10 +136,11 @@ KO_BG = {
     "사람많은 야구장": "baseball stadium crowd night",
     "야구": "baseball game crowd stadium",
     "경기장": "sports arena stadium crowd",
-    "축구장": "soccer stadium crowd night",
+    "축구장": "soccer stadium crowd night field",
+    "축구공": "soccer ball field grass stadium",
+    "축구": "soccer stadium grass sports",
     "농구장": "basketball court arena",
     "관중": "stadium crowd cheering",
-    "경기장": "sports stadium arena",
     "밤": "night dark dramatic",
     "새벽": "dawn morning light",
     "도서관": "library books dark wooden",
@@ -171,7 +172,7 @@ KO_BG = {
     "포스터": "art poster vintage paris",
     "댄스": "dance performance stage",
     "dancing": "dance performance stage dramatic",
-    "soccer": "soccer stadium crowd night",
+    "soccer": "soccer stadium crowd night field",
     "baseball": "baseball stadium crowd lights",
 }
 
@@ -553,7 +554,7 @@ def get_theme() -> dict:
             "cta":t.get("cta","linear-gradient(135deg,var(--c4),var(--c1))")}
 
 # ══════════════════════════════════════
-# BASE CSS
+# BASE CSS (가독성 문제 해결을 위해 텍스트 섀도우 강화)
 # ══════════════════════════════════════
 BASE_CSS = """
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -580,7 +581,7 @@ a{text-decoration:none;color:inherit}
 """
 
 # ══════════════════════════════════════
-# 섹션 빌더
+# 섹션 빌더 (가독성 향상 & 업로드 배경 이미지 처리 수정)
 # ══════════════════════════════════════
 def _bg(bg_url, dark):
     if not bg_url:
@@ -588,14 +589,19 @@ def _bg(bg_url, dark):
                 "tc":"color:var(--text)","t70c":"color:var(--t70)",
                 "c1c":"var(--c1)","bdc":"var(--bd)",
                 "card_bg":"rgba(255,255,255,.05)" if dark else "var(--bg)",
-                "btn_s":"","top_brd":"var(--bd)","blur":""}
+                "btn_s":"","top_brd":"var(--bd)","blur":"",
+                "shadow":""} # 그림자 없음
+    
+    # 🌟 이미지 배경일 때 가독성 보장을 위한 초강력 섀도우 및 오버레이
+    # overlay rgba 값을 0.65로 높여 이미지가 밝아도 텍스트가 잘 보이도록 함
     return {"hero_bg":f"background:var(--bg) url('{bg_url}') center/cover no-repeat",
-            "overlay":'<div style="position:absolute;inset:0;background:rgba(0,0,0,0.58);z-index:1;pointer-events:none"></div>',
-            "tc":"color:#fff","t70c":"color:rgba(255,255,255,.82)",
-            "c1c":"#fff","bdc":"rgba(255,255,255,.25)",
+            "overlay":'<div style="position:absolute;inset:0;background:rgba(0,0,0,0.65);z-index:1;pointer-events:none"></div>',
+            "tc":"color:#fff","t70c":"color:rgba(255,255,255,.9)",
+            "c1c":"#fff","bdc":"rgba(255,255,255,.3)",
             "card_bg":"rgba(0,0,0,.65)",
-            "btn_s":"color:#fff;border-color:rgba(255,255,255,.5)",
-            "top_brd":"rgba(255,255,255,.2)","blur":"backdrop-filter:blur(12px);"}
+            "btn_s":"color:#fff;border-color:rgba(255,255,255,.6)",
+            "top_brd":"rgba(255,255,255,.2)","blur":"backdrop-filter:blur(12px);",
+            "shadow":"text-shadow:0 4px 16px rgba(0,0,0,0.8);"} # 강력한 텍스트 그림자
 
 def sec_banner(d, cp, T):
     sub    = strip_hanja(cp.get("bannerSub", d["subject"]+" 완성"))
@@ -604,13 +610,16 @@ def sec_banner(d, cp, T):
     cta    = strip_hanja(cp.get("ctaCopy", "수강신청하기"))
     stats  = cp.get("statBadges", [])
     kws    = SUBJ_KW.get(d["subject"], ["개념","기출","실전","파이널"])
-    bg_url = cp.get("bg_photo_url", "")
+    
+    # 🌟 배경 이미지 우선순위 버그 수정: 세션에 업로드된 Base64가 있으면 무조건 우선 적용
+    bg_url = st.session_state.get("uploaded_bg_b64") or cp.get("bg_photo_url", "")
+    
     hs     = T.get("heroStyle", "split")
     s      = _bg(bg_url, T["dark"])
 
-    kh = "".join(f'<span style="font-size:9.5px;font-weight:700;padding:5px 12px;border-radius:var(--r-btn,100px);color:{s["c1c"]};border:1px solid {s["bdc"]};margin:2px">{k}</span>' for k in kws)
-    sh = "".join(f'<div><div style="font-family:var(--fh);font-size:clamp(18px,2.8vw,26px);font-weight:900;color:{s["c1c"]}">{sv}</div><div style="font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;{s["t70c"]};margin-top:2px">{sl}</div></div>' for sv,sl in stats) if stats else ""
-    inst = f'<div style="display:inline-flex;align-items:center;gap:8px;margin-top:18px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:4px;padding:5px 14px"><span style="font-size:11px;{s["t70c"]}">{d["name"]} 선생님</span></div>' if d["name"] else ""
+    kh = "".join(f'<span style="font-size:9.5px;font-weight:700;padding:5px 12px;border-radius:var(--r-btn,100px);color:{s["c1c"]};border:1px solid {s["bdc"]};margin:2px;{s["shadow"]}">{k}</span>' for k in kws)
+    sh = "".join(f'<div><div style="font-family:var(--fh);font-size:clamp(18px,2.8vw,26px);font-weight:900;color:{s["c1c"]};{s["shadow"]}">{sv}</div><div style="font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;{s["t70c"]};margin-top:2px;{s["shadow"]}">{sl}</div></div>' for sv,sl in stats) if stats else ""
+    inst = f'<div style="display:inline-flex;align-items:center;gap:8px;margin-top:18px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:4px;padding:5px 14px"><span style="font-size:11px;{s["t70c"]};{s["shadow"]}">{d["name"]} 선생님</span></div>' if d["name"] else ""
 
     if hs == "immersive":
         return (
@@ -618,34 +627,34 @@ def sec_banner(d, cp, T):
             + s["overlay"] +
             '<div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.88) 0%,rgba(0,0,0,.15) 65%,transparent 100%);z-index:1;pointer-events:none"></div>'
             f'<div style="position:relative;z-index:2;padding:clamp(48px,7vw,80px) clamp(32px,6vw,88px);max-width:860px">'
-            f'<div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);{s["blur"]}padding:5px 16px;border-radius:100px;margin-bottom:20px;border:1px solid rgba(255,255,255,.2);font-size:10px;font-weight:700;color:#fff;letter-spacing:.14em;text-transform:uppercase">{sub}</div>'
-            f'<h1 style="font-family:var(--fh);font-size:clamp(52px,8vw,110px);font-weight:900;line-height:.85;letter-spacing:-.05em;color:#fff;margin-bottom:18px" class="st">{title}</h1>'
-            f'<p style="font-size:clamp(14px,1.6vw,17px);line-height:1.85;color:rgba(255,255,255,.78);max-width:520px;margin-bottom:24px">{lead}</p>'
+            f'<div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);{s["blur"]}padding:5px 16px;border-radius:100px;margin-bottom:20px;border:1px solid rgba(255,255,255,.2);font-size:10px;font-weight:700;color:#fff;letter-spacing:.14em;text-transform:uppercase;{s["shadow"]}">{sub}</div>'
+            f'<h1 style="font-family:var(--fh);font-size:clamp(52px,8vw,110px);font-weight:900;line-height:.85;letter-spacing:-.05em;color:#fff;margin-bottom:18px;{s["shadow"]}" class="st">{title}</h1>'
+            f'<p style="font-size:clamp(14px,1.6vw,17px);line-height:1.85;color:rgba(255,255,255,.9);max-width:520px;margin-bottom:24px;{s["shadow"]}">{lead}</p>'
             f'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:24px">{kh}</div>'
             + inst +
             f'<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:22px">'
             f'<a class="btn-p" href="#" style="box-shadow:0 0 28px rgba(255,255,255,.12)">{cta} →</a>'
-            f'<a href="#" style="display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.1);{s["blur"]}color:#fff;font-weight:600;padding:13px 28px;border-radius:100px;border:1.5px solid rgba(255,255,255,.3);font-size:14px;text-decoration:none">강의 미리보기</a></div>'
+            f'<a href="#" style="display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.1);{s["blur"]}color:#fff;font-weight:600;padding:13px 28px;border-radius:100px;border:1.5px solid rgba(255,255,255,.3);font-size:14px;text-decoration:none;{s["shadow"]}">강의 미리보기</a></div>'
             + (f'<div style="display:flex;gap:36px;margin-top:40px;padding-top:24px;border-top:1px solid rgba(255,255,255,.2)">{sh}</div>' if sh else "")
             + '</div></section>'
         )
     else:  # split or editorial
-        ci = "".join(f'<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid {s["bdc"]}"><span style="font-size:11px;font-weight:600;{s["t70c"]}">{l}</span><span style="font-size:11.5px;font-weight:700;{s["tc"]}">{v}</span></div>' for l,v in [["강의 대상",d["target"]],["과목",d["subject"]],["목적",d["purpose_label"][:14]+"…"]])
+        ci = "".join(f'<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid {s["bdc"]}"><span style="font-size:11px;font-weight:600;{s["t70c"]};{s["shadow"]}">{l}</span><span style="font-size:11.5px;font-weight:700;{s["tc"]};{s["shadow"]}">{v}</span></div>' for l,v in [["강의 대상",d["target"]],["과목",d["subject"]],["목적",d["purpose_label"][:14]+"…"]])
         return (
             f'<section id="hero" style="position:relative;min-height:100vh;overflow:hidden;{s["hero_bg"]};display:grid;grid-template-columns:1fr 360px">'
             + s["overlay"] +
             f'<div style="position:relative;z-index:2;display:flex;flex-direction:column;justify-content:center;padding:clamp(60px,8vw,100px) clamp(24px,4vw,52px) clamp(60px,8vw,100px) clamp(32px,6vw,88px)">'
-            f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:28px"><div style="width:32px;height:2px;background:{s["c1c"]}"></div><span style="font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;{s["tc"]}">{sub}</span></div>'
-            f'<h1 style="font-family:var(--fh);font-size:clamp(40px,6vw,84px);font-weight:900;line-height:.88;letter-spacing:-.05em;{s["tc"]}" class="st">{title}</h1>'
-            f'<p style="font-size:clamp(13px,1.4vw,15.5px);line-height:2;{s["t70c"]};margin-top:20px;max-width:420px;padding-left:14px;border-left:2px solid {s["c1c"]}">{lead}</p>'
+            f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:28px"><div style="width:32px;height:2px;background:{s["c1c"]}"></div><span style="font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;{s["tc"]};{s["shadow"]}">{sub}</span></div>'
+            f'<h1 style="font-family:var(--fh);font-size:clamp(40px,6vw,84px);font-weight:900;line-height:.88;letter-spacing:-.05em;{s["tc"]};{s["shadow"]}" class="st">{title}</h1>'
+            f'<p style="font-size:clamp(13px,1.4vw,15.5px);line-height:2;{s["t70c"]};margin-top:20px;max-width:420px;padding-left:14px;border-left:2px solid {s["c1c"]};{s["shadow"]}">{lead}</p>'
             f'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:18px">{kh}</div>'
             + inst +
-            f'<div style="display:flex;gap:12px;margin-top:26px"><a class="btn-p" href="#">{cta} →</a><a class="btn-s" href="#" style="{s["btn_s"]}">강의 미리보기</a></div>'
+            f'<div style="display:flex;gap:12px;margin-top:26px"><a class="btn-p" href="#">{cta} →</a><a class="btn-s" href="#" style="{s["btn_s"]};{s["shadow"]}">강의 미리보기</a></div>'
             + (f'<div style="display:flex;gap:28px;margin-top:48px;padding-top:24px;border-top:1px solid {s["top_brd"]}">{sh}</div>' if sh else "")
             + f'</div>'
             f'<div style="background:rgba(0,0,0,.18);border-left:1px solid {s["bdc"]};display:flex;align-items:center;justify-content:center;padding:48px 24px;position:relative;z-index:2">'
             f'<div style="width:100%;background:{s["card_bg"]};border:1px solid {s["bdc"]};border-radius:var(--r,12px);overflow:hidden;{s["blur"]}">'
-            f'<div style="background:var(--c1);padding:18px 22px;text-align:center"><div style="font-family:var(--fh);font-size:19px;font-weight:900;color:#fff;line-height:1.25">{title}</div></div>'
+            f'<div style="background:var(--c1);padding:18px 22px;text-align:center"><div style="font-family:var(--fh);font-size:19px;font-weight:900;color:#fff;line-height:1.25;text-shadow:0 2px 8px rgba(0,0,0,0.5)">{title}</div></div>'
             f'<div style="padding:18px 22px">{ci}<a class="btn-p" href="#" style="width:100%;justify-content:center;margin-top:14px;display:flex">{cta} →</a></div>'
             f'</div></div></section>'
         )
@@ -1025,6 +1034,7 @@ with st.sidebar:
                     st.session_state.concept = "custom"
                     bg = build_bg_url(seed["mood"])
                     st.session_state.bg_photo_url = bg
+                    st.session_state.uploaded_bg_b64 = "" # 배경 변경 시 업로드 초기화
                     st.success(f"✓ '{r.get('name','새 컨셉')}' 생성!")
                     st.rerun()
                 except Exception as e:
@@ -1066,7 +1076,10 @@ with st.sidebar:
         st.session_state.uploaded_bg_b64 = f"data:{mime};base64,{b64}"
         st.session_state.bg_photo_url = ""  # URL 방식 초기화
         st.success(f"✓ '{uploaded_img.name}' 업로드됨! 배너 배경에 적용됩니다.")
-        st.rerun()
+        
+        # 🌟 업로드 한 번으로 즉시 반영을 위해 rerun 삭제하고 로직으로 넘김
+        # st.rerun() 을 빼서 무한 루프나 화면 리프레시 방지
+
     if st.session_state.uploaded_bg_b64:
         if st.button("🗑 업로드 이미지 제거", use_container_width=True, key="rm_bg"):
             st.session_state.uploaded_bg_b64 = ""
@@ -1084,12 +1097,13 @@ with st.sidebar:
                 st.session_state.concept = k
                 st.session_state.custom_theme = None
                 st.session_state.bg_photo_url = ""
+                st.session_state.uploaded_bg_b64 = "" # 프리셋 선택 시 업로드 이미지 지움
                 st.rerun()
 
     if st.session_state.concept == "custom" and st.session_state.custom_theme:
         ct = st.session_state.custom_theme
         st.success(f"✦ {ct.get('name','AI 커스텀')}", icon="🎨")
-        if st.session_state.bg_photo_url:
+        if st.session_state.bg_photo_url or st.session_state.uploaded_bg_b64:
             st.caption(f"🖼 배경 이미지 적용됨")
 
     st.divider()
