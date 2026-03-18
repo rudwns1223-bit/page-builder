@@ -2165,34 +2165,35 @@ with L:
     st.markdown("### 🎲 섹션별 문구 재생성")
     st.caption("클릭 시 해당 섹션 문구만 새롭게 교체됩니다")
     regen_secs = [s for s in ordered if s in SEC_LABELS and s != 'custom_section']
-    if regen_secs and st.session_state.api_key:
-       SEC_SHORT = {
-        "banner":"배너","intro":"소개","why":"이유","curriculum":"커리큘럼",
-        "target":"대상","reviews":"수강평","faq":"FAQ","cta":"CTA",
-        "video":"영상","before_after":"전/후","method":"학습법","package":"구성",
-        "event_overview":"개요","event_benefits":"혜택","event_deadline":"마감",
-        "fest_hero":"히어로","fest_lineup":"라인업","fest_benefits":"혜택","fest_cta":"CTA",
-    }
-    if regen_secs and st.session_state.api_key:
-        for row_start in range(0, len(regen_secs), 4):
-            chunk = regen_secs[row_start:row_start+4]
-            cols_r = st.columns(len(chunk))
-            for i, sid in enumerate(chunk):
-                label = SEC_SHORT.get(sid, sid)
-                with cols_r[i]:
-                    if st.button(f"↺ {label}", key=f"regen_{sid}", use_container_width=True):
-        for row_start in range(0, len(regen_secs), 4):
-                        with st.spinner(f"{label} 재생성..."):
-                            try:
-                                r = gen_section(sid)
-                                if st.session_state.custom_copy is None:
-                                    st.session_state.custom_copy = {}
-                                st.session_state.custom_copy.update(r)
-                                st.rerun()
-                            except Exception as e:
-                                st.error(f"실패: {e}")
-    elif not st.session_state.api_key:
-        st.caption("API 키를 입력하면 활성화됩니다.")
+SEC_SHORT = {
+    'banner':'배너', 'intro':'소개', 'why':'이유', 'curriculum':'커리큘럼',
+    'target':'대상', 'reviews':'수강평', 'faq':'FAQ', 'cta':'CTA',
+    'video':'영상', 'before_after':'전/후', 'method':'학습법', 'package':'구성',
+    'event_overview':'개요', 'event_benefits':'혜택', 'event_deadline':'마감',
+    'fest_hero':'히어로', 'fest_lineup':'라인업', 'fest_benefits':'혜택', 'fest_cta':'CTA',
+}
+
+regen_secs = [s for s in ordered if s in SEC_LABELS and s != 'custom_section']
+if regen_secs and st.session_state.api_key:
+    for row_start in range(0, len(regen_secs), 4):
+        chunk = regen_secs[row_start:row_start+4]
+        cols_r = st.columns(len(chunk))
+        for i, sid in enumerate(chunk):
+            label = SEC_SHORT.get(sid, sid)
+            with cols_r[i]:
+                if st.button(f"↺ {label}", key=f"regen_{sid}", use_container_width=True):
+                    with st.spinner(f"{label} 재생성..."):
+                        try:
+                            r = gen_section(sid)
+                            if st.session_state.custom_copy is None:
+                                st.session_state.custom_copy = {}
+                            st.session_state.custom_copy.update(r)
+                            st.session_state.preview_key = st.session_state.get("preview_key", 0) + 1
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"실패: {e}")
+elif not st.session_state.api_key:
+    st.caption("API 키를 입력하면 활성화됩니다.")
 
     st.divider()
 
