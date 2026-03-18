@@ -2298,19 +2298,35 @@ with L:
 """)
 
 
-st.divider()
-st.markdown("### 👁 실시간 미리보기")
+with R:
+    st.markdown("### 👁 실시간 미리보기")
+    
+    td = (st.session_state.custom_theme.get("name","AI 커스텀")
+          if st.session_state.concept=="custom" and st.session_state.custom_theme
+          else THEMES.get(st.session_state.concept,{}).get("label",""))
+    
+    col_info1, col_info2, col_info3, col_ref = st.columns([2, 2, 2, 1])
+    with col_info1: st.metric("컨셉", td)
+    with col_info2: st.metric("히어로", T_now.get("heroStyle","—"))
+    with col_info3: st.metric("섹션 수", len(ordered))
+    with col_ref:
+        if st.button("🔄", key="refresh_preview", help="미리보기 새로고침"):
+            st.session_state.preview_key = st.session_state.get("preview_key", 0) + 1
+            st.rerun()
 
-col_info1, col_info2, col_info3, col_ref = st.columns([2, 2, 2, 1])
-td = (st.session_state.custom_theme.get("name","AI 커스텀")
-      if st.session_state.concept=="custom" and st.session_state.custom_theme
-      else THEMES.get(st.session_state.concept,{}).get("label",""))
-with col_info1: st.metric("컨셉", td)
-with col_info2: st.metric("히어로", T_now.get("heroStyle","—"))
-with col_info3: st.metric("섹션 수", len(ordered))
-with col_ref:
-    if st.button("🔄", key="refresh_preview", help="미리보기 새로고침"):
-        st.session_state.preview_key = st.session_state.get("preview_key", 0) + 1
-        st.rerun()
+    # 별도 탭에서 크게 열기
+    encoded = final_html.encode("utf-8")
+    import base64
+    b64 = base64.b64encode(encoded).decode()
+    href = f'data:text/html;base64,{b64}'
+    st.markdown(
+        f'<a href="{href}" target="_blank" style="display:inline-flex;align-items:center;gap:8px;'
+        f'background:linear-gradient(135deg,#7C3AED,#06B6D4);color:#fff;font-weight:800;'
+        f'padding:12px 28px;border-radius:8px;font-size:14px;text-decoration:none;margin-bottom:16px">'
+        f'🔗 새 탭에서 전체 미리보기 열기 ↗</a>',
+        unsafe_allow_html=True
+    )
 
-components.html(final_html, height=1600, scrolling=True)
+    # 인라인 미리보기 (작게)
+    import streamlit.components.v1 as components
+    components.html(final_html, height=700, scrolling=True)
