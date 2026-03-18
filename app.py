@@ -1330,9 +1330,34 @@ def sec_event_overview(d, cp, T):
 
 def sec_event_benefits(d, cp, T):
     t = strip_hanja(cp.get("benefitsTitle","이벤트 특별 혜택"))
-    benefits = cp.get("eventBenefits",[{"icon":"🎁","title":"수강료 특가","desc":"이벤트 기간 최대 30% 할인.","badge":"최대 30%","no":"01"},{"icon":"📚","title":"교재 무료 제공","desc":"핵심 교재 무료 제공.","badge":"무료","no":"02"},{"icon":"🔥","title":"라이브 특강","desc":"매주 토요일 라이브 특강.","badge":"매주","no":"03"}])
-    bh = "".join(f'<div class="card rv d{i+1}" style="display:grid;grid-template-columns:64px 1fr;gap:20px;align-items:flex-start;padding:24px"><div style="width:64px;height:64px;border-radius:var(--r,4px);background:linear-gradient(135deg,var(--c1),var(--c2));display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0">{b["icon"]}</div><div><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="font-size:9px;font-weight:800;color:var(--c1);opacity:.7">NO.{b["no"]}</span><span style="background:var(--c1);color:#fff;font-size:9px;font-weight:800;padding:2px 10px;border-radius:100px">{b["badge"]}</span></div><div style="font-family:var(--fh);font-size:15px;font-weight:700;margin-bottom:7px" class="st">{strip_hanja(b["title"])}</div><p style="font-size:12.5px;line-height:1.85;color:var(--t70)">{strip_hanja(b["desc"])}</p></div></div>' for i,b in enumerate(benefits))
-    return f'<section class="sec alt" id="event-benefits"><div style="max-width:1200px;margin:0 auto"><div class="rv"><div class="tag-line">이벤트 혜택</div><h2 class="sec-h2 st">{t}</h2></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">{bh}</div></div></section>'
+    raw_b = cp.get("eventBenefits",[])
+    defaults = [
+        {"icon":"🎁","title":"수강료 특가","desc":"이벤트 기간 특별 할인 혜택을 제공합니다.","badge":"할인","no":"01"},
+        {"icon":"📚","title":"교재 무료 제공","desc":"핵심 교재 및 학습 자료를 무료로 드립니다.","badge":"무료","no":"02"},
+        {"icon":"🔥","title":"라이브 특강","desc":"매주 라이브 특강으로 실전 감각을 기릅니다.","badge":"매주","no":"03"},
+    ]
+    benefits = raw_b if isinstance(raw_b, list) and raw_b else defaults
+    def _safe_b(b, i):
+        if isinstance(b, dict):
+            icon  = b.get("icon","✦")
+            no    = b.get("no", f"{i+1:02d}")
+            badge = strip_hanja(str(b.get("badge","혜택")))
+            title = strip_hanja(str(b.get("title","")))
+            desc  = strip_hanja(str(b.get("desc","")))
+        else:
+            icon, no, badge, title, desc = "✦", f"{i+1:02d}", "혜택", strip_hanja(str(b)), ""
+        return (
+            f'<div class="card rv d{min(i+1,4)}" style="display:grid;grid-template-columns:64px 1fr;gap:20px;align-items:flex-start;padding:24px">'
+            f'<div style="width:64px;height:64px;border-radius:var(--r,4px);background:linear-gradient(135deg,var(--c1),var(--c2));display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0">{icon}</div>'
+            f'<div><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
+            f'<span style="font-size:9px;font-weight:800;color:var(--c1);opacity:.7">NO.{no}</span>'
+            f'<span style="background:var(--c1);color:#fff;font-size:9px;font-weight:800;padding:2px 10px;border-radius:100px">{badge}</span></div>'
+            f'<div style="font-family:var(--fh);font-size:15px;font-weight:700;margin-bottom:7px" class="st">{title}</div>'
+            f'<p style="font-size:12.5px;line-height:1.85;color:var(--t70)">{desc}</p>'
+            f'</div></div>'
+        )
+    bh = "".join(_safe_b(b, i) for i, b in enumerate(benefits))
+    return f'<section class="sec alt" id="event-benefits"><div style="max-width:1200px;margin:0 auto"><div class="rv"><div class="tag-line">이벤트 혜택</div><h2 class="sec-h2 st">{t}</h2></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">{bh}</div></div></section>'
 
 
 def sec_event_deadline(d, cp, T):
@@ -1388,15 +1413,59 @@ def sec_fest_lineup(d, cp, T):
     t = strip_hanja(cp.get("festLineupTitle","강사 라인업"))
     s = strip_hanja(cp.get("festLineupSub",f"{d['subject']} 전 영역 최강 강사진"))
     lineup = cp.get("festLineup",[{"name":"강사A","tag":"독해·문법","tagline":"수능 영어 독해의 정석","badge":"베스트셀러","emoji":"📖"},{"name":"강사B","tag":"EBS 연계","tagline":"EBS 연계율 완벽 적중","badge":"적중률 1위","emoji":"🎯"},{"name":"강사C","tag":"어법·어휘","tagline":"어법·어휘 전문 빠른 풀이","badge":"속도UP","emoji":"⚡"},{"name":"강사D","tag":"파이널","tagline":"수능 D-30 파이널 완성","badge":"파이널 특화","emoji":"🏆"}])
-    lh = "".join(f'<div class="card rv d{min(i+1,4)}" style="text-align:center;padding:32px 24px"><div style="font-size:44px;margin-bottom:16px">{l["emoji"]}</div><div style="display:inline-flex;align-items:center;gap:6px;background:var(--bg3);color:var(--c1);font-size:9.5px;font-weight:800;padding:4px 14px;border-radius:var(--r-btn,100px);margin-bottom:14px;border:1px solid var(--bd)">{strip_hanja(l["tag"])}</div><div style="font-family:var(--fh);font-size:20px;font-weight:900;margin-bottom:9px" class="st">{strip_hanja(l["name"])}</div><p style="font-size:12.5px;line-height:1.75;color:var(--t70);margin-bottom:14px">{strip_hanja(l["tagline"])}</p><span style="font-size:10px;background:var(--c1);color:#fff;padding:4px 16px;border-radius:100px;font-weight:800">{strip_hanja(l["badge"])}</span></div>' for i,l in enumerate(lineup))
+    def _safe_l(l, i):
+        if isinstance(l, dict):
+            emoji   = l.get("emoji","📖")
+            tag     = strip_hanja(str(l.get("tag","")))
+            name    = strip_hanja(str(l.get("name","")))
+            tagline = strip_hanja(str(l.get("tagline","")))
+            badge   = strip_hanja(str(l.get("badge","")))
+        else:
+            emoji, tag, name, tagline, badge = "📖","강사","강사","강사 소개",""
+        return (
+            f'<div class="card rv d{min(i+1,4)}" style="text-align:center;padding:32px 24px">'
+            f'<div style="font-size:44px;margin-bottom:16px">{emoji}</div>'
+            f'<div style="display:inline-flex;align-items:center;gap:6px;background:var(--bg3);color:var(--c1);font-size:9.5px;font-weight:800;padding:4px 14px;border-radius:var(--r-btn,100px);margin-bottom:14px;border:1px solid var(--bd)">{tag}</div>'
+            f'<div style="font-family:var(--fh);font-size:20px;font-weight:900;margin-bottom:9px" class="st">{name}</div>'
+            f'<p style="font-size:12.5px;line-height:1.75;color:var(--t70);margin-bottom:14px">{tagline}</p>'
+            f'<span style="font-size:10px;background:var(--c1);color:#fff;padding:4px 16px;border-radius:100px;font-weight:800">{badge}</span>'
+            f'</div>'
+        )
+    lh = "".join(_safe_l(l, i) for i, l in enumerate(lineup))
     return f'<section class="sec alt" id="fest-lineup"><div style="max-width:1200px;margin:0 auto"><div class="rv"><div class="tag-line">강사 라인업</div><h2 class="sec-h2 st">{t}</h2><p class="sec-sub">{s}</p></div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">{lh}</div></div></section>'
 
 
 def sec_fest_benefits(d, cp, T):
     t = strip_hanja(cp.get("festBenefitsTitle","기획전 특별 혜택"))
-    benefits = cp.get("festBenefits",[{"icon":"🎁","title":"전 강사 통합 수강료 특가","desc":"최대 30% 추가 할인.","badge":"최대 30%","no":"01"},{"icon":"📚","title":"통합 학습 자료 무료","desc":"통합 교재 및 기출 자료 무료.","badge":"무료 제공","no":"02"},{"icon":"🔥","title":"주간 라이브 특강","desc":"매주 전 강사 참여 라이브.","badge":"전 강사","no":"03"},{"icon":"🏆","title":"목표 등급 보장","desc":"목표 등급 미달성 시 재수강.","badge":"성적 보장","no":"04"}])
-    bh = "".join(f'<div class="card rv d{min(i+1,4)}" style="display:grid;grid-template-columns:64px 1fr;gap:20px;align-items:flex-start;padding:24px"><div style="width:64px;height:64px;border-radius:var(--r,4px);background:linear-gradient(135deg,var(--c1),var(--c2));display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0">{b["icon"]}</div><div><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="font-size:9px;font-weight:800;color:var(--c1);opacity:.7">NO.{b["no"]}</span><span style="background:var(--c1);color:#fff;font-size:9px;font-weight:800;padding:2px 10px;border-radius:100px">{b["badge"]}</span></div><div style="font-family:var(--fh);font-size:15px;font-weight:700;margin-bottom:7px" class="st">{strip_hanja(b["title"])}</div><p style="font-size:12.5px;line-height:1.85;color:var(--t70)">{strip_hanja(b["desc"])}</p></div></div>' for i,b in enumerate(benefits))
-    return f'<section class="sec" id="fest-benefits"><div style="max-width:1200px;margin:0 auto"><div class="rv"><div class="tag-line">기획전 혜택</div><h2 class="sec-h2 st">{t}</h2></div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px">{bh}</div></div></section>'
+    raw_b = cp.get("festBenefits",[])
+    defaults = [
+        {"icon":"🎁","title":"전 강사 통합 수강료 특가","desc":"최대 30% 추가 할인 혜택.","badge":"최대 30%","no":"01"},
+        {"icon":"📚","title":"통합 학습 자료 무료","desc":"통합 교재 및 기출 자료 무료 제공.","badge":"무료 제공","no":"02"},
+        {"icon":"🔥","title":"주간 라이브 특강","desc":"매주 전 강사 참여 라이브 특강.","badge":"전 강사","no":"03"},
+        {"icon":"🏆","title":"목표 등급 보장","desc":"목표 등급 미달성 시 재수강 지원.","badge":"성적 보장","no":"04"},
+    ]
+    benefits = raw_b if isinstance(raw_b, list) and raw_b else defaults
+    def _safe_fb(b, i):
+        if isinstance(b, dict):
+            icon  = b.get("icon","✦")
+            no    = b.get("no", f"{i+1:02d}")
+            badge = strip_hanja(str(b.get("badge","혜택")))
+            title = strip_hanja(str(b.get("title","")))
+            desc  = strip_hanja(str(b.get("desc","")))
+        else:
+            icon, no, badge, title, desc = "✦", f"{i+1:02d}", "혜택", strip_hanja(str(b)), ""
+        return (
+            f'<div class="card rv d{min(i+1,4)}" style="display:grid;grid-template-columns:64px 1fr;gap:20px;align-items:flex-start;padding:24px">'
+            f'<div style="width:64px;height:64px;border-radius:var(--r,4px);background:linear-gradient(135deg,var(--c1),var(--c2));display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0">{icon}</div>'
+            f'<div><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
+            f'<span style="font-size:9px;font-weight:800;color:var(--c1);opacity:.7">NO.{no}</span>'
+            f'<span style="background:var(--c1);color:#fff;font-size:9px;font-weight:800;padding:2px 10px;border-radius:100px">{badge}</span></div>'
+            f'<div style="font-family:var(--fh);font-size:15px;font-weight:700;margin-bottom:7px" class="st">{title}</div>'
+            f'<p style="font-size:12.5px;line-height:1.85;color:var(--t70)">{desc}</p>'
+            f'</div></div>'
+        )
+    bh = "".join(_safe_fb(b, i) for i, b in enumerate(benefits))
+    return f'<section class="sec" id="fest-benefits"><div style="max-width:1200px;margin:0 auto"><div class="rv"><div class="tag-line">기획전 혜택</div><h2 class="sec-h2 st">{t}</h2></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">{bh}</div></div></section>'
 
 
 def sec_fest_cta(d, cp, T):
@@ -1580,13 +1649,13 @@ def sec_package(d, cp, T):
     ])
     ph = "".join(
         f'<div class="rv d{min(i+1,4)}" style="display:flex;gap:16px;align-items:center;padding:18px 22px;border:1px solid var(--bd);border-radius:var(--r,4px);background:var(--bg);margin-bottom:8px">'
-        f'<div style="font-size:32px;flex-shrink:0">{p["icon"]}</div>'
+        f'<div style="font-size:32px;flex-shrink:0">{p.get("icon","📦") if isinstance(p,dict) else "📦"}</div>'
         f'<div style="flex:1">'
-        f'<div style="font-family:var(--fh);font-size:15px;font-weight:700;color:var(--text);margin-bottom:3px" class="st">{strip_hanja(p["name"])}</div>'
-        f'<p style="font-size:12.5px;line-height:1.7;color:var(--t70);margin:0">{strip_hanja(p["desc"])}</p>'
+        f'<div style="font-family:var(--fh);font-size:15px;font-weight:700;color:var(--text);margin-bottom:3px" class="st">{strip_hanja(str(p.get("name","") if isinstance(p,dict) else p))}</div>'
+        f'<p style="font-size:12.5px;line-height:1.7;color:var(--t70);margin:0">{strip_hanja(str(p.get("desc","") if isinstance(p,dict) else ""))}</p>'
         f'</div>'
-        f'<span style="flex-shrink:0;font-size:10px;font-weight:800;background:{"var(--c1)" if p["badge"]=="필수" else "var(--bg3)"};color:{"#fff" if p["badge"]=="필수" else "var(--c1)"};padding:5px 14px;border-radius:var(--r-btn,100px);border:1.5px solid var(--c1)">{p["badge"]}</span>'
-        f'</div>'
+        + (lambda _b: f'<span style="flex-shrink:0;font-size:10px;font-weight:800;background:{"var(--c1)" if _b=="필수" else "var(--bg3)"};color:{"#fff" if _b=="필수" else "var(--c1)"};padding:5px 14px;border-radius:var(--r-btn,100px);border:1.5px solid var(--c1)">{_b}</span>')(strip_hanja(str(p.get("badge","포함") if isinstance(p,dict) else "포함")))
+        + f'</div>'
         for i, p in enumerate(pkgs)
     )
     return (
