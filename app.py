@@ -2242,13 +2242,13 @@ with L:
                     cur_val = cp.get(fkey,"")
                     wkey = f"ed_{fkey}"
                     if ftype == "text_area":
-                        val = st.text_area(flabel, value=cur_val, height=72, key=wkey)
+                        val = st.text_area(flabel, value=cur_val, height=72, key=f"ed_{sec_label}_{fkey}")
                     else:
-                        val = st.text_input(flabel, value=cur_val, key=wkey)
+                        val = st.text_input(flabel, value=cur_val, key=f"ed_{sec_label}_{fkey}")
                     if val != cur_val:
                         changed[fkey] = val
                 if changed:
-                    if st.button("✓ 적용", key=f"apply_{sec_label}"):
+                    if st.button("✓ 적용", key=f"apply_{sec_label}_btn"):
                         st.session_state.custom_copy.update(changed)
                         st.rerun()
     else:
