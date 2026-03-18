@@ -2053,12 +2053,14 @@ with st.sidebar:
     # 섹션 ON/OFF
     st.markdown('<div class="sec-hdr">📑 섹션 ON/OFF</div>', unsafe_allow_html=True)
     for sid in PURPOSE_SECTIONS[st.session_state.purpose_type]:
-        chk = st.checkbox(SEC_LABELS.get(sid,sid),
-                          value=sid in st.session_state.active_sections, key=f"sec_{sid}")
-        if chk and sid not in st.session_state.active_sections:
-            st.session_state.active_sections.append(sid)
-        elif not chk and sid in st.session_state.active_sections:
-            st.session_state.active_sections.remove(sid)
+    chk = st.checkbox(SEC_LABELS.get(sid,sid),
+                      value=sid in st.session_state.active_sections, key=f"sec_{sid}")
+    if chk and sid not in st.session_state.active_sections:
+        st.session_state.active_sections.append(sid)
+        st.rerun()  # ← 추가
+    elif not chk and sid in st.session_state.active_sections:
+        st.session_state.active_sections.remove(sid)
+        st.rerun()
 
     st.markdown("---")
     csec_on = st.checkbox("✏️ 기타 섹션 추가", value=st.session_state.custom_section_on, key="chk_cs")
@@ -2314,19 +2316,15 @@ with R:
             st.session_state.preview_key = st.session_state.get("preview_key", 0) + 1
             st.rerun()
 
-    # 별도 탭에서 크게 열기
-    encoded = final_html.encode("utf-8")
-    import base64
-    b64 = base64.b64encode(encoded).decode()
-    href = f'data:text/html;base64,{b64}'
-    st.markdown(
-        f'<a href="{href}" target="_blank" style="display:inline-flex;align-items:center;gap:8px;'
-        f'background:linear-gradient(135deg,#7C3AED,#06B6D4);color:#fff;font-weight:800;'
-        f'padding:12px 28px;border-radius:8px;font-size:14px;text-decoration:none;margin-bottom:16px">'
-        f'🔗 새 탭에서 전체 미리보기 열기 ↗</a>',
-        unsafe_allow_html=True
-    )
+    # 새 탭 버튼 → HTML 파일 다운로드 후 열기 안내 대신
+    # 토글로 크게/작게 전환
+    if "preview_large" not in st.session_state:
+        st.session_state.preview_large = False
 
-    # 인라인 미리보기 (작게)
+    if st.button("🔍 미리보기 크게/작게 전환", use_container_width=True):
+        st.session_state.preview_large = not st.session_state.preview_large
+        st.rerun()
+
+    preview_height = 1400 if st.session_state.preview_large else 700
     import streamlit.components.v1 as components
-    components.html(final_html, height=700, scrolling=True)
+    components.html(final_html, height=preview_height, scrolling=True)
