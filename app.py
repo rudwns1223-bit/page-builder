@@ -2300,11 +2300,12 @@ with L:
 
 with R:
     col_prev, col_ref = st.columns([4,1])
-    with col_prev: st.markdown("### 👁 실시간 미리보기")
-    with col_ref:
-if st.button("🔄", key="refresh_preview"):
-    st.session_state.preview_key = st.session_state.get("preview_key", 0) + 1  # ← 추가
-    st.rerun()
+with col_prev:
+    st.markdown("### 👁 실시간 미리보기")
+with col_ref:
+    if st.button("🔄", key="refresh_preview", help="미리보기 새로고침"):
+        st.session_state.preview_key = st.session_state.get("preview_key", 0) + 1
+        st.rerun()
     # (원래 markdown 제거됨, 위 col_prev에서 처리)
     td = (st.session_state.custom_theme.get("name","AI 커스텀")
           if st.session_state.concept=="custom" and st.session_state.custom_theme
