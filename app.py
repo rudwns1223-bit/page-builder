@@ -205,62 +205,92 @@ SUBJ_KW = {
 
 # ── 배경 이미지 키워드 맵 (대폭 강화) ──────────
 KO_BG = {
-    # 야구/스포츠
-    "야구장":"baseball+stadium+night+crowd",
-    "야구":"baseball+stadium+crowd",
-    "경기장":"sports+arena+stadium+night",
-    "축구장":"football+pitch+soccer+field",
-    "축구":"football+soccer+pitch+green",
-    "농구장":"basketball+arena+court",
-    "스포츠":"sports+stadium+dramatic",
-    "관중":"stadium+crowd+lights",
-    "골":"football+goal+stadium",
-    "선수":"athlete+sports+action",
-    # 도시/밤
-    "사이버펑크":"cyberpunk+neon+city+rain+dark",
-    "네온":"neon+lights+city+night",
-    "도시":"city+skyline+night",
-    "루프탑":"rooftop+city+night",
-    "밤거리":"city+street+night+neon",
+    # 스포츠/경기장
+    "야구장":    "baseball,stadium,night",
+    "야구":      "baseball,stadium",
+    "경기장":    "sports,arena,stadium",
+    "축구장":    "soccer,field,stadium",
+    "축구":      "soccer,pitch,green",
+    "농구장":    "basketball,court,arena",
+    "스포츠":    "sports,stadium,action",
+    "관중":      "crowd,stadium,lights",
+    "골":        "goal,soccer,stadium",
+    "선수":      "athlete,action,sport",
+    "격투":      "martial,arts,ring",
+    "수영장":    "swimming,pool,water",
+    "트랙":      "running,track,stadium",
+    # 도시/야경
+    "사이버펑크": "cyberpunk,neon,city",
+    "네온":      "neon,lights,night",
+    "도시":      "city,skyline,night",
+    "루프탑":    "rooftop,city,night",
+    "밤거리":    "street,night,city",
+    "극장":      "cinema,theater,dark",
+    "영화관":    "cinema,theater,dark",
+    "공연장":    "concert,stage,lights",
+    "카페":      "cafe,coffee,interior",
+    "사무실":    "office,workspace,modern",
     # 자연
-    "벚꽃":"cherry+blossom+spring+pink",
-    "단풍":"autumn+leaves+fall+golden",
-    "숲":"forest+trees+moody",
-    "자작나무":"birch+forest+misty",
-    "겨울":"winter+snow+cold+dramatic",
-    "눈":"snow+winter+landscape",
-    "오로라":"aurora+borealis+northern+lights",
-    "바다":"ocean+sea+dramatic+waves",
+    "벚꽃":      "cherry,blossom,spring",
+    "단풍":      "autumn,leaves,forest",
+    "숲":        "forest,trees,misty",
+    "자작나무":  "birch,forest,white",
+    "겨울":      "winter,snow,landscape",
+    "눈":        "snow,winter,white",
+    "오로라":    "aurora,northern,lights",
+    "바다":      "ocean,sea,waves",
+    "해변":      "beach,ocean,sand",
+    "산":        "mountain,peak,dramatic",
+    "폭포":      "waterfall,nature,dramatic",
+    "들판":      "field,meadow,golden",
     # 학습/공간
-    "도서관":"library+books+dramatic+dark",
-    "책":"books+library+study",
-    "교실":"classroom+chalkboard+school",
-    "칠판":"chalkboard+classroom",
-    "사찰":"temple+zen+peaceful",
+    "도서관":    "library,books,interior",
+    "책":        "books,library,reading",
+    "교실":      "classroom,school,chalkboard",
+    "칠판":      "chalkboard,classroom",
+    "사찰":      "temple,zen,peaceful",
+    "카페테리아": "cafeteria,interior,modern",
     # 우주/신비
-    "우주":"space+cosmos+galaxy+nebula",
-    "별":"stars+night+sky+milky+way",
-    "플라네타리움":"planetarium+stars+dome",
-    # 건축/디자인
-    "건축":"brutalist+architecture+dramatic",
-    "고딕":"gothic+dark+dramatic",
-    "이집트":"egypt+pyramid+desert+golden",
-    "사막":"desert+sand+golden+dunes",
-    # 스타일
-    "빈티지":"vintage+retro+film+grain",
-    "흑백":"black+white+monochrome+dramatic",
-    "앰버":"amber+golden+dark+warm",
-    "골드":"gold+luxury+dark",
-    "불꽃":"fire+flames+dark+dramatic",
-    "안개":"foggy+mist+moody+atmospheric",
-    # 영어도 지원
-    "baseball":"baseball+stadium+night",
-    "soccer":"soccer+stadium+crowd",
-    "library":"library+books+dark",
-    "space":"space+cosmos+stars",
-    "fire":"fire+flames+dark",
-    "neon":"neon+lights+city",
-    "ocean":"ocean+waves+dramatic",
+    "우주":      "space,galaxy,nebula",
+    "별":        "stars,night,milky",
+    "은하":      "galaxy,space,cosmos",
+    "플라네타리움": "planetarium,stars,dome",
+    # 건축/분위기
+    "건축":      "architecture,brutalist,concrete",
+    "고딕":      "gothic,dark,architecture",
+    "이집트":    "egypt,pyramid,desert",
+    "사막":      "desert,sand,dunes",
+    "로마":      "rome,ancient,architecture",
+    "성":        "castle,dark,dramatic",
+    # 스타일/분위기
+    "빈티지":    "vintage,retro,film",
+    "흑백":      "monochrome,black,white",
+    "앰버":      "amber,golden,warm",
+    "골드":      "gold,luxury,dark",
+    "불꽃":      "fire,flames,dark",
+    "안개":      "fog,mist,atmospheric",
+    "연기":      "smoke,dark,moody",
+    "비":        "rain,street,wet",
+    "먹구름":    "storm,clouds,dramatic",
+    # 직업/인물
+    "강사":      "teacher,education,classroom",
+    "학생":      "student,study,university",
+    "독서":      "reading,books,study",
+    # 영어 단어 지원
+    "baseball":  "baseball,stadium",
+    "soccer":    "soccer,field",
+    "library":   "library,books",
+    "space":     "space,galaxy",
+    "fire":      "fire,flames",
+    "neon":      "neon,lights",
+    "ocean":     "ocean,waves",
+    "cinema":    "cinema,theater",
+    "stadium":   "stadium,crowd",
+    "mountain":  "mountain,dramatic",
+    "forest":    "forest,trees",
+    "desert":    "desert,sand",
+    "snow":      "snow,winter",
+    "rain":      "rain,street",
 }
 
 # ══════════════════════════════════════════════════════
@@ -307,9 +337,7 @@ def safe_json(raw: str) -> dict:
     raise ValueError(f"JSON 파싱 실패\n원본: {raw[:300]}")
 
 def build_bg_url(mood: str) -> str:
-    """무드 → 실사 배경 이미지 URL
-    loremflickr.com 기반, + 키워드 구분자 사용
-    """
+    """무드 → 실사 배경 이미지 URL (Unsplash 기반)"""
     if not mood: return ""
     text = mood.lower()
     found = []
@@ -321,18 +349,17 @@ def build_bg_url(mood: str) -> str:
     # 영어 단어 직접 추출
     if not found:
         eng = [w for w in re.findall(r"[a-zA-Z]{4,}", mood)
-               if w.lower() not in ("this","that","with","from","have","been")]
-        found.extend(eng[:3])
+               if w.lower() not in ("this","that","with","from","have","been","dark","light")]
+        found.extend(eng[:4])
     if not found:
-        found = ["dramatic","dark","study"]
-    tags = ",".join(list(dict.fromkeys(found))[:4])
-    lock = random.randint(1, 99999)
-    # 스포츠 계열은 로레플리커보다 unsplash가 더 정확
-    sport_kw = ["football","soccer","baseball","basketball","stadium","pitch","court","arena","athlete"]
-    if any(k in tags for k in sport_kw):
-        # unsplash source (1920x900 landscape)
-        return f"https://source.unsplash.com/1920x900/?{tags}&sig={lock}"
-    return f"https://loremflickr.com/1920/900/{tags}?lock={lock}"
+        found = ["dramatic","dark","moody"]
+    # 키워드를 2~3개로 줄여서 Unsplash 정확도 높임
+    core_tags = list(dict.fromkeys(found))[:3]
+    query = ",".join(core_tags)
+    lock  = random.randint(1, 999999)
+    # 모든 케이스에 Unsplash 사용 (더 정확한 실사 이미지)
+    return f"https://source.unsplash.com/1920x1080/?{query}&sig={lock}"
+
 
 # ══════════════════════════════════════════════════════
 # AI 호출
@@ -677,6 +704,9 @@ html{scroll-behavior:smooth}
 body{font-family:var(--fb);background:var(--bg);color:var(--text);overflow-x:hidden;-webkit-font-smoothing:antialiased}
 a{text-decoration:none;color:inherit}
 
+/* ── 한국어 줄 맞춤 핵심 규칙 ── */
+h1,h2,h3,p,span,div{word-break:keep-all;overflow-wrap:break-word}
+
 /* ── 인트로 애니메이션 ── */
 .rv{opacity:0;transform:translateY(22px);transition:opacity .9s cubic-bezier(.16,1,.3,1),transform .9s cubic-bezier(.16,1,.3,1)}
 .rv.on{opacity:1;transform:none}
@@ -689,12 +719,13 @@ a{text-decoration:none;color:inherit}
   font-family:var(--fb);font-size:14px;font-weight:800;padding:14px 32px;
   border-radius:var(--r-btn,4px);border:none;cursor:pointer;
   box-shadow:0 4px 24px rgba(0,0,0,.25);
-  transition:opacity .15s,transform .15s,box-shadow .15s;text-decoration:none;letter-spacing:.02em}
+  transition:opacity .15s,transform .15s,box-shadow .15s;text-decoration:none;letter-spacing:.02em;
+  white-space:nowrap}
 .btn-p:hover{opacity:.88;transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.35)}
 .btn-s{display:inline-flex;align-items:center;gap:7px;background:transparent;
   color:var(--text);font-family:var(--fb);font-size:14px;font-weight:600;
   padding:13px 24px;border-radius:var(--r-btn,4px);border:1.5px solid var(--bd);
-  cursor:pointer;transition:border-color .15s,color .15s;text-decoration:none}
+  cursor:pointer;transition:border-color .15s,color .15s;text-decoration:none;white-space:nowrap}
 .btn-s:hover{border-color:var(--c1);color:var(--c1)}
 
 /* ── 섹션 기본 ── */
@@ -720,9 +751,11 @@ a{text-decoration:none;color:inherit}
 .tag-line::before{content:'';display:block;width:24px;height:2px;background:var(--c1)}
 
 /* ── 섹션 타이틀 ── */
-.sec-h2{font-family:var(--fh);font-size:clamp(26px,4vw,42px);font-weight:900;
-  line-height:1.1;letter-spacing:-.04em;color:var(--text);margin-bottom:12px}
-.sec-sub{font-size:14px;line-height:2;color:var(--t70);margin-bottom:40px;max-width:560px}
+.sec-h2{font-family:var(--fh);font-size:clamp(24px,3.5vw,40px);font-weight:900;
+  line-height:1.15;letter-spacing:-.04em;color:var(--text);margin-bottom:12px;
+  word-break:keep-all;overflow-wrap:break-word}
+.sec-sub{font-size:14px;line-height:1.9;color:var(--t70);margin-bottom:36px;
+  max-width:560px;word-break:keep-all;overflow-wrap:break-word}
 
 /* ── 카드 ── */
 .card{background:var(--bg);border:1px solid var(--bd);border-radius:var(--r,4px);
@@ -743,7 +776,26 @@ a{text-decoration:none;color:inherit}
   color:transparent;
   font-family:var(--fh);
 }
+
+/* ── 반응형 그리드 안전장치 ── */
+@media(max-width:900px){
+  .sec{padding:clamp(48px,8vw,72px) clamp(20px,5vw,40px)}
+  [style*="grid-template-columns:1fr 1.4fr"],
+  [style*="grid-template-columns:1fr 1.6fr"],
+  [style*="grid-template-columns:1fr 1.8fr"],
+  [style*="grid-template-columns:1.2fr 1fr"],
+  [style*="grid-template-columns:1.3fr 1fr"],
+  [style*="grid-template-columns:1fr 2fr"]{grid-template-columns:1fr!important}
+  [style*="grid-template-columns:repeat(3,1fr)"]{grid-template-columns:1fr 1fr!important}
+  [style*="grid-template-columns:repeat(4,1fr)"]{grid-template-columns:1fr 1fr!important}
+  [style*="grid-template-columns:1fr 60px 1fr"]{grid-template-columns:1fr!important}
+}
+@media(max-width:580px){
+  [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
+  [style*="grid-template-columns:repeat(2,1fr)"]{grid-template-columns:1fr!important}
+}
 """
+
 
 # ══════════════════════════════════════════════════════
 # 파티클 JS
@@ -811,7 +863,7 @@ def sec_banner(d, cp, T):
             + f'<div style="position:absolute;top:-0.05em;right:-0.05em;font-family:var(--fh);font-size:38vw;font-weight:900;line-height:0.85;color:var(--c1);opacity:.04;pointer-events:none;overflow:hidden;z-index:1;user-select:none">{deco_word}</div>'
             + f'<div style="position:relative;z-index:2;padding:clamp(60px,8vw,100px) clamp(40px,7vw,100px);max-width:1000px">'
             + f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:28px"><div style="width:36px;height:3px;background:{accent_col}"></div><span style="font-size:9.5px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:{accent_col}">{sub}</span></div>'
-            + f'<h1 style="font-family:var(--fh);font-size:clamp(56px,9vw,130px);font-weight:900;line-height:.82;letter-spacing:-.05em;color:{text_col};margin-bottom:20px" class="st">{title}</h1>'
+            + f'<h1 style="font-family:var(--fh);font-size:clamp(48px,7vw,110px);font-weight:900;line-height:.9;letter-spacing:-.04em;word-break:keep-all;overflow-wrap:break-word;color:{text_col};margin-bottom:20px" class="st">{title}</h1>'
             + (f'<div style="font-size:clamp(15px,1.7vw,20px);font-style:italic;font-weight:300;color:{accent_col};margin-bottom:18px;letter-spacing:-.01em;line-height:1.5;opacity:.9">{tagline}</div>' if tagline else "")
             + f'<div style="width:100%;height:1px;background:linear-gradient(to right,{accent_col},transparent);margin-bottom:24px;opacity:.4"></div>'
             + f'<p style="font-size:clamp(14px,1.6vw,17px);line-height:1.9;color:{t70_col};max-width:520px;padding-left:18px;border-left:3px solid {accent_col};margin-bottom:28px">{lead}</p>'
@@ -838,7 +890,7 @@ def sec_banner(d, cp, T):
             + f'<div style="display:inline-flex;align-items:center;gap:10px;margin-bottom:24px;padding:5px 18px;border:1.5px solid var(--c1);border-radius:var(--r-btn,2px)">'
             + f'<div style="width:8px;height:8px;background:var(--c1);border-radius:50%;animation:pulse-accent 1.5s ease-in-out infinite"></div>'
             + f'<span style="font-size:10px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--c1)">{sub}</span></div>'
-            + f'<h1 style="font-family:var(--fh);font-size:clamp(48px,7.5vw,110px);font-weight:900;line-height:.82;letter-spacing:-.04em;color:#fff;margin-bottom:16px" class="st">{title}</h1>'
+            + f'<h1 style="font-family:var(--fh);font-size:clamp(40px,6.5vw,96px);font-weight:900;line-height:.92;letter-spacing:-.04em;word-break:keep-all;overflow-wrap:break-word;color:#fff;margin-bottom:16px" class="st">{title}</h1>'
             + (f'<div style="font-size:clamp(14px,1.6vw,19px);font-style:italic;font-weight:300;color:var(--c1);margin-bottom:18px;line-height:1.5;opacity:.9">{tagline}</div>' if tagline else "")
             + f'<p style="font-size:15px;line-height:2;color:rgba(255,255,255,.72);max-width:480px;border-left:3px solid var(--c1);padding-left:20px;margin-bottom:32px">{lead}</p>'
             + f'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:28px">{kh}</div>'
@@ -869,8 +921,8 @@ def sec_banner(d, cp, T):
             + f'<div style="position:absolute;top:0;left:0;right:0;bottom:0;background:repeating-linear-gradient(0deg,transparent,transparent 79px,var(--bd) 79px,var(--bd) 80px);z-index:0;opacity:.3;pointer-events:none"></div>'
             + f'<div style="position:relative;z-index:1">'
             + f'<div style="display:flex;align-items:center;gap:12px;margin-bottom:32px"><div style="width:48px;height:4px;background:var(--c1)"></div><span style="font-size:9.5px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:var(--c1)">{sub}</span></div>'
-            + f'<div style="font-family:var(--fh);font-size:clamp(72px,13vw,180px);font-weight:900;line-height:.82;letter-spacing:-.06em;color:var(--text);margin-bottom:4px" class="st">{line1}</div>'
-            + (f'<div style="font-family:var(--fh);font-size:clamp(72px,13vw,180px);font-weight:900;line-height:.82;letter-spacing:-.06em;color:transparent;-webkit-text-stroke:2px var(--c1);">{line2}</div>' if line2 else "")
+            + f'<div style="font-family:var(--fh);font-size:clamp(56px,9vw,140px);font-weight:900;line-height:.88;letter-spacing:-.05em;word-break:keep-all;overflow-wrap:break-word;color:var(--text);margin-bottom:4px" class="st">{line1}</div>'
+            + (f'<div style="font-family:var(--fh);font-size:clamp(56px,9vw,140px);font-weight:900;line-height:.88;letter-spacing:-.05em;word-break:keep-all;overflow-wrap:break-word;color:transparent;-webkit-text-stroke:2px var(--c1);">{line2}</div>' if line2 else "")
             + f'<div style="display:flex;align-items:center;gap:32px;margin-top:40px;padding-top:32px;border-top:2px solid var(--c1)">'
             + f'<p style="font-size:14px;line-height:1.9;color:var(--t70);max-width:380px">{lead}</p>'
             + (f'<div style="font-size:clamp(13px,1.5vw,18px);font-style:italic;font-weight:300;color:var(--c1);margin-top:12px;line-height:1.5">{tagline}</div>' if tagline else "")
@@ -900,7 +952,7 @@ def sec_banner(d, cp, T):
             # 메인 콘텐츠
             + f'<div style="position:relative;z-index:2;padding:clamp(48px,6vw,80px) clamp(40px,6vw,88px);display:flex;flex-direction:column;justify-content:center">'
             + f'<div style="display:inline-flex;align-items:center;gap:8px;margin-bottom:20px"><span style="font-size:10px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:{accent_c}">{sub}</span></div>'
-            + f'<h1 style="font-family:var(--fh);font-size:clamp(44px,7vw,96px);font-weight:900;line-height:.9;letter-spacing:-.04em;color:{text_col};max-width:800px;margin-bottom:16px" class="st">{title}</h1>'
+            + f'<h1 style="font-family:var(--fh);font-size:clamp(38px,5.5vw,80px);font-weight:900;line-height:.95;letter-spacing:-.04em;word-break:keep-all;overflow-wrap:break-word;color:{text_col};max-width:800px;margin-bottom:16px" class="st">{title}</h1>'
             + (f'<div style="font-size:clamp(14px,1.5vw,18px);font-style:italic;font-weight:300;color:{accent_c};margin-bottom:20px;line-height:1.5;opacity:.9">{tagline}</div>' if tagline else "")
             + f'<div style="display:flex;gap:40px;align-items:flex-start;flex-wrap:wrap">'
             + f'<p style="font-size:clamp(13px,1.4vw,16px);line-height:1.95;color:{t70_col};max-width:420px;padding-left:20px;border-left:3px solid {accent_c}">{lead}</p>'
@@ -945,7 +997,7 @@ def sec_banner(d, cp, T):
             + f'<div style="position:relative;z-index:2;padding:clamp(48px,6vw,80px) clamp(36px,6vw,88px);max-width:900px">'
             + f'<div style="display:inline-flex;align-items:center;gap:9px;background:rgba(255,255,255,.12);{s["blur"]};padding:6px 18px;border-radius:100px;margin-bottom:22px;border:1px solid rgba(255,255,255,.2)">'
             + f'<span style="font-size:10px;font-weight:800;color:#fff;letter-spacing:.14em;text-transform:uppercase">{sub}</span></div>'
-            + f'<h1 style="font-family:var(--fh);font-size:clamp(48px,7.5vw,100px);font-weight:900;line-height:.84;letter-spacing:-.05em;color:#fff;margin-bottom:20px" class="st">{title}</h1>'
+            + f'<h1 style="font-family:var(--fh);font-size:clamp(36px,5vw,80px);font-weight:900;line-height:.95;letter-spacing:-.04em;word-break:keep-all;overflow-wrap:break-word;color:#fff;margin-bottom:20px" class="st">{title}</h1>'
             + f'<p style="font-size:clamp(13px,1.5vw,16px);line-height:1.9;color:rgba(255,255,255,.78);max-width:500px;margin-bottom:28px;padding-left:18px;border-left:3px solid #fff">{lead}</p>'
             + f'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:28px">{kh}</div>'
             + inst
