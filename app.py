@@ -1612,7 +1612,7 @@ def sec_video(d, cp, T):
     )
 
 
-    def sec_before_after(d, cp, T):
+def sec_before_after(d, cp, T):
     t   = strip_hanja(cp.get('baTitle', '공부 방식이 이렇게 달라집니다'))
     sub = strip_hanja(cp.get('baSub', f"{d['purpose_label']} 이후의 변화"))
     befores = cp.get('baBeforeItems', [
