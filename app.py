@@ -2041,7 +2041,7 @@ sb = st.selectbox("과목", ["영어", "수학", "국어", "사회", "과학"],
                   label_visibility="collapsed")
 st.session_state.subject = sb
 
-    if st.button("🔍 강사 정보 자동 검색", use_container_width=True):
+        if st.button("🔍 강사 정보 자동 검색", use_container_width=True):
         if not nm: st.warning("강사명을 입력해주세요")
         elif not st.session_state.api_key: st.warning("API 키를 입력해주세요")
         else:
