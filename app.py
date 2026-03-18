@@ -152,7 +152,7 @@ THEMES = {
 }
 
 PURPOSE_SECTIONS = {
-    "신규 커리큘럼": ["banner","intro","why","curriculum","target","reviews","faq","cta"],
+    "신규 커리큘럼": ["banner","intro","video","before_after","method","why","curriculum","target","package","reviews","faq","cta"],
     "이벤트":       ["banner","event_overview","event_benefits","event_deadline","reviews","cta"],
     "기획전":       ["fest_hero","fest_lineup","fest_benefits","fest_cta"],
 }
@@ -165,6 +165,7 @@ SEC_LABELS = {
     "banner":"🏠 메인 배너","intro":"👤 강사 소개","why":"💡 필요한 이유",
     "curriculum":"📚 커리큘럼","target":"🎯 수강 대상","reviews":"⭐ 수강평",
     "faq":"❓ FAQ","cta":"📣 수강신청",
+    "video":"🎬 영상 미리보기","before_after":"🔄 수강 전/후","method":"🧪 학습법 시각화","package":"📦 구성 안내",
     "event_overview":"📅 이벤트 개요","event_benefits":"🎁 이벤트 혜택",
     "event_deadline":"⏰ 마감 안내",
     "fest_hero":"🏆 기획전 히어로","fest_lineup":"👥 강사 라인업",
@@ -438,7 +439,10 @@ def gen_concept(seed: dict) -> dict:
 
 JSON만 반환 (한 줄):
 {{"name":"2-4글자+이모지","dark":true,"heroStyle":"typographic","c1":"#hex","c2":"#hex","c3":"#hex","c4":"#hex","bg":"#hex","bg2":"#hex","bg3":"#hex","textHex":"#hex","textRgb":"r,g,b","bdAlpha":"rgba(r,g,b,.15)","displayFont":"Google Font name","bodyFont":"Noto Sans KR","fontWeights":"400;700;900","displayFontWeights":"400;700","borderRadiusPx":0,"btnBorderRadiusPx":2,"particle":"{seed.get('particle','none')}","ctaGradient":"linear-gradient(135deg,#hex,#hex)","extraCSS":"min 150 chars single-quote only"}}"""
-    result = safe_json(call_ai(prompt, max_tokens=900))
+    result = safe_json(call_ai(prompt, max_tokens=1400))
+    # extraCSS 기본값 보정
+    if not result.get("extraCSS") or len(result.get("extraCSS","")) < 30:
+        result["extraCSS"] = ".sec{padding:clamp(60px,8vw,100px) clamp(28px,6vw,72px)}.card{border-radius:var(--r,4px)}"
     # 이름 검증
     name = result.get("name","")
     generic = ["한국","교육","랜딩","페이지","강사","수능","학습","공부","스터디","강의"]
@@ -477,7 +481,7 @@ def _get_instructor_context() -> str:
 def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
     inst_ctx = _get_instructor_context()
     schemas = {
-        "신규 커리큘럼": '{"bannerSub":"10자이내","bannerTitle":"20자이내","brandTagline":"페이지 컨셉을 관통하는 브랜드 문구 1문장 (예: 우리의 강의실은, 영화관이 됩니다.)","bannerLead":"60-90자 수험생이 공감하는 구체적 고민을 찌르는 리드 문구","ctaCopy":"10자이내","ctaTitle":"CTA 제목","ctaSub":"30자이내","ctaBadge":"15자이내","statBadges":[],"introTitle":"20자이내","introDesc":"80-120자 강사만의 차별점과 학습 철학","introBio":"강사 학습법·특이점 포함 60자이내","introBadges":[],"whyTitle":"20자이내","whySub":"30자이내","whyReasons":[["이모지","12자제목","60자 학생 입장의 구체적 설명, 실제 변화 포함"],["이모지","12자","60자"],["이모지","12자","60자"]],"curriculumTitle":"20자이내","curriculumSub":"30자이내","curriculumSteps":[["01","8자제목","이 단계를 통해 무엇이 어떻게 달라지는지 학생 입장에서 50자 이상 설명","기간"],["02","8자","50자 이상","기간"],["03","8자","50자 이상","기간"],["04","8자","50자 이상","기간"]],"targetTitle":"20자이내","targetItems":["이런 학생을 대상으로 하는지 40-50자 구체적 상황 묘사","항목2 40자","항목3 40자","항목4 40자"],"reviews":[["지금도 쓸 것 같은 생생한 수강생 인용문 50-70자, 구체적 점수·방법 언급","이름","변화뱃지"],["50-70자 인용문","이름","뱃지"],["50-70자 인용문","이름","뱃지"]],"faqs":[["구체적 질문15자","명쾌한 답변 50자이상"],["질문","50자 답변"],["질문","50자 답변"]]}',
+        "신규 커리큘럼": '{"bannerSub":"10자이내","bannerTitle":"20자이내","brandTagline":"페이지 컨셉을 관통하는 브랜드 문구 1문장 (예: 우리의 강의실은, 영화관이 됩니다.)","bannerLead":"60-90자 수험생이 공감하는 구체적 고민을 찌르는 리드 문구","ctaCopy":"10자이내","ctaTitle":"CTA 제목","ctaSub":"30자이내","ctaBadge":"15자이내","statBadges":[],"introTitle":"20자이내","introDesc":"80-120자 강사만의 차별점과 학습 철학","introBio":"강사 학습법·특이점 포함 60자이내","introBadges":[],"whyTitle":"20자이내","whySub":"30자이내","whyReasons":[["이모지","12자제목","60자 학생 입장의 구체적 설명, 실제 변화 포함"],["이모지","12자","60자"],["이모지","12자","60자"]],"curriculumTitle":"20자이내","curriculumSub":"30자이내","curriculumSteps":[["01","8자제목","이 단계를 통해 무엇이 어떻게 달라지는지 학생 입장에서 50자 이상 설명","기간"],["02","8자","50자 이상","기간"],["03","8자","50자 이상","기간"],["04","8자","50자 이상","기간"]],"targetTitle":"20자이내","targetItems":["이런 학생을 대상으로 하는지 40-50자 구체적 상황 묘사","항목2 40자","항목3 40자","항목4 40자"],"reviews":[["지금도 쓸 것 같은 생생한 수강생 인용문 50-70자, 구체적 점수·방법 언급","이름","변화뱃지"],["50-70자 인용문","이름","뱃지"],["50-70자 인용문","이름","뱃지"]],"faqs":[["구체적 질문15자","명쾌한 답변 50자이상"],["질문","50자 답변"],["질문","50자 답변"]],"videoTitle":"영상 섹션 제목 20자","videoSub":"40자 설명","videoTag":"OFFICIAL TRAILER","baTitle":"수강 전/후 비교 제목","baSub":"30자","baBeforeItems":["수강 전 학생 고민 40자","고민2 40자","고민3 40자"],"baAfterItems":["수강 후 변화 40자","변화2 40자","변화3 40자"],"methodTitle":"학습법 시각화 제목","methodSub":"30자","methodSteps":[{"step":"STEP 01","label":"단계명","desc":"이 단계에서 무엇을 어떻게 하는지 45자이상"},{"step":"STEP 02","label":"단계명","desc":"45자이상"},{"step":"STEP 03","label":"단계명","desc":"45자이상"}],"pkgTitle":"구성 안내 제목","pkgSub":"30자","packages":[{"icon":"📗","name":"구성명","desc":"구성 설명 40자이상","badge":"필수"},{"icon":"📖","name":"구성명","desc":"40자이상","badge":"포함"},{"icon":"🎯","name":"구성명","desc":"40자이상","badge":"포함"},{"icon":"💬","name":"구성명","desc":"40자이상","badge":"특전"}]}',
         "이벤트": '{"bannerSub":"10자","bannerTitle":"20자","brandTagline":"이벤트 분위기를 담은 브랜드 문구 1문장","bannerLead":"60-80자 긴박감 있는 리드","ctaCopy":"10자","ctaTitle":"CTA","ctaSub":"30자","ctaBadge":"15자","statBadges":[],"eventTitle":"20자","eventDesc":"50자이상","eventDetails":[["📅","이벤트 기간","날짜"],["🎯","대상","값"],["💰","혜택","값"]],"benefitsTitle":"20자","eventBenefits":[{"icon":"이모지","title":"혜택명","desc":"50자이상","badge":"8자","no":"01"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"02"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"03"}],"deadlineTitle":"20자","deadlineMsg":"70자 긴박감","reviews":[["50-70자 구체적 인용문","이름","뱃지"],["인용문","이름","뱃지"],["인용문","이름","뱃지"]]}',
         "기획전": '{"festHeroTitle":"20자","festHeroCopy":"30자","festHeroSub":"50자이상","brandTagline":"기획전 분위기를 담은 한 문장","festHeroStats":[["수치","라벨"],["수치","라벨"],["수치","라벨"],["수치","라벨"]],"festLineupTitle":"20자","festLineupSub":"40자","festLineup":[{"name":"강사명","tag":"분야8자","tagline":"강사를 한 문장으로 소개 40자","badge":"8자","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"소개 40자","badge":"뱃지","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"소개 40자","badge":"뱃지","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"소개 40자","badge":"뱃지","emoji":"이모지"}],"festBenefitsTitle":"20자","festBenefits":[{"icon":"이모지","title":"혜택명","desc":"50자이상","badge":"8자","no":"01"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"02"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"03"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"04"}],"festCtaTitle":"CTA제목","festCtaSub":"50자이상"}',
     }
@@ -526,6 +530,11 @@ def gen_section(sec_id: str) -> dict:
         "fest_lineup":   '{"festLineupTitle":"20자","festLineupSub":"40자","festLineup":[{"name":"강사명","tag":"8자","tagline":"40자 소개","badge":"8자","emoji":"이모지"},{"name":"강사명","tag":"8자","tagline":"40자","badge":"8자","emoji":"이모지"},{"name":"강사명","tag":"8자","tagline":"40자","badge":"8자","emoji":"이모지"},{"name":"강사명","tag":"8자","tagline":"40자","badge":"8자","emoji":"이모지"}]}',
         "fest_benefits": '{"festBenefitsTitle":"20자","festBenefits":[{"icon":"이모지","title":"혜택명","desc":"50자이상","badge":"8자","no":"01"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"02"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"03"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"04"}]}',
         "fest_cta":      '{"festCtaTitle":"CTA 제목 20자","festCtaSub":"50자이상 통합신청 동기부여 문구"}',
+        # ── 신규 고급 섹션 ──
+        "video":         '{"videoTitle":"영상 섹션 제목 20자","videoSub":"영상 설명 40자","videoTag":"OFFICIAL TRAILER","videoUrl":""}',
+        "before_after":  '{"baTitle":"수강 전후 비교 제목 20자","baSub":"30자 서브","baBeforeItems":["수강 전 학생이 겪는 구체적 문제 40자","문제2 40자","문제3 40자"],"baAfterItems":["수강 후 달라지는 점 40자","변화2 40자","변화3 40자"]}',
+        "method":        '{"methodTitle":"학습법 제목 20자","methodSub":"30자","methodSteps":[{"step":"STEP 01","label":"단계명","desc":"이 단계에서 무엇을 어떻게 하는지 40자이상"},{"step":"STEP 02","label":"단계명","desc":"40자이상"},{"step":"STEP 03","label":"단계명","desc":"40자이상"}]}',
+        "package":       '{"pkgTitle":"구성 안내 제목 20자","pkgSub":"30자","packages":[{"icon":"📗","name":"구성명","desc":"구성 설명 40자이상","badge":"필수"},{"icon":"📖","name":"구성명","desc":"40자이상","badge":"포함"},{"icon":"🎯","name":"구성명","desc":"40자이상","badge":"포함"},{"icon":"💬","name":"구성명","desc":"40자이상","badge":"특전"}]}',
     }
     sec_name = SEC_LABELS.get(sec_id, sec_id)
     schema = schemas.get(sec_id, '{"title":"제목","desc":"설명"}')
@@ -541,10 +550,26 @@ JSON만: {schema}"""
 
 def gen_custom_sec(topic: str) -> dict:
     inst_ctx = _get_instructor_context()
-    prompt = f"""수능 교육 랜딩페이지 "{topic}" 주제 섹션.
-{inst_ctx} | 과목: {st.session_state.subject}
-한자 금지. JSON만:
-{{"tag":"8자이내","title":"20자이내","desc":"60자이내","items":[{{"icon":"이모지","title":"15자","desc":"45자"}},{{"icon":"이모지","title":"15자","desc":"45자"}},{{"icon":"이모지","title":"15자","desc":"45자"}}]}}"""
+    prompt = f"""수능 교육 랜딩페이지의 추가 섹션을 만들어.
+
+===강사/페이지 정보===
+{inst_ctx}
+과목: {st.session_state.subject} | 브랜드: {st.session_state.purpose_label}
+
+===섹션 주제===
+"{topic}"
+
+===중요 규칙===
+- 반드시 "{topic}" 주제로만 작성. 다른 내용 절대 금지
+- 강사·과목과 연결된 구체적 내용으로 작성
+- tag: "{topic[:6]}" 과 관련된 짧은 레이블
+- title: "{topic}"를 직접 반영한 20자 이내 제목
+- desc: 이 섹션이 왜 있는지 설명하는 60자 이내 문장
+- items 각 desc: 45자 이상 구체적 설명
+- 한자 금지
+
+JSON만 반환:
+{{"tag":"{topic[:6]}","title":"{topic} 안내","desc":"{topic}에 대한 60자 내외 설명","items":[{{"icon":"이모지","title":"15자이내","desc":"45자이상 구체적 설명"}},{{"icon":"이모지","title":"15자이내","desc":"45자이상"}},{{"icon":"이모지","title":"15자이내","desc":"45자이상"}}]}}"""
     return safe_json(call_ai(prompt, max_tokens=900))
 
 
@@ -1319,6 +1344,187 @@ def sec_custom(d, cp, T):
 
 
 # ══════════════════════════════════════════════════════
+# 추가 고급 섹션들 (ABPS / OVS 시안 수준)
+# ══════════════════════════════════════════════════════
+
+def sec_video(d, cp, T):
+    """영상 미리보기 섹션 — YouTube embed or placeholder"""
+    yt_url  = cp.get("videoUrl","")   # e.g. "https://www.youtube.com/embed/XXXX"
+    yt_title = strip_hanja(cp.get("videoTitle", f"{d['name']} 선생님이 말하는 {d['purpose_label']}의 본질"))
+    yt_sub   = strip_hanja(cp.get("videoSub", f"수강 전 꼭 확인하세요 — {d['subject']} 공부의 본질이 바뀝니다."))
+    tag_txt  = cp.get("videoTag","OFFICIAL TRAILER")
+    if yt_url and "youtube" in yt_url:
+        embed = (
+            f'<div style="position:relative;width:100%;padding-bottom:56.25%;border-radius:var(--r,4px);overflow:hidden;border:1px solid var(--bd)">'
+            f'<iframe src="{yt_url}" style="position:absolute;inset:0;width:100%;height:100%;border:none" allowfullscreen allow="autoplay;encrypted-media"></iframe>'
+            f'</div>'
+        )
+    else:
+        # 플레이버튼 플레이스홀더
+        embed = (
+            f'<div style="position:relative;width:100%;padding-bottom:56.25%;background:var(--bg3);border-radius:var(--r,4px);overflow:hidden;border:1px solid var(--bd);cursor:pointer"'
+            f' onclick="this.innerHTML=\'<div style=\\\"position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--t45)\\\">YouTube URL을 설정하면 영상이 표시됩니다</div>\'">'
+            f'<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px">'
+            f'<div style="width:72px;height:72px;border-radius:50%;background:var(--c1);display:flex;align-items:center;justify-content:center">'
+            f'<div style="width:0;height:0;border-style:solid;border-width:14px 0 14px 28px;border-color:transparent transparent transparent #fff;margin-left:6px"></div>'
+            f'</div>'
+            f'<div style="font-size:13px;color:var(--t45);font-weight:600">영상 재생하기</div>'
+            f'</div></div>'
+        )
+    return (
+        f'<section class="sec alt" id="video">'
+        f'<div style="max-width:1100px;margin:0 auto">'
+        f'<div class="rv" style="text-align:center;margin-bottom:36px">'
+        f'<div style="display:inline-flex;align-items:center;gap:8px;background:var(--c1);color:#fff;font-size:9.5px;font-weight:800;padding:5px 18px;border-radius:var(--r-btn,4px);margin-bottom:16px;letter-spacing:.12em">▶ {tag_txt}</div>'
+        f'<h2 class="sec-h2 st" style="text-align:center">{yt_title}</h2>'
+        f'<p class="sec-sub" style="text-align:center">{yt_sub}</p>'
+        f'</div>'
+        f'<div class="rv d1">{embed}</div>'
+        f'</div></section>'
+    )
+
+
+def sec_before_after(d, cp, T):
+    """Before vs After 비교 섹션 — ABPS 'Chaos to Structure' 스타일"""
+    t   = strip_hanja(cp.get("baTitle", "공부 방식이 이렇게 달라집니다"))
+    sub = strip_hanja(cp.get("baSub",   f"{d['purpose_label']} 이후의 변화"))
+    befores = cp.get("baBeforeItems",[
+        f"{d['subject']} 지문이 무슨 말인지 몰라 처음부터 다 읽는다",
+        "시간이 부족해 뒷문제를 찍는 일이 반복된다",
+        "아는 내용인데 시험장에서 실수가 계속 나온다",
+    ])
+    afters  = cp.get("baAfterItems",[
+        f"구조가 보여서 필요한 부분만 정확히 읽는다",
+        "시간이 10분 이상 남아 검토까지 완료한다",
+        "실전에서 배운 대로 정확히 풀어낸다",
+    ])
+    bh = "".join(
+        f'<div style="display:flex;gap:10px;align-items:flex-start;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.08)">'
+        f'<div style="flex-shrink:0;width:20px;height:20px;border-radius:50%;background:rgba(255,80,80,.2);border:1.5px solid #FF5050;display:flex;align-items:center;justify-content:center;font-size:10px;color:#FF5050;font-weight:900;margin-top:1px">✕</div>'
+        f'<p style="font-size:13px;line-height:1.75;color:rgba(255,255,255,.65);margin:0">{strip_hanja(b)}</p>'
+        f'</div>'
+        for b in befores
+    )
+    ah = "".join(
+        f'<div style="display:flex;gap:10px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--bd)">'
+        f'<div style="flex-shrink:0;width:20px;height:20px;border-radius:50%;background:var(--c1);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:900;margin-top:1px">✓</div>'
+        f'<p style="font-size:13px;line-height:1.75;color:var(--text);margin:0;font-weight:500">{strip_hanja(a)}</p>'
+        f'</div>'
+        for a in afters
+    )
+    return (
+        f'<section class="sec" id="before-after">'
+        f'<div style="max-width:1100px;margin:0 auto">'
+        f'<div class="rv" style="text-align:center;margin-bottom:44px">'
+        f'<div class="tag-line" style="justify-content:center">수강 전/후</div>'
+        f'<h2 class="sec-h2 st" style="text-align:center">{t}</h2>'
+        f'<p class="sec-sub" style="text-align:center">{sub}</p>'
+        f'</div>'
+        f'<div style="display:grid;grid-template-columns:1fr 60px 1fr;gap:0;align-items:stretch" class="rv d1">'
+        # Before
+        f'<div style="background:#1A0808;border-radius:var(--r,4px) 0 0 var(--r,4px);padding:28px 28px;border:1px solid rgba(255,80,80,.25);border-right:none">'
+        f'<div style="font-size:11px;font-weight:800;color:#FF5050;letter-spacing:.14em;text-transform:uppercase;margin-bottom:18px;display:flex;align-items:center;gap:8px">'
+        f'<div style="width:8px;height:8px;border-radius:50%;background:#FF5050"></div>BEFORE</div>'
+        f'{bh}</div>'
+        # 화살표 중간
+        f'<div style="background:var(--c1);display:flex;align-items:center;justify-content:center">'
+        f'<div style="font-family:var(--fh);font-size:22px;font-weight:900;color:#fff">→</div>'
+        f'</div>'
+        # After
+        f'<div style="background:var(--bg3);border-radius:0 var(--r,4px) var(--r,4px) 0;padding:28px 28px;border:1px solid var(--bd);border-left:none">'
+        f'<div style="font-size:11px;font-weight:800;color:var(--c1);letter-spacing:.14em;text-transform:uppercase;margin-bottom:18px;display:flex;align-items:center;gap:8px">'
+        f'<div style="width:8px;height:8px;border-radius:50%;background:var(--c1)"></div>AFTER</div>'
+        f'{ah}</div>'
+        f'</div>'
+        f'</div></section>'
+    )
+
+
+def sec_method(d, cp, T):
+    """시그니처 학습법 시각화 — ABPS 'Apply to text' 스타일"""
+    t    = strip_hanja(cp.get("methodTitle", f"{d['name'] or d['subject']} 시그니처 학습법"))
+    sub  = strip_hanja(cp.get("methodSub",   "이 방식으로 접근하면 지문이 완전히 달리 보입니다"))
+    methods_raw = cp.get("methodSteps",[])
+    ip = st.session_state.get("inst_profile") or {}
+    sig = [strip_hanja(m) for m in (ip.get("signatureMethods") or []) if m and m not in ("없음","")]
+    if not methods_raw:
+        methods_raw = [
+            {"step": s, "label": f"{i+1}단계", "desc": f"{s} 방식으로 {d['subject']} 지문에 접근합니다."}
+            for i, s in enumerate(sig[:4])
+        ] if sig else [
+            {"step":"STEP 01","label":"파악","desc":f"{d['subject']} 구조를 파악합니다."},
+            {"step":"STEP 02","label":"분석","desc":"핵심 논리를 분석합니다."},
+            {"step":"STEP 03","label":"적용","desc":"실전 문제에 즉시 적용합니다."},
+        ]
+    steps_html = ""
+    for i, m in enumerate(methods_raw):
+        s  = strip_hanja(str(m.get("step",  f"STEP {i+1:02d}")))
+        lb = strip_hanja(str(m.get("label", f"{i+1}단계")))
+        dc = strip_hanja(str(m.get("desc",  "")))
+        steps_html += (
+            f'<div class="rv d{min(i+1,4)}" style="display:flex;gap:0;align-items:stretch;margin-bottom:10px">'
+            # 좌: 스텝 번호 블록
+            f'<div style="min-width:90px;background:var(--c1);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px 12px;border-radius:var(--r,4px) 0 0 var(--r,4px)">'
+            f'<div style="font-family:var(--fh);font-size:11px;font-weight:900;color:rgba(255,255,255,.6);letter-spacing:.1em">{s}</div>'
+            f'<div style="font-family:var(--fh);font-size:17px;font-weight:900;color:#fff;margin-top:2px">{lb}</div>'
+            f'</div>'
+            # 우: 설명
+            f'<div style="flex:1;background:var(--bg3);padding:18px 24px;border-radius:0 var(--r,4px) var(--r,4px) 0;border:1px solid var(--bd);border-left:none;display:flex;align-items:center">'
+            f'<p style="font-size:14px;line-height:1.8;color:var(--text);margin:0;font-weight:500">{dc}</p>'
+            f'</div></div>'
+        )
+    return (
+        f'<section class="sec alt" id="method">'
+        f'<div style="display:grid;grid-template-columns:1fr 1.4fr;gap:72px;align-items:center;max-width:1200px;margin:0 auto">'
+        f'<div class="rv" style="position:sticky;top:60px">'
+        f'<div class="tag-line">학습법</div>'
+        f'<h2 class="sec-h2 st">{t}</h2>'
+        f'<p class="sec-sub">{sub}</p>'
+        f'<div style="margin-top:24px;padding:20px 24px;border:1.5px solid var(--c1);border-radius:var(--r,4px)">'
+        f'<div style="font-size:10px;font-weight:800;letter-spacing:.14em;color:var(--c1);text-transform:uppercase;margin-bottom:8px">핵심 공식</div>'
+        f'<div style="font-family:var(--fh);font-size:clamp(18px,2vw,24px);font-weight:900;color:var(--text)">'
+        + (" → ".join(sig[:3]) if sig else f"{d['subject']} 완성 공식")
+        + f'</div></div></div>'
+        f'<div class="rv d1">{steps_html}</div>'
+        f'</div></section>'
+    )
+
+
+def sec_package(d, cp, T):
+    """구매 패키지 섹션 — OVS 스타일 교재/패키지 안내"""
+    t    = strip_hanja(cp.get("pkgTitle",   f"{d['purpose_label']} 구성 안내"))
+    sub  = strip_hanja(cp.get("pkgSub",     "지금 신청하면 아래 구성이 모두 포함됩니다"))
+    pkgs = cp.get("packages",[
+        {"icon":"📗","name":"강의 수강권","desc":f"{d['purpose_label']} 전체 강의 무제한 수강","badge":"필수"},
+        {"icon":"📖","name":"PDF 교재","desc":"핵심 이론·기출 정리 PDF 파일 제공","badge":"포함"},
+        {"icon":"🎯","name":"실전 모의고사","desc":"단계별 실전 모의고사 3회분 제공","badge":"포함"},
+        {"icon":"💬","name":"질문 게시판","desc":"강사 직접 답변 질문 게시판 무제한 이용","badge":"특전"},
+    ])
+    ph = "".join(
+        f'<div class="rv d{min(i+1,4)}" style="display:flex;gap:16px;align-items:center;padding:18px 22px;border:1px solid var(--bd);border-radius:var(--r,4px);background:var(--bg);margin-bottom:8px">'
+        f'<div style="font-size:32px;flex-shrink:0">{p["icon"]}</div>'
+        f'<div style="flex:1">'
+        f'<div style="font-family:var(--fh);font-size:15px;font-weight:700;color:var(--text);margin-bottom:3px" class="st">{strip_hanja(p["name"])}</div>'
+        f'<p style="font-size:12.5px;line-height:1.7;color:var(--t70);margin:0">{strip_hanja(p["desc"])}</p>'
+        f'</div>'
+        f'<span style="flex-shrink:0;font-size:10px;font-weight:800;background:{"var(--c1)" if p["badge"]=="필수" else "var(--bg3)"};color:{"#fff" if p["badge"]=="필수" else "var(--c1)"};padding:5px 14px;border-radius:var(--r-btn,100px);border:1.5px solid var(--c1)">{p["badge"]}</span>'
+        f'</div>'
+        for i, p in enumerate(pkgs)
+    )
+    return (
+        f'<section class="sec" id="package">'
+        f'<div style="max-width:900px;margin:0 auto">'
+        f'<div class="rv" style="text-align:center;margin-bottom:36px">'
+        f'<div class="tag-line" style="justify-content:center">구성 안내</div>'
+        f'<h2 class="sec-h2 st" style="text-align:center">{t}</h2>'
+        f'<p class="sec-sub" style="text-align:center">{sub}</p>'
+        f'</div>'
+        f'<div class="rv d1">{ph}</div>'
+        f'</div></section>'
+    )
+
+
+# ══════════════════════════════════════════════════════
 # HTML 빌더
 # ══════════════════════════════════════════════════════
 def build_html(secs: list) -> str:
@@ -1342,6 +1548,7 @@ def build_html(secs: list) -> str:
     mp = {
         "banner":sec_banner,"intro":sec_intro,"why":sec_why,"curriculum":sec_curriculum,
         "target":sec_target,"reviews":sec_reviews,"faq":sec_faq,"cta":sec_cta,
+        "video":sec_video,"before_after":sec_before_after,"method":sec_method,"package":sec_package,
         "event_overview":sec_event_overview,"event_benefits":sec_event_benefits,
         "event_deadline":sec_event_deadline,"fest_hero":sec_fest_hero,
         "fest_lineup":sec_fest_lineup,"fest_benefits":sec_fest_benefits,
@@ -1503,6 +1710,21 @@ with st.sidebar:
     if st.session_state.uploaded_bg_b64:
         if st.button("🗑 업로드 이미지 제거", use_container_width=True, key="rm_bg"):
             st.session_state.uploaded_bg_b64 = ""
+            st.rerun()
+
+    # 영상 섹션 URL 입력 (video 섹션이 활성화된 경우)
+    if "video" in st.session_state.active_sections:
+        st.markdown("**🎬 영상 섹션 YouTube URL**")
+        st.caption("예: https://www.youtube.com/embed/XXXXXXXXXXX")
+        yt_key = "yt_url_input"
+        cur_yt = (st.session_state.custom_copy or {}).get("videoUrl","") if st.session_state.custom_copy else ""
+        yt_in = st.text_input("YouTube embed URL", value=cur_yt,
+                              placeholder="https://www.youtube.com/embed/...",
+                              label_visibility="collapsed", key=yt_key)
+        if yt_in and yt_in != cur_yt:
+            if st.session_state.custom_copy is None:
+                st.session_state.custom_copy = {}
+            st.session_state.custom_copy["videoUrl"] = yt_in
             st.rerun()
 
     # 프리셋 테마 버튼
@@ -1680,6 +1902,7 @@ with L:
     SEC_SHORT = {
         "banner":"배너","intro":"소개","why":"이유","curriculum":"커리큘럼",
         "target":"대상","reviews":"수강평","faq":"FAQ","cta":"CTA",
+        "video":"영상","before_after":"전/후","method":"학습법","package":"구성",
         "event_overview":"개요","event_benefits":"혜택","event_deadline":"마감",
         "fest_hero":"히어로","fest_lineup":"라인업","fest_benefits":"혜택","fest_cta":"CTA",
     }
