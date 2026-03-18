@@ -2100,7 +2100,7 @@ if st.session_state.custom_section_on and "custom_section" not in ordered:
 final_html = build_html(ordered)
 T_now = get_theme()
 
-L, R = st.columns([1, 3], gap="large")
+L, R = st.columns([1, 1], gap="large")
 
 with L:
     st.markdown("### ✍️ AI 문구 생성")
@@ -2298,21 +2298,19 @@ with L:
 """)
 
 
-with R:
-    col_prev, col_ref = st.columns([4,1])
-with col_prev:
-    st.markdown("### 👁 실시간 미리보기")
+st.divider()
+st.markdown("### 👁 실시간 미리보기")
+
+col_info1, col_info2, col_info3, col_ref = st.columns([2, 2, 2, 1])
+td = (st.session_state.custom_theme.get("name","AI 커스텀")
+      if st.session_state.concept=="custom" and st.session_state.custom_theme
+      else THEMES.get(st.session_state.concept,{}).get("label",""))
+with col_info1: st.metric("컨셉", td)
+with col_info2: st.metric("히어로", T_now.get("heroStyle","—"))
+with col_info3: st.metric("섹션 수", len(ordered))
 with col_ref:
     if st.button("🔄", key="refresh_preview", help="미리보기 새로고침"):
         st.session_state.preview_key = st.session_state.get("preview_key", 0) + 1
         st.rerun()
-    # (원래 markdown 제거됨, 위 col_prev에서 처리)
-    td = (st.session_state.custom_theme.get("name","AI 커스텀")
-          if st.session_state.concept=="custom" and st.session_state.custom_theme
-          else THEMES.get(st.session_state.concept,{}).get("label",""))
-    m1, m2, m3 = st.columns(3)
-    with m1: st.metric("컨셉", td)
-    with m2: st.metric("히어로", T_now.get("heroStyle","—"))
-    with m3: st.metric("섹션 수", len(ordered))
-    import streamlit.components.v1 as components
-    components.html(final_html, height=1400, scrolling=True)
+
+components.html(final_html, height=1600, scrolling=True)
