@@ -1150,49 +1150,53 @@ def sec_intro(d, cp, T):
     )
 
 def sec_why(d, cp, T):
-    t = strip_hanja(cp.get("whyTitle","이 강의가 필요한 이유"))
-    s = strip_hanja(cp.get("whySub", f"{d['subject']} 1등급의 비결"))
-    reasons = cp.get("whyReasons",[
-        ["🎯","유형별 완전 정복","수능 출제 유형을 완전히 분석하여 어떤 문제도 흔들리지 않는 실력을 만듭니다."],
-        ["📊","기출 데이터 분석","최근 5년 기출을 철저히 분석하여 실전에서 반드시 나오는 유형만 집중 훈련합니다."],
-        ["⚡","실전 속도 훈련","정확도와 속도를 동시에 잡아 70분 안에 45문항을 완벽히 소화하는 훈련을 합니다."]
+    t = strip_hanja(cp.get('whyTitle', '이 강의가 필요한 이유'))
+    s = strip_hanja(cp.get('whySub', f"{d['subject']} 1등급의 비결"))
+    reasons = cp.get('whyReasons', [
+        ['🎯', '유형별 완전 정복', '수능 출제 유형을 완전히 분석하여 어떤 문제도 흔들리지 않는 실력을 만듭니다.'],
+        ['📊', '기출 데이터 분석', '최근 5년 기출을 철저히 분석하여 실전에서 반드시 나오는 유형만 집중 훈련합니다.'],
+        ['⚡', '실전 속도 훈련', '정확도와 속도를 동시에 잡아 70분 안에 45문항을 완벽히 소화하는 훈련을 합니다.']
     ])
     safe_r = []
-    for item in reasons:
-        if isinstance(item, (list,tuple)) and len(item)>=3: safe_r.append((str(item[0]),str(item[1]),str(item[2])))
-        elif isinstance(item, dict): safe_r.append((item.get("icon","✦"),item.get("title",""),item.get("desc","")))
-    # 핀터레스트 스타일: 큰 번호 + 풀라인 가로 배치 (교차 배경)
-    rh = ""
-    for i,(ic,tt,dc) in enumerate(safe_r, 1):
-        alt_bg = "background:var(--bg3)" if i % 2 == 0 else "background:var(--bg)"
-        num_col = "color:var(--c1)" if i == 1 else "color:var(--bd)"
+    for it in reasons:
+        if isinstance(it, (list, tuple)) and len(it) >= 3:
+            safe_r.append((str(it[0]), str(it[1]), str(it[2])))
+        elif isinstance(it, dict):
+            safe_r.append((it.get('icon', '✦'), it.get('title', ''), it.get('desc', '')))
+
+    rh = ''
+    for i, (ic, tt, dc) in enumerate(safe_r):
+        alt_bg = 'background:var(--bg3)' if i % 2 == 0 else 'background:var(--bg2)'
         rh += (
-            f'<div class="rv d{i}" style="display:grid;grid-template-columns:120px 1fr;gap:0;align-items:stretch;border:1px solid var(--bd);border-radius:var(--r,4px);overflow:hidden;margin-bottom:10px">'
-            # 좌: 대형 번호 + 아이콘
-            f'<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;{alt_bg};padding:24px 16px;border-right:1px solid var(--bd)">'
-            f'<div style="font-family:var(--fh);font-size:52px;font-weight:900;line-height:1;{num_col};opacity:.25">{i:02d}</div>'
-            f'<div style="font-size:28px;margin-top:8px">{ic}</div>'
+            f'<div class="rv d{min(i+1,4)}" style="display:grid;grid-template-columns:100px 1fr;gap:0;'
+            f'align-items:stretch;border:1px solid var(--bd);border-radius:var(--r,4px);'
+            f'overflow:hidden;margin-bottom:12px">'
+            # 좌: 번호 + 이모지 (이미지 대신 텍스트로)
+            f'<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;'
+            f'{alt_bg};padding:20px 12px;border-right:1px solid var(--bd)">'
+            f'<div style="font-family:var(--fh);font-size:36px;font-weight:900;line-height:1;'
+            f'color:var(--c1);opacity:.3">{i+1:02d}</div>'
+            f'<div style="font-size:24px;margin-top:6px;line-height:1">{ic}</div>'
             f'</div>'
             # 우: 제목 + 설명
-            f'<div style="padding:24px 28px;display:flex;flex-direction:column;justify-content:center">'
-            f'<div style="font-family:var(--fh);font-size:clamp(15px,1.5vw,18px);font-weight:800;margin-bottom:8px;letter-spacing:-.02em;color:var(--text)" class="st">{strip_hanja(tt)}</div>'
-            f'<p style="font-size:13.5px;line-height:1.9;color:var(--t70);margin:0">{strip_hanja(dc)}</p>'
-            f'</div>'
-            f'</div>'
+            f'<div style="padding:20px 24px;display:flex;flex-direction:column;justify-content:center">'
+            f'<div style="font-family:var(--fh);font-size:clamp(14px,1.4vw,17px);font-weight:800;'
+            f'margin-bottom:8px;letter-spacing:-.02em;color:var(--text)">{strip_hanja(tt)}</div>'
+            f'<p style="font-size:13px;line-height:1.85;color:var(--t70);margin:0">{strip_hanja(dc)}</p>'
+            f'</div></div>'
         )
+
     return (
         f'<section class="sec" id="why">'
-        f'<div style="display:grid;grid-template-columns:1fr 1.6fr;gap:72px;align-items:start;max-width:1200px;margin:0 auto">'
-        # 좌: 타이틀 + 서브 (sticky)
+        f'<div style="display:grid;grid-template-columns:1fr 1.6fr;gap:60px;align-items:start;max-width:1200px;margin:0 auto">'
         f'<div class="rv" style="position:sticky;top:60px">'
         f'<div class="tag-line">수강 이유</div>'
         f'<h2 class="sec-h2 st">{t}</h2>'
         f'<p class="sec-sub">{s}</p>'
-        f'<div style="margin-top:24px;padding:20px 24px;background:var(--c1);border-radius:var(--r,4px)">'
-        f'<div style="font-family:var(--fh);font-size:40px;font-weight:900;color:#fff;line-height:1">{len(safe_r)}</div>'
-        f'<div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:4px;font-weight:700">가지 핵심 이유</div>'
+        f'<div style="padding:20px 24px;background:var(--c1);border-radius:var(--r,4px)">'
+        f'<div style="font-family:var(--fh);font-size:48px;font-weight:900;color:#fff;line-height:1">{len(safe_r)}</div>'
+        f'<div style="font-size:12px;color:rgba(255,255,255,.7);margin-top:4px;font-weight:700">가지 핵심 이유</div>'
         f'</div></div>'
-        # 우: 가로형 카드 리스트
         f'<div class="rv d1">{rh}</div>'
         f'</div></section>'
     )
@@ -1563,91 +1567,112 @@ def sec_custom(d, cp, T):
 # ══════════════════════════════════════════════════════
 
 def sec_video(d, cp, T):
-    """영상 미리보기 섹션 — YouTube embed or placeholder"""
-    yt_url  = cp.get("videoUrl","")   # e.g. "https://www.youtube.com/embed/XXXX"
-    yt_title = strip_hanja(cp.get("videoTitle", f"{d['name']} 선생님이 말하는 {d['purpose_label']}의 본질"))
-    yt_sub   = strip_hanja(cp.get("videoSub", f"수강 전 꼭 확인하세요 — {d['subject']} 공부의 본질이 바뀝니다."))
-    tag_txt  = cp.get("videoTag","OFFICIAL TRAILER")
-    if yt_url and "youtube" in yt_url:
+    yt_url  = cp.get('videoUrl', '')
+    title   = strip_hanja(cp.get('videoTitle', f"{d['name']} 선생님 강의 미리보기"))
+    sub     = strip_hanja(cp.get('videoSub', f"{d['subject']} 공부의 본질이 바뀝니다."))
+    tag     = cp.get('videoTag', 'OFFICIAL TRAILER')
+
+    if yt_url and 'youtube' in yt_url:
         embed = (
-            f'<div style="position:relative;width:100%;padding-bottom:56.25%;border-radius:var(--r,4px);overflow:hidden;border:1px solid var(--bd)">'
-            f'<iframe src="{yt_url}" style="position:absolute;inset:0;width:100%;height:100%;border:none" allowfullscreen allow="autoplay;encrypted-media"></iframe>'
-            f'</div>'
+            f'<div style="position:relative;width:100%;padding-bottom:56.25%;'
+            f'border-radius:var(--r,4px);overflow:hidden;border:1px solid var(--bd)">'
+            f'<iframe src="{yt_url}" style="position:absolute;inset:0;width:100%;height:100%;border:none"'
+            f' allowfullscreen allow="autoplay;encrypted-media"></iframe></div>'
         )
     else:
-        # 플레이버튼 플레이스홀더
         embed = (
-            f'<div style="position:relative;width:100%;padding-bottom:56.25%;background:var(--bg3);border-radius:var(--r,4px);overflow:hidden;border:1px solid var(--bd);cursor:pointer"'
-            f' onclick="this.innerHTML=\'<div style=\\\"position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--t45)\\\">YouTube URL을 설정하면 영상이 표시됩니다</div>\'">'
-            f'<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px">'
-            f'<div style="width:72px;height:72px;border-radius:50%;background:var(--c1);display:flex;align-items:center;justify-content:center">'
-            f'<div style="width:0;height:0;border-style:solid;border-width:14px 0 14px 28px;border-color:transparent transparent transparent #fff;margin-left:6px"></div>'
+            f'<div style="position:relative;width:100%;padding-bottom:52%;'
+            f'background:var(--bg3);border-radius:var(--r,4px);overflow:hidden;'
+            f'border:1px solid var(--bd)">'
+            f'<div style="position:absolute;inset:0;display:flex;flex-direction:column;'
+            f'align-items:center;justify-content:center;gap:14px">'
+            f'<div style="width:64px;height:64px;border-radius:50%;background:var(--c1);'
+            f'display:flex;align-items:center;justify-content:center">'
+            f'<div style="width:0;height:0;border-style:solid;'
+            f'border-width:12px 0 12px 24px;'
+            f'border-color:transparent transparent transparent #fff;margin-left:5px"></div>'
             f'</div>'
-            f'<div style="font-size:13px;color:var(--t45);font-weight:600">영상 재생하기</div>'
+            f'<div style="font-size:13px;color:var(--t45);font-weight:600">'
+            f'사이드바에서 YouTube URL을 입력하면 영상이 표시됩니다</div>'
             f'</div></div>'
         )
+
     return (
         f'<section class="sec alt" id="video">'
-        f'<div style="max-width:1100px;margin:0 auto">'
-        f'<div class="rv" style="text-align:center;margin-bottom:36px">'
-        f'<div style="display:inline-flex;align-items:center;gap:8px;background:var(--c1);color:#fff;font-size:9.5px;font-weight:800;padding:5px 18px;border-radius:var(--r-btn,4px);margin-bottom:16px;letter-spacing:.12em">▶ {tag_txt}</div>'
-        f'<h2 class="sec-h2 st" style="text-align:center">{yt_title}</h2>'
-        f'<p class="sec-sub" style="text-align:center">{yt_sub}</p>'
+        f'<div style="max-width:960px;margin:0 auto">'
+        f'<div class="rv" style="text-align:center;margin-bottom:32px">'
+        f'<div style="display:inline-flex;align-items:center;gap:8px;background:var(--c1);'
+        f'color:#fff;font-size:10px;font-weight:800;padding:5px 16px;'
+        f'border-radius:var(--r-btn,4px);margin-bottom:14px;letter-spacing:.14em">▶ {tag}</div>'
+        f'<h2 class="sec-h2 st" style="text-align:center;font-size:clamp(20px,3vw,34px)">{title}</h2>'
+        f'<p class="sec-sub" style="text-align:center;margin:0 auto">{sub}</p>'
         f'</div>'
         f'<div class="rv d1">{embed}</div>'
         f'</div></section>'
     )
 
 
-def sec_before_after(d, cp, T):
-    """Before vs After 비교 섹션 — ABPS 'Chaos to Structure' 스타일"""
-    t   = strip_hanja(cp.get("baTitle", "공부 방식이 이렇게 달라집니다"))
-    sub = strip_hanja(cp.get("baSub",   f"{d['purpose_label']} 이후의 변화"))
-    befores = cp.get("baBeforeItems",[
+pythondef sec_before_after(d, cp, T):
+    t   = strip_hanja(cp.get('baTitle', '공부 방식이 이렇게 달라집니다'))
+    sub = strip_hanja(cp.get('baSub', f"{d['purpose_label']} 이후의 변화"))
+    befores = cp.get('baBeforeItems', [
         f"{d['subject']} 지문이 무슨 말인지 몰라 처음부터 다 읽는다",
-        "시간이 부족해 뒷문제를 찍는 일이 반복된다",
-        "아는 내용인데 시험장에서 실수가 계속 나온다",
+        '시간이 부족해 뒷문제를 찍는 일이 반복된다',
+        '아는 내용인데 시험장에서 실수가 계속 나온다',
     ])
-    afters  = cp.get("baAfterItems",[
-        f"구조가 보여서 필요한 부분만 정확히 읽는다",
-        "시간이 10분 이상 남아 검토까지 완료한다",
-        "실전에서 배운 대로 정확히 풀어낸다",
+    afters = cp.get('baAfterItems', [
+        '구조가 보여서 필요한 부분만 정확히 읽는다',
+        '시간이 10분 이상 남아 검토까지 완료한다',
+        '실전에서 배운 대로 정확히 풀어낸다',
     ])
-    bh = "".join(
-        f'<div style="display:flex;gap:10px;align-items:flex-start;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.08)">'
-        f'<div style="flex-shrink:0;width:20px;height:20px;border-radius:50%;background:rgba(255,80,80,.2);border:1.5px solid #FF5050;display:flex;align-items:center;justify-content:center;font-size:10px;color:#FF5050;font-weight:900;margin-top:1px">✕</div>'
-        f'<p style="font-size:13px;line-height:1.75;color:rgba(255,255,255,.65);margin:0">{strip_hanja(b)}</p>'
-        f'</div>'
+
+    bh = ''.join(
+        f'<div style="display:flex;gap:12px;align-items:flex-start;'
+        f'padding:14px 0;border-bottom:1px solid rgba(255,80,80,.12)">'
+        f'<div style="flex-shrink:0;width:22px;height:22px;border-radius:50%;'
+        f'background:rgba(255,80,80,.2);border:1.5px solid #FF5050;'
+        f'display:flex;align-items:center;justify-content:center;'
+        f'font-size:11px;color:#FF5050;font-weight:900;margin-top:1px">✕</div>'
+        f'<p style="font-size:14px;line-height:1.75;color:rgba(255,255,255,.7);margin:0">'
+        f'{strip_hanja(b)}</p></div>'
         for b in befores
     )
-    ah = "".join(
-        f'<div style="display:flex;gap:10px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--bd)">'
-        f'<div style="flex-shrink:0;width:20px;height:20px;border-radius:50%;background:var(--c1);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:900;margin-top:1px">✓</div>'
-        f'<p style="font-size:13px;line-height:1.75;color:var(--text);margin:0;font-weight:500">{strip_hanja(a)}</p>'
-        f'</div>'
+    ah = ''.join(
+        f'<div style="display:flex;gap:12px;align-items:flex-start;'
+        f'padding:14px 0;border-bottom:1px solid var(--bd)">'
+        f'<div style="flex-shrink:0;width:22px;height:22px;border-radius:50%;'
+        f'background:var(--c1);display:flex;align-items:center;justify-content:center;'
+        f'font-size:11px;color:#fff;font-weight:900;margin-top:1px">✓</div>'
+        f'<p style="font-size:14px;line-height:1.75;color:var(--text);margin:0;font-weight:500">'
+        f'{strip_hanja(a)}</p></div>'
         for a in afters
     )
+
     return (
         f'<section class="sec" id="before-after">'
-        f'<div style="max-width:1100px;margin:0 auto">'
-        f'<div class="rv" style="text-align:center;margin-bottom:44px">'
+        f'<div style="max-width:1000px;margin:0 auto">'
+        f'<div class="rv" style="text-align:center;margin-bottom:40px">'
         f'<div class="tag-line" style="justify-content:center">수강 전/후</div>'
         f'<h2 class="sec-h2 st" style="text-align:center">{t}</h2>'
-        f'<p class="sec-sub" style="text-align:center">{sub}</p>'
+        f'<p class="sec-sub" style="text-align:center;margin:0 auto">{sub}</p>'
         f'</div>'
-        f'<div style="display:grid;grid-template-columns:1fr 60px 1fr;gap:0;align-items:stretch" class="rv d1">'
+        f'<div style="display:grid;grid-template-columns:1fr 48px 1fr;gap:0;align-items:stretch" class="rv d1">'
         # Before
-        f'<div style="background:#1A0808;border-radius:var(--r,4px) 0 0 var(--r,4px);padding:28px 28px;border:1px solid rgba(255,80,80,.25);border-right:none">'
-        f'<div style="font-size:11px;font-weight:800;color:#FF5050;letter-spacing:.14em;text-transform:uppercase;margin-bottom:18px;display:flex;align-items:center;gap:8px">'
+        f'<div style="background:#1A0808;border-radius:var(--r,4px) 0 0 var(--r,4px);'
+        f'padding:28px;border:1px solid rgba(255,80,80,.2);border-right:none">'
+        f'<div style="font-size:11px;font-weight:800;color:#FF5050;letter-spacing:.14em;'
+        f'text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:8px">'
         f'<div style="width:8px;height:8px;border-radius:50%;background:#FF5050"></div>BEFORE</div>'
         f'{bh}</div>'
-        # 화살표 중간
+        # 화살표
         f'<div style="background:var(--c1);display:flex;align-items:center;justify-content:center">'
-        f'<div style="font-family:var(--fh);font-size:22px;font-weight:900;color:#fff">→</div>'
+        f'<div style="font-size:18px;font-weight:900;color:#fff">→</div>'
         f'</div>'
         # After
-        f'<div style="background:var(--bg3);border-radius:0 var(--r,4px) var(--r,4px) 0;padding:28px 28px;border:1px solid var(--bd);border-left:none">'
-        f'<div style="font-size:11px;font-weight:800;color:var(--c1);letter-spacing:.14em;text-transform:uppercase;margin-bottom:18px;display:flex;align-items:center;gap:8px">'
+        f'<div style="background:var(--bg3);border-radius:0 var(--r,4px) var(--r,4px) 0;'
+        f'padding:28px;border:1px solid var(--bd);border-left:none">'
+        f'<div style="font-size:11px;font-weight:800;color:var(--c1);letter-spacing:.14em;'
+        f'text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:8px">'
         f'<div style="width:8px;height:8px;border-radius:50%;background:var(--c1)"></div>AFTER</div>'
         f'{ah}</div>'
         f'</div>'
