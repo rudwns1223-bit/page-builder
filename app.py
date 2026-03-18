@@ -517,6 +517,15 @@ def gen_section(sec_id: str) -> dict:
         "reviews": '{"reviews":[["지금도 쓸 것 같은 생생한 50-70자 인용문, 구체적 점수·방법 언급","이름","뱃지"],["50-70자 인용문","이름","뱃지"],["50-70자 인용문","이름","뱃지"]]}',
         "faq":    '{"faqs":[["15자 구체적 질문","명쾌한 답변 50자이상"],["질문","50자 이상 답변"],["질문","50자 이상 답변"]]}',
         "cta":    '{"ctaTitle":"CTA제목","ctaSub":"40자이상 수강신청 동기부여 문구","ctaCopy":"10자","ctaBadge":"15자"}',
+        # ── 이벤트 섹션 (버그 수정: 기존엔 누락되어 있었음) ──
+        "event_overview": '{"eventTitle":"20자","eventDesc":"50자이상 이벤트 핵심 설명","eventDetails":[["📅","이벤트 기간","날짜"],["🎯","대상","값"],["💰","혜택","값"]]}',
+        "event_benefits": '{"benefitsTitle":"20자","eventBenefits":[{"icon":"이모지","title":"혜택명","desc":"50자이상 혜택 설명","badge":"8자","no":"01"},{"icon":"이모지","title":"혜택명","desc":"50자이상","badge":"8자","no":"02"},{"icon":"이모지","title":"혜택명","desc":"50자이상","badge":"8자","no":"03"}]}',
+        "event_deadline": '{"deadlineTitle":"마감 제목 15자","deadlineMsg":"70자이상 긴박감 있는 마감 안내 문구, 학생 심리 자극","ctaCopy":"10자"}',
+        # ── 기획전 섹션 ──
+        "fest_hero":     '{"festHeroTitle":"20자","festHeroCopy":"30자","festHeroSub":"50자이상","brandTagline":"기획전 분위기 한 문장","festHeroStats":[["수치","라벨"],["수치","라벨"]]}',
+        "fest_lineup":   '{"festLineupTitle":"20자","festLineupSub":"40자","festLineup":[{"name":"강사명","tag":"8자","tagline":"40자 소개","badge":"8자","emoji":"이모지"},{"name":"강사명","tag":"8자","tagline":"40자","badge":"8자","emoji":"이모지"},{"name":"강사명","tag":"8자","tagline":"40자","badge":"8자","emoji":"이모지"},{"name":"강사명","tag":"8자","tagline":"40자","badge":"8자","emoji":"이모지"}]}',
+        "fest_benefits": '{"festBenefitsTitle":"20자","festBenefits":[{"icon":"이모지","title":"혜택명","desc":"50자이상","badge":"8자","no":"01"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"02"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"03"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"04"}]}',
+        "fest_cta":      '{"festCtaTitle":"CTA 제목 20자","festCtaSub":"50자이상 통합신청 동기부여 문구"}',
     }
     sec_name = SEC_LABELS.get(sec_id, sec_id)
     schema = schemas.get(sec_id, '{"title":"제목","desc":"설명"}')
@@ -931,26 +940,43 @@ def sec_intro(d, cp, T):
     bio  = strip_hanja(cp.get("introBio", ip.get("desc", f"검증된 {d['subject']} 강사")))
     methods = [strip_hanja(m) for m in (ip.get("signatureMethods") or []) if m and m not in ("없음","")]
     slogan  = strip_hanja(ip.get("slogan",""))
-    mtags = "".join(f'<span style="background:var(--c1);color:#fff;font-size:10px;font-weight:800;padding:5px 16px;border-radius:var(--r-btn,4px);margin:3px 5px 3px 0;display:inline-flex;letter-spacing:.04em">{m}</span>' for m in methods[:4]) if methods else ""
-    sq = f'<div style="margin-top:18px;padding:18px 22px;background:var(--bg3);border-radius:var(--r,4px);border-left:4px solid var(--c1)"><span style="font-size:14px;color:var(--text);font-style:italic;font-weight:500">"{slogan}"</span></div>' if slogan else ""
-    # 좌우 분할 레이아웃
+    mtags = "".join(
+        f'<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border:1.5px solid var(--c1);border-radius:var(--r,4px);margin-bottom:8px">'
+        f'<div style="width:6px;height:6px;border-radius:50%;background:var(--c1);flex-shrink:0"></div>'
+        f'<span style="font-size:13px;font-weight:800;color:var(--text);letter-spacing:.04em">{m}</span>'
+        f'</div>'
+        for m in methods[:4]
+    ) if methods else f'<div style="font-size:13px;color:var(--t45)">{d["subject"]} 전문 강의</div>'
+    slogan_html = (
+        f'<div class="rv d1" style="padding:28px 32px;background:var(--bg3);border-radius:var(--r,4px);position:relative;overflow:hidden;margin-top:24px">'
+        f'<div style="position:absolute;top:-12px;left:12px;font-family:var(--fh);font-size:110px;font-weight:900;color:var(--c1);opacity:.06;line-height:1;pointer-events:none">\"</div>'
+        f'<p style="font-size:clamp(14px,1.4vw,17px);line-height:1.9;font-style:italic;color:var(--text);font-weight:500;position:relative;z-index:1;padding-top:10px">{slogan}</p>'
+        f'<div style="display:flex;align-items:center;gap:8px;margin-top:14px">'
+        f'<div style="width:24px;height:2px;background:var(--c1)"></div>'
+        f'<span style="font-size:10px;font-weight:800;color:var(--c1);letter-spacing:.12em;text-transform:uppercase">{d["name"] if d["name"] else "강사"} 선생님</span>'
+        f'</div></div>'
+    ) if slogan else ""
     return (
         f'<section class="sec alt" id="intro">'
-        f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:start;max-width:1200px;margin:0 auto">'
-        f'<div class="rv">'
-        f'<div class="tag-line">강사 소개</div>'
-        f'<h2 class="sec-h2 st">{t}</h2>'
-        f'<p class="sec-sub">{desc}</p>'
-        f'{mtags and f"<div style=\'margin-bottom:16px\'>{mtags}</div>" or ""}'
+        f'<div style="max-width:1200px;margin:0 auto">'
+        f'<div class="rv" style="display:grid;grid-template-columns:1fr auto;align-items:flex-end;gap:24px;padding-bottom:24px;border-bottom:2px solid var(--c1);margin-bottom:44px">'
+        f'<div><div class="tag-line">강사 소개</div><h2 class="sec-h2 st" style="margin-bottom:0">{t}</h2></div>'
+        f'<div style="text-align:right"><div style="font-size:10px;font-weight:800;letter-spacing:.14em;color:var(--t45);text-transform:uppercase;margin-bottom:5px">{d["subject"]}</div>'
+        f'<div style="font-family:var(--fh);font-size:20px;font-weight:900;color:var(--c1)">{d["purpose_label"][:14]}</div></div>'
         f'</div>'
-        f'<div class="rv d1">'
-        f'<div style="padding:24px 28px;border:1px solid var(--bd);border-radius:var(--r,4px);border-left:4px solid var(--c1)">'
-        f'<p style="font-size:14px;line-height:2;color:var(--t70)">{bio}</p>'
-        f'{sq}</div>'
+        f'<div style="display:grid;grid-template-columns:1.3fr 1fr 0.85fr;gap:40px;align-items:start">'
+        f'<div class="rv d1"><p style="font-size:15px;line-height:2;color:var(--t70)">{desc}</p>{slogan_html}</div>'
+        f'<div class="rv d2" style="padding-left:28px;border-left:3px solid var(--bd)">'
+        f'<div style="font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--c1);margin-bottom:14px">PROFILE</div>'
+        f'<p style="font-size:13.5px;line-height:2;color:var(--text)">{bio}</p>'
+        f'</div>'
+        f'<div class="rv d3">'
+        f'<div style="font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--c1);margin-bottom:14px">SIGNATURE</div>'
+        f'{mtags}'
+        f'</div>'
         f'</div>'
         f'</div></section>'
     )
-
 
 def sec_why(d, cp, T):
     t = strip_hanja(cp.get("whyTitle","이 강의가 필요한 이유"))
@@ -964,26 +990,41 @@ def sec_why(d, cp, T):
     for item in reasons:
         if isinstance(item, (list,tuple)) and len(item)>=3: safe_r.append((str(item[0]),str(item[1]),str(item[2])))
         elif isinstance(item, dict): safe_r.append((item.get("icon","✦"),item.get("title",""),item.get("desc","")))
-    # 번호가 크게 보이는 카드
+    # 핀터레스트 스타일: 큰 번호 + 풀라인 가로 배치 (교차 배경)
     rh = ""
     for i,(ic,tt,dc) in enumerate(safe_r, 1):
+        alt_bg = "background:var(--bg3)" if i % 2 == 0 else "background:var(--bg)"
+        num_col = "color:var(--c1)" if i == 1 else "color:var(--bd)"
         rh += (
-            f'<div class="card rv d{i}" style="position:relative;overflow:hidden;padding:28px 24px">'
-            f'<div class="num-deco" style="font-size:120px;top:-20px;right:-10px;opacity:.05">{i:02d}</div>'
-            f'<div style="position:relative;z-index:1">'
-            f'<div style="width:52px;height:52px;border-radius:var(--r,4px);background:var(--c1);display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:16px">{ic}</div>'
-            f'<div style="font-family:var(--fh);font-size:16px;font-weight:700;margin-bottom:10px;letter-spacing:-.02em" class="st">{strip_hanja(tt)}</div>'
-            f'<p style="font-size:13px;line-height:1.9;color:var(--t70)">{strip_hanja(dc)}</p>'
-            f'</div></div>'
+            f'<div class="rv d{i}" style="display:grid;grid-template-columns:120px 1fr;gap:0;align-items:stretch;border:1px solid var(--bd);border-radius:var(--r,4px);overflow:hidden;margin-bottom:10px">'
+            # 좌: 대형 번호 + 아이콘
+            f'<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;{alt_bg};padding:24px 16px;border-right:1px solid var(--bd)">'
+            f'<div style="font-family:var(--fh);font-size:52px;font-weight:900;line-height:1;{num_col};opacity:.25">{i:02d}</div>'
+            f'<div style="font-size:28px;margin-top:8px">{ic}</div>'
+            f'</div>'
+            # 우: 제목 + 설명
+            f'<div style="padding:24px 28px;display:flex;flex-direction:column;justify-content:center">'
+            f'<div style="font-family:var(--fh);font-size:clamp(15px,1.5vw,18px);font-weight:800;margin-bottom:8px;letter-spacing:-.02em;color:var(--text)" class="st">{strip_hanja(tt)}</div>'
+            f'<p style="font-size:13.5px;line-height:1.9;color:var(--t70);margin:0">{strip_hanja(dc)}</p>'
+            f'</div>'
+            f'</div>'
         )
     return (
         f'<section class="sec" id="why">'
-        f'<div style="max-width:1200px;margin:0 auto">'
-        f'<div class="rv"><div class="tag-line">수강 이유</div><h2 class="sec-h2 st">{t}</h2><p class="sec-sub">{s}</p></div>'
-        f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">{rh}</div>'
+        f'<div style="display:grid;grid-template-columns:1fr 1.6fr;gap:72px;align-items:start;max-width:1200px;margin:0 auto">'
+        # 좌: 타이틀 + 서브 (sticky)
+        f'<div class="rv" style="position:sticky;top:60px">'
+        f'<div class="tag-line">수강 이유</div>'
+        f'<h2 class="sec-h2 st">{t}</h2>'
+        f'<p class="sec-sub">{s}</p>'
+        f'<div style="margin-top:24px;padding:20px 24px;background:var(--c1);border-radius:var(--r,4px)">'
+        f'<div style="font-family:var(--fh);font-size:40px;font-weight:900;color:#fff;line-height:1">{len(safe_r)}</div>'
+        f'<div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:4px;font-weight:700">가지 핵심 이유</div>'
+        f'</div></div>'
+        # 우: 가로형 카드 리스트
+        f'<div class="rv d1">{rh}</div>'
         f'</div></section>'
     )
-
 
 def sec_curriculum(d, cp, T):
     t = strip_hanja(cp.get("curriculumTitle",f"{d['purpose_label']} 커리큘럼"))
@@ -1034,54 +1075,94 @@ def sec_target(d, cp, T):
         "개념은 아는데 실전에서 점수가 안 나오는 분",
         "N수를 준비하며 체계적인 커리큘럼이 필요한 분",
         f"{d['subject']} 상위권 도약을 원하는 분"])]
-    ih = "".join(
-        f'<div class="rv d{min(i+1,4)}" style="display:flex;align-items:center;gap:16px;padding:18px 22px;border:1px solid var(--bd);border-radius:var(--r,4px);background:var(--bg);transition:border-color .2s" onmouseover="this.style.borderColor=\'var(--c1)\'" onmouseout="this.style.borderColor=\'var(--bd)\'">'
-        f'<div style="width:32px;height:32px;min-width:32px;border-radius:var(--r-btn,4px);background:var(--c1);display:flex;align-items:center;justify-content:center;font-family:var(--fh);font-size:13px;font-weight:900;color:#fff">{i+1:02d}</div>'
-        f'<span style="font-size:14px;font-weight:600;line-height:1.5;color:var(--text)">{txt}</span>'
-        f'<div style="margin-left:auto;font-size:16px;color:var(--c1)">→</div>'
-        f'</div>'
-        for i,txt in enumerate(items)
-    )
+    # 핀터레스트 스타일 2컬럼 엇갈린 카드
+    left_items  = [(i, txt) for i, txt in enumerate(items) if i % 2 == 0]
+    right_items = [(i, txt) for i, txt in enumerate(items) if i % 2 == 1]
+    def card(i, txt):
+        return (
+            f'<div class="rv d{min(i+1,4)}" style="padding:22px 26px;border:1px solid var(--bd);border-radius:var(--r,4px);'
+            f'background:var(--bg);margin-bottom:12px;display:flex;gap:16px;align-items:flex-start;'
+            f'transition:border-color .2s,transform .2s" '
+            f'onmouseover="this.style.borderColor=\'var(--c1)\';this.style.transform=\'translateY(-2px)\'" '
+            f'onmouseout="this.style.borderColor=\'var(--bd)\';this.style.transform=\'none\'">'
+            f'<div style="flex-shrink:0;width:36px;height:36px;border-radius:var(--r-btn,4px);'
+            f'background:var(--c1);display:flex;align-items:center;justify-content:center;'
+            f'font-family:var(--fh);font-size:14px;font-weight:900;color:#fff">{i+1:02d}</div>'
+            f'<div><p style="font-size:14px;font-weight:600;line-height:1.7;color:var(--text);margin:0">{txt}</p>'
+            f'<div style="margin-top:6px;width:20px;height:2px;background:var(--c1)"></div></div>'
+            f'</div>'
+        )
+    lh = "".join(card(i, txt) for i,txt in left_items)
+    rh = "".join(card(i, txt) for i,txt in right_items)
+    # 우측 컬럼은 위에 spacer 추가해 엇갈림 효과
+    right_spacer = '<div style="height:56px"></div>'
     return (
         f'<section class="sec" id="target">'
-        f'<div style="max-width:800px;margin:0 auto">'
-        f'<div class="rv" style="text-align:center;margin-bottom:40px"><div class="tag-line" style="justify-content:center">수강 대상</div><h2 class="sec-h2 st" style="text-align:center">{t}</h2></div>'
-        f'<div style="display:flex;flex-direction:column;gap:10px">{ih}</div>'
+        f'<div style="max-width:1200px;margin:0 auto">'
+        f'<div class="rv" style="display:grid;grid-template-columns:1fr 2fr;gap:60px;align-items:start">'
+        f'<div style="position:sticky;top:60px"><div class="tag-line">수강 대상</div><h2 class="sec-h2 st">{t}</h2>'
+        f'<p class="sec-sub">지금 이 강의가 필요한 학생들을 위해 준비했습니다.</p></div>'
+        f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 20px">'
+        f'<div>{lh}</div>'
+        f'<div>{right_spacer}{rh}</div>'
+        f'</div></div>'
         f'</div></section>'
     )
-
 
 def sec_reviews(d, cp, T):
     reviews = cp.get("reviews",[
-        [f'"개념이 이렇게 명확하게 보인 적이 없었어요. {d["subject"]} 공부가 달라졌습니다."',"고3 김OO","등급 향상"],
+        [f'"개념이 이렇게 명확하게 보인 적이 없었어요. {d["subject"]} 공부가 달라졌습니다."',f"고3 김OO","등급 향상"],
         ['"3주 만에 독해 속도가 확실히 빨라졌어요. 실전에서 시간이 남는 게 느껴졌습니다."',"N수 이OO","실전 완성"],
         [f'"선생님 덕분에 {d["subject"]} 구조가 보이기 시작했어요. 빈칸이 겁나지 않습니다."',"고2 박OO","자신감 회복"],
     ])
+    # 핀터레스트 Masonry 스타일: 카드 높이 불균일 + 첫 카드 강조(풀컬러)
     rh = ""
     for i,(txt,nm,badge) in enumerate(reviews):
-        rh += (
-            f'<div class="card rv d{min(i+1,3)}" style="display:flex;flex-direction:column;gap:12px;padding:28px">'
-            f'<div style="display:flex;gap:2px;color:#F59E0B;font-size:12px">{"★"*5}</div>'
-            f'<p style="font-size:13.5px;line-height:1.9;font-weight:500;flex:1">{strip_hanja(txt)}</p>'
-            f'<div style="display:flex;align-items:center;justify-content:space-between;padding-top:12px;border-top:1px solid var(--bd)">'
-            f'<span style="font-size:11px;color:var(--t45)">— {nm} 학생</span>'
-            f'<span style="font-size:9.5px;background:var(--bg3);color:var(--c1);padding:3px 12px;border-radius:var(--r-btn,100px);font-weight:700;border:1px solid var(--bd)">{badge}</span>'
-            f'</div></div>'
-        )
+        is_hero = (i == 0)
+        if is_hero:
+            rh += (
+                f'<div class="card rv d1" style="grid-column:1 / -1;display:grid;grid-template-columns:1fr 1fr;gap:0;overflow:hidden;border-radius:var(--r,4px)">'
+                # 좌: 강조색 배경 + 큰 인용문
+                f'<div style="background:var(--c1);padding:40px 36px;display:flex;flex-direction:column;justify-content:space-between">'
+                f'<div style="font-family:var(--fh);font-size:80px;font-weight:900;color:rgba(255,255,255,.15);line-height:.8;margin-bottom:12px">"</div>'
+                f'<p style="font-size:clamp(15px,1.5vw,18px);line-height:1.85;font-weight:600;color:#fff;flex:1">{strip_hanja(txt)}</p>'
+                f'<div style="margin-top:24px;display:flex;align-items:center;justify-content:space-between">'
+                f'<span style="font-size:12px;font-weight:700;color:rgba(255,255,255,.75)">— {nm} 학생</span>'
+                f'<span style="font-size:10px;background:rgba(255,255,255,.18);color:#fff;padding:4px 14px;border-radius:var(--r-btn,100px);font-weight:800">{badge}</span>'
+                f'</div></div>'
+                # 우: 별점 + 부연
+                f'<div style="background:var(--bg3);padding:40px 36px;display:flex;flex-direction:column;justify-content:center">'
+                f'<div style="display:flex;gap:3px;color:#F59E0B;font-size:18px;margin-bottom:16px">{"★"*5}</div>'
+                f'<div style="font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--c1);margin-bottom:10px">BEST REVIEW</div>'
+                f'<p style="font-size:13px;line-height:1.9;color:var(--t70)">이 수강생의 변화는 {d["subject"]} 공부 방식 자체가 달라진 결과입니다.</p>'
+                f'</div></div>'
+            )
+        else:
+            rh += (
+                f'<div class="card rv d{i+1}" style="display:flex;flex-direction:column;gap:14px;padding:28px;{"padding-top:40px" if i==2 else ""}">'
+                f'<div style="display:flex;gap:2px;color:#F59E0B;font-size:12px">{"★"*5}</div>'
+                f'<p style="font-size:13.5px;line-height:1.9;font-weight:500;flex:1">{strip_hanja(txt)}</p>'
+                f'<div style="display:flex;align-items:center;justify-content:space-between;padding-top:12px;border-top:1px solid var(--bd)">'
+                f'<span style="font-size:11px;color:var(--t45)">— {nm} 학생</span>'
+                f'<span style="font-size:9.5px;background:var(--bg3);color:var(--c1);padding:3px 12px;border-radius:var(--r-btn,100px);font-weight:700;border:1px solid var(--bd)">{badge}</span>'
+                f'</div></div>'
+            )
     return (
         f'<section class="sec alt" id="reviews">'
         f'<div style="max-width:1200px;margin:0 auto">'
-        f'<div class="rv" style="margin-bottom:40px"><div class="tag-line">수강평</div><h2 class="sec-h2 st">생생한 수강생 후기</h2></div>'
-        f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">{rh}</div>'
+        f'<div class="rv" style="margin-bottom:40px;display:flex;align-items:flex-end;justify-content:space-between">'
+        f'<div><div class="tag-line">수강평</div><h2 class="sec-h2 st">생생한 수강생 후기</h2></div>'
+        f'<div style="font-family:var(--fh);font-size:clamp(32px,4vw,52px);font-weight:900;color:var(--c1);opacity:.12;line-height:1">{len(reviews)}</div>'
+        f'</div>'
+        f'<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">{rh}</div>'
         f'</div></section>'
     )
 
-
 def sec_faq(d, cp, T):
     raw = cp.get("faqs",[
-        ["수강 기간은 얼마나 되나요?","기본 30일이며, 연장권으로 최대 90일 가능합니다."],
-        ["교재는 별도 구매인가요?","별도 구매이며, 신청 페이지에서 함께 구매하실 수 있습니다."],
-        ["모바일에서도 수강 가능한가요?","PC와 모바일 모두 가능합니다."],
+        ["수강 기간은 얼마나 되나요?","기본 30일이며, 연장권 구매 시 최대 90일까지 연장하실 수 있습니다. 학습 진도에 맞게 유연하게 조절 가능합니다."],
+        ["교재는 별도 구매인가요?","별도 구매입니다. 수강 신청 페이지에서 강의와 함께 패키지로 구매하실 수 있으며, 패키지 구매 시 할인 혜택이 적용됩니다."],
+        ["모바일에서도 수강 가능한가요?","PC, 태블릿, 스마트폰 모두 지원합니다. 앱에서 오프라인 다운로드도 가능하여 인터넷 없이도 학습하실 수 있습니다."],
     ])
     faqs = []
     for item in raw:
@@ -1090,21 +1171,29 @@ def sec_faq(d, cp, T):
     fh = ""
     for i,(q,a) in enumerate(faqs):
         fh += (
-            f'<div class="rv d{min(i+1,3)}" style="margin-bottom:8px">'
-            f'<div style="border:1px solid var(--bd);border-radius:var(--r,4px);overflow:hidden">'
-            f'<div style="padding:15px 20px;background:var(--bg3);display:flex;gap:12px;align-items:flex-start">'
-            f'<span style="color:var(--c1);font-weight:900;font-size:15px;flex-shrink:0;font-family:var(--fh)">Q.</span>'
-            f'<span style="font-weight:700;font-size:13.5px;line-height:1.6">{strip_hanja(q)}</span></div>'
-            f'<div style="padding:14px 20px;background:var(--bg);display:flex;gap:12px;align-items:flex-start">'
-            f'<span style="color:var(--t45);font-weight:700;font-size:15px;flex-shrink:0;font-family:var(--fh)">A.</span>'
-            f'<span style="font-size:13px;line-height:1.85;color:var(--t70)">{strip_hanja(a)}</span></div>'
-            f'</div></div>'
+            f'<div class="rv d{min(i+1,3)}" style="margin-bottom:6px">'
+            f'<details style="border:1px solid var(--bd);border-radius:var(--r,4px);overflow:hidden">'
+            f'<summary style="padding:16px 22px;background:var(--bg3);display:flex;align-items:center;gap:12px;cursor:pointer;list-style:none;user-select:none">'
+            f'<span style="color:var(--c1);font-weight:900;font-size:14px;flex-shrink:0;font-family:var(--fh)">Q.</span>'
+            f'<span style="font-weight:700;font-size:14px;line-height:1.5;flex:1">{strip_hanja(q)}</span>'
+            f'<span style="font-size:18px;color:var(--c1);flex-shrink:0;transition:transform .2s">＋</span>'
+            f'</summary>'
+            f'<div style="padding:18px 22px 20px;background:var(--bg);display:flex;gap:12px;align-items:flex-start;border-top:1px solid var(--bd)">'
+            f'<span style="color:var(--t45);font-weight:700;font-size:14px;flex-shrink:0;font-family:var(--fh)">A.</span>'
+            f'<p style="font-size:13.5px;line-height:1.9;color:var(--t70);margin:0">{strip_hanja(a)}</p>'
+            f'</div></details></div>'
         )
     return (
         f'<section class="sec" id="faq">'
-        f'<div style="max-width:800px;margin:0 auto">'
-        f'<div class="rv" style="margin-bottom:36px"><div class="tag-line">FAQ</div><h2 class="sec-h2 st">자주 묻는 질문</h2></div>'
-        f'{fh}</div></section>'
+        f'<div style="display:grid;grid-template-columns:1fr 1.8fr;gap:72px;align-items:start;max-width:1200px;margin:0 auto">'
+        f'<div class="rv" style="position:sticky;top:60px">'
+        f'<div class="tag-line">FAQ</div>'
+        f'<h2 class="sec-h2 st">자주 묻는 질문</h2>'
+        f'<p class="sec-sub">궁금한 점을 클릭해 답변을 확인하세요.</p>'
+        f'<div style="margin-top:24px;font-size:12px;color:var(--t45);line-height:1.8">더 궁금한 사항은<br>카카오톡 채널로 문의해 주세요.</div>'
+        f'</div>'
+        f'<div class="rv d1">{fh}</div>'
+        f'</div></section>'
     )
 
 
@@ -1144,10 +1233,43 @@ def sec_event_benefits(d, cp, T):
 
 
 def sec_event_deadline(d, cp, T):
-    t = strip_hanja(cp.get("deadlineTitle","마감 안내"))
+    t   = strip_hanja(cp.get("deadlineTitle","마감 안내"))
     msg = strip_hanja(cp.get("deadlineMsg","이벤트는 기간 한정으로 운영됩니다."))
-    cc = strip_hanja(cp.get("ctaCopy","이벤트 신청하기"))
-    return (f'<section class="sec" id="event-deadline" style="background:{T["cta"]};text-align:center"><div class="rv"><div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.15);padding:6px 20px;border-radius:100px;font-size:11px;font-weight:800;color:#fff;margin-bottom:24px">⏰ 마감 안내</div><h2 style="font-family:var(--fh);font-size:clamp(26px,4vw,44px);font-weight:900;color:#fff;margin-bottom:18px" class="st">{t}</h2><p style="color:rgba(255,255,255,.7);font-size:15px;line-height:1.9;margin-bottom:40px;max-width:460px;margin-left:auto;margin-right:auto">{msg}</p><a style="display:inline-flex;align-items:center;gap:8px;background:#fff;color:#0A0A0A;font-weight:800;padding:16px 52px;border-radius:var(--r-btn,4px);font-size:16px;text-decoration:none" href="#">{cc} →</a></div></section>')
+    cc  = strip_hanja(cp.get("ctaCopy","이벤트 신청하기"))
+    # JS 카운트다운 타이머 (72시간 후 기준)
+    timer_html = (
+        '<div id="cdtimer" style="display:flex;gap:16px;justify-content:center;margin:28px 0 36px">'
+        + "".join(
+            f'<div style="text-align:center;background:rgba(255,255,255,.12);border-radius:var(--r,4px);padding:14px 20px;min-width:72px">'
+            f'<div id="cd_{unit}" style="font-family:var(--fh);font-size:36px;font-weight:900;color:#fff;line-height:1">00</div>'
+            f'<div style="font-size:9px;font-weight:800;color:rgba(255,255,255,.5);letter-spacing:.14em;margin-top:4px">{label}</div>'
+            f'</div>'
+            for unit, label in [("d","DAYS"),("h","HOURS"),("m","MIN"),("s","SEC")]
+        )
+        + '</div>'
+        + '<script>(function(){'
+        + 'var end=new Date(Date.now()+72*60*60*1000);'
+        + 'function upd(){'
+        +   'var now=new Date(),diff=Math.max(0,end-now);'
+        +   'var dd=Math.floor(diff/864e5),hh=Math.floor((diff%864e5)/36e5),'
+        +       'mm=Math.floor((diff%36e5)/6e4),ss=Math.floor((diff%6e4)/1e3);'
+        +   '[["cd_d",dd],["cd_h",hh],["cd_m",mm],["cd_s",ss]].forEach(function(x){'
+        +     'var el=document.getElementById(x[0]);if(el)el.textContent=String(x[1]).padStart(2,"0");'
+        +   '});'
+        + '}'
+        + 'upd();setInterval(upd,1000);'
+        + '})();</script>'
+    )
+    return (
+        f'<section class="sec" id="event-deadline" style="background:{T["cta"]};text-align:center">'
+        f'<div class="rv" style="max-width:680px;margin:0 auto">'
+        f'<div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.15);padding:6px 20px;border-radius:100px;font-size:11px;font-weight:800;color:#fff;margin-bottom:20px">⏰ 마감 안내</div>'
+        f'<h2 style="font-family:var(--fh);font-size:clamp(26px,4vw,44px);font-weight:900;color:#fff;margin-bottom:14px" class="st">{t}</h2>'
+        f'<p style="color:rgba(255,255,255,.7);font-size:15px;line-height:1.9;max-width:460px;margin:0 auto">{msg}</p>'
+        f'{timer_html}'
+        f'<a style="display:inline-flex;align-items:center;gap:8px;background:#fff;color:#0A0A0A;font-weight:800;padding:16px 52px;border-radius:var(--r-btn,4px);font-size:16px;text-decoration:none" href="#">{cc} →</a>'
+        f'</div></section>'
+    )
 
 
 def sec_fest_hero(d, cp, T):
@@ -1623,6 +1745,35 @@ with L:
         mime="text/html",
         use_container_width=True,
     )
+
+    # ── 실무 활용 팁 ──────────────────────────────
+    with st.expander("💡 실무 활용 & 추가 기능 안내", expanded=False):
+        st.markdown("""
+**지금 바로 쓸 수 있는 팁**
+
+🔗 **URL 배포**: HTML 다운로드 → Notion / Carrd / GitHub Pages에 업로드하면 바로 공유 가능
+
+📱 **카카오톡 공유**: 대성마이맥 수강 신청 링크를 `href="#"` 부분에 실제 URL로 교체
+
+🖼 **배경 이미지 교체**: '배경 이미지 업로드' 기능으로 실제 강의 사진 사용 권장
+
+✏️ **문구 직접 편집**: 배너·소개 섹션은 아래 '문구 직접 편집' 패널에서 수동 수정 가능
+
+---
+
+**추가하면 좋을 기능 (요청 시 구현 가능)**
+
+| 기능 | 설명 |
+|------|------|
+| 📊 A/B 테스트 모드 | 2개 버전 문구를 동시 생성해 비교 |
+| 🌐 OG 태그 자동 생성 | SNS 공유 시 미리보기 이미지·제목 자동 세팅 |
+| 📅 마감일 직접 입력 | 카운트다운 타이머 날짜 수동 설정 |
+| 🎞 영상 히어로 | 배경을 MP4/YouTube 영상으로 교체 |
+| 🔔 네이버폼 연동 | 수강신청 폼을 CTA 버튼에 직접 임베드 |
+| 💬 카카오 채널 위젯 | 우하단 플로팅 카카오 문의 버튼 삽입 |
+| 📈 Google Analytics | UA/GA4 트래킹 코드 자동 삽입 |
+""")
+
 
 with R:
     st.markdown("### 👁 실시간 미리보기")
