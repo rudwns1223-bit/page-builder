@@ -2164,7 +2164,9 @@ with L:
     # 섹션별 재생성
     st.markdown("### 🎲 섹션별 문구 재생성")
     st.caption("클릭 시 해당 섹션 문구만 새롭게 교체됩니다")
-    regen_secs = [s for s in ordered if s in SEC_LABELS and s != "custom_section"]
+    regen_secs = [s for s in ordered if s in SEC_LABELS and s != 'custom_section']
+    if regen_secs and st.session_state.api_key:
+        for row_start in range(0, len(regen_secs), 4):
     SEC_SHORT = {
         "banner":"배너","intro":"소개","why":"이유","curriculum":"커리큘럼",
         "target":"대상","reviews":"수강평","faq":"FAQ","cta":"CTA",
