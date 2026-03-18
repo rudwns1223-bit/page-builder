@@ -2100,7 +2100,7 @@ if st.session_state.custom_section_on and "custom_section" not in ordered:
 final_html = build_html(ordered)
 T_now = get_theme()
 
-L, R = st.columns([1, 1], gap="large")
+L, R = st.columns([1, 3], gap="large")
 
 with L:
     st.markdown("### ✍️ AI 문구 생성")
