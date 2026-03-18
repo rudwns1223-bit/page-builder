@@ -2032,7 +2032,7 @@ with st.sidebar:
 
     # 강사 정보
     st.markdown('<div class="sec-hdr">👤 강사 정보</div>', unsafe_allow_html=True)
-nm = st.text_input("강사명", value=st.session_state.instructor_name,
+    nm = st.text_input("강사명", value=st.session_state.instructor_name,
                        placeholder="강사명", label_visibility="collapsed")
     st.session_state.instructor_name = nm
 
