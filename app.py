@@ -2100,7 +2100,7 @@ if st.session_state.custom_section_on and "custom_section" not in ordered:
 final_html = build_html(ordered)
 T_now = get_theme()
 
-L, R = st.columns([1, 2], gap="large")
+L, R = st.columns([1, 3], gap="large")
 
 with L:
     st.markdown("### ✍️ AI 문구 생성")
@@ -2315,4 +2315,4 @@ with col_ref:
     with m2: st.metric("히어로", T_now.get("heroStyle","—"))
     with m3: st.metric("섹션 수", len(ordered))
     import streamlit.components.v1 as components
-    components.html(final_html, height=900, scrolling=True)
+    components.html(final_html, height=1400, scrolling=True)
