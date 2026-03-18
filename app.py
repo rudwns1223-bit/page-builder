@@ -2032,7 +2032,7 @@ with st.sidebar:
 
     # 강사 정보
     st.markdown('<div class="sec-hdr">👤 강사 정보</div>', unsafe_allow_html=True)
-    na_, su_ = st.columns([2, 2])
+    na_, su_ = st.columns(2)
     with na_:
         nm = st.text_input("강사명", value=st.session_state.instructor_name,
                            placeholder="강사명", label_visibility="collapsed")
@@ -2139,7 +2139,6 @@ with L:
                        placeholder=ph_map.get(st.session_state.purpose_type,"맥락 입력"),
                        help="강사 정보 검색 후 생성하면 더 정확한 문구가 나옵니다.")
 
-    if st.button(f"↺{SEC_SHORT.get(sid,sid)}", key=f"regen_{sid}", use_container_width=True):
         if not ctx.strip(): st.warning("페이지 맥락을 입력해주세요")
         elif not st.session_state.api_key: st.warning("API 키를 먼저 입력해주세요")
         else:
