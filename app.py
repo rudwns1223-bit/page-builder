@@ -786,7 +786,7 @@ h1,h2,h3,p,span,div{word-break:keep-all;overflow-wrap:break-word}
 
 /* ── 버튼 ── */
 .btn-p{display:inline-flex;align-items:center;gap:8px;background:var(--c1);color:#fff;
-  font-family:var(--fb);font-size:14px;font-weight:800;padding:14px 32px;
+  font-family:var(--fb);font-size:12px;font-weight:800;padding:11px 24px;
   border-radius:var(--r-btn,4px);border:none;cursor:pointer;
   box-shadow:0 4px 24px rgba(0,0,0,.25);
   transition:opacity .15s,transform .15s,box-shadow .15s;text-decoration:none;letter-spacing:.02em;
@@ -2032,7 +2032,7 @@ with st.sidebar:
 
     # 강사 정보
     st.markdown('<div class="sec-hdr">👤 강사 정보</div>', unsafe_allow_html=True)
-    na_, su_ = st.columns([3, 2])
+    na_, su_ = st.columns([2, 2])
     with na_:
         nm = st.text_input("강사명", value=st.session_state.instructor_name,
                            placeholder="강사명", label_visibility="collapsed")
@@ -2139,7 +2139,7 @@ with L:
                        placeholder=ph_map.get(st.session_state.purpose_type,"맥락 입력"),
                        help="강사 정보 검색 후 생성하면 더 정확한 문구가 나옵니다.")
 
-    if st.button(f"✦ {st.session_state.purpose_type} 문구 AI 생성", type="primary", use_container_width=True):
+    if st.button(f"↺{SEC_SHORT.get(sid,sid)}", key=f"regen_{sid}", use_container_width=True):
         if not ctx.strip(): st.warning("페이지 맥락을 입력해주세요")
         elif not st.session_state.api_key: st.warning("API 키를 먼저 입력해주세요")
         else:
