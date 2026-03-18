@@ -2131,30 +2131,30 @@ with L:
     st.markdown("### ✍️ AI 문구 생성")
     st.caption(PURPOSE_HINTS[st.session_state.purpose_type])
     ph_map = {
-        "신규 커리큘럼": "예: 2026 수능 영어 파이널. 션티 선생님의 KISS Logic 방법론.",
+        "신규 커리큘럼": "예: 2026 수능 영어 파이널. 선티 선생님의 KISS Logic 방법론.",
         "이벤트":       "예: 6월 모의고사 대비 특강. 3주 한정 수강료 할인.",
         "기획전":       "예: 2026 영어 기획전. 독해·EBS·어법·파이널 4인 강사 통합.",
     }
-        ctx = st.text_area("페이지 맥락", height=100,
-                           placeholder=ph_map.get(st.session_state.purpose_type,"맥락 입력"),
-                           help="강사 정보 검색 후 생성하면 더 정확한 문구가 나옵니다.")
+    ctx = st.text_area("페이지 맥락", height=100,
+                       placeholder=ph_map.get(st.session_state.purpose_type,"맥락 입력"),
+                       help="강사 정보 검색 후 생성하면 더 정확한 문구가 나옵니다.")
 
-        if st.button(f"✦ {st.session_state.purpose_type} 문구 AI 생성",
-                     type="primary", use_container_width=True):
-            if not ctx.strip():
-                st.warning("페이지 맥락을 입력해주세요")
-            elif not st.session_state.api_key:
-                st.warning("API 키를 먼저 입력해주세요")
-            else:
-                with st.spinner("문구 생성 중... (10~20초)"):
-                    try:
-                        r = gen_copy(ctx, st.session_state.purpose_type,
-                                     st.session_state.target, st.session_state.purpose_label)
-                        st.session_state.custom_copy = r
-                        st.session_state.preview_key = st.session_state.get("preview_key", 0) + 1
-                        st.success("✓ 문구 생성 완료!")
-                    except Exception as e:
-                        st.error(f"생성 실패: {e}")
+    if st.button(f"✦ {st.session_state.purpose_type} 문구 AI 생성",
+                 type="primary", use_container_width=True):
+        if not ctx.strip():
+            st.warning("페이지 맥락을 입력해주세요")
+        elif not st.session_state.api_key:
+            st.warning("API 키를 먼저 입력해주세요")
+        else:
+            with st.spinner("문구 생성 중... (10~20초)"):
+                try:
+                    r = gen_copy(ctx, st.session_state.purpose_type,
+                                 st.session_state.target, st.session_state.purpose_label)
+                    st.session_state.custom_copy = r
+                    st.session_state.preview_key = st.session_state.get("preview_key", 0) + 1
+                    st.success("✓ 문구 생성 완료!")
+                except Exception as e:
+                    st.error(f"생성 실패: {e}")
 
     if st.session_state.custom_copy:
         st.success("✓ AI 문구 적용됨", icon="✅")
