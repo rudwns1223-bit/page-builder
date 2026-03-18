@@ -1847,10 +1847,9 @@ with st.sidebar:
     st.caption("수능 강사 랜딩페이지 AI 생성기 v7")
     st.divider()
 
-    # API Key
+    # GROQ API Key
     st.markdown('<div class="sec-hdr">🔑 GROQ API KEY</div>', unsafe_allow_html=True)
-    api_in = st.text_input("API Key", type="password", value=st.session_state.api_key,
-                           placeholder="gsk_...", label_visibility="collapsed")
+    api_in = st.text_input("API Key", type="password", ...)
     if api_in != st.session_state.api_key:
         st.session_state.api_key = api_in
     if st.session_state.api_key:
@@ -1858,19 +1857,19 @@ with st.sidebar:
     else:
         st.markdown('<a href="https://console.groq.com" target="_blank" style="font-size:11px;color:#5A6A8A">👆 console.groq.com → API Keys → Create</a>', unsafe_allow_html=True)
 
-st.markdown('<div class="sec-hdr">🖼 PIXABAY API KEY (배경 이미지)</div>', unsafe_allow_html=True)
-pix_in = st.text_input("Pixabay Key", type="password",
-                        value=st.session_state.pixabay_key,
-                        placeholder="pixabay.com에서 무료 발급",
-                        label_visibility="collapsed")
-if pix_in != st.session_state.pixabay_key:
-    st.session_state.pixabay_key = pix_in
-    st.session_state.bg_cache = {}   # 키 바뀌면 캐시 초기화
-if st.session_state.pixabay_key:
-    st.success("✓ Pixabay 배경 이미지 활성화", icon="🖼")
-else:
-    st.markdown('<a href="https://pixabay.com/api/docs/" target="_blank" style="font-size:11px;color:#5A6A8A">👆 pixabay.com → 무료 API 키 발급</a>', unsafe_allow_html=True)
-    
+    st.markdown('<div class="sec-hdr">🖼 PIXABAY API KEY (배경 이미지)</div>', unsafe_allow_html=True)
+    pix_in = st.text_input("Pixabay Key", type="password",
+                            value=st.session_state.pixabay_key,
+                            placeholder="pixabay.com에서 무료 발급",
+                            label_visibility="collapsed")
+    if pix_in != st.session_state.pixabay_key:
+        st.session_state.pixabay_key = pix_in
+        st.session_state.bg_cache = {}
+    if st.session_state.pixabay_key:
+        st.success("✓ Pixabay 배경 이미지 활성화", icon="🖼")
+    else:
+        st.markdown('<a href="https://pixabay.com/api/docs/" target="_blank" style="font-size:11px;color:#5A6A8A">👆 pixabay.com → 무료 API 키 발급</a>', unsafe_allow_html=True)
+
     st.divider()
 
     # 페이지 목적
