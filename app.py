@@ -2033,17 +2033,19 @@ with st.sidebar:
     # 강사 정보
     st.markdown('<div class="sec-hdr">👤 강사 정보</div>', unsafe_allow_html=True)
 nm = st.text_input("강사명", value=st.session_state.instructor_name,
-                   placeholder="강사명", label_visibility="collapsed")
-st.session_state.instructor_name = nm
+                       placeholder="강사명", label_visibility="collapsed")
+    st.session_state.instructor_name = nm
 
-sb = st.selectbox("과목", ["영어", "수학", "국어", "사회", "과학"],
-                  index=["영어","수학","국어","사회","과학"].index(st.session_state.subject),
-                  label_visibility="collapsed")
-st.session_state.subject = sb
+    sb = st.selectbox("과목", ["영어", "수학", "국어", "사회", "과학"],
+                      index=["영어","수학","국어","사회","과학"].index(st.session_state.subject),
+                      label_visibility="collapsed")
+    st.session_state.subject = sb
 
-        if st.button("🔍 강사 정보 자동 검색", use_container_width=True):
-        if not nm: st.warning("강사명을 입력해주세요")
-        elif not st.session_state.api_key: st.warning("API 키를 입력해주세요")
+    if st.button("🔍 강사 정보 자동 검색", use_container_width=True):
+        if not nm:
+            st.warning("강사명을 입력해주세요")
+        elif not st.session_state.api_key:
+            st.warning("API 키를 입력해주세요")
         else:
             with st.spinner(f"{nm} 선생님 정보 검색 중..."):
                 try:
@@ -2051,14 +2053,10 @@ st.session_state.subject = sb
                     st.session_state.inst_profile = p
                     if p.get("found"):
                         st.success(f"✓ {nm} 선생님 정보 검색 완료!")
-                        if p.get("slogan"): st.caption(f'💬 "{p["slogan"]}"')
-                        methods = [m for m in (p.get("signatureMethods") or []) if m and m != "없음"]
-                        if methods: st.caption(f'📚 {", ".join(methods)}')
                     else:
                         st.info("정보를 찾지 못했습니다.")
                 except Exception as e:
                     st.error(f"검색 실패: {e}")
-
     st.divider()
 
     # 설정
