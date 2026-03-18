@@ -29,6 +29,7 @@ _D = {
     "ai_mood": "", "inst_profile": None, "last_seed": None,
     "custom_section_on": False, "custom_section_topic": "",
     "uploaded_bg_b64": "",
+    "pixabay_key": "", "bg_cache": {}, "preview_key": 0,
 }
 for _k, _v in _D.items():
     if _k not in st.session_state:
@@ -37,6 +38,8 @@ for _k, _v in _D.items():
 if not st.session_state.api_key:
     try:
         st.session_state.api_key = st.secrets.get("GROQ_API_KEY", "")
+        if not st.session_state.pixabay_key:
+            st.session_state.pixabay_key = st.secrets.get("PIXABAY_API_KEY", "")
     except Exception:
         pass
 
@@ -160,6 +163,11 @@ PURPOSE_HINTS = {
     "신규 커리큘럼": "📚 강사 전문성·신뢰감 강조 — 인셉션, 앰버, 코스모스 추천",
     "이벤트":       "🎉 기간 한정·긴박감·혜택 강조 — 시네마틱, 에시드, 스타디움 추천",
     "기획전":       "🏆 강사 라인업·통합 혜택 강조 — 브루탈, 골드 럭셔리, 코스모스 추천",
+}
+PURPOSE_THEME_HINTS = {
+    "이벤트":       "목적이 이벤트(기간한정·긴박감)입니다. cinematic·acid·stadium 같은 강렬한 어두운 테마를 선택하세요. 밝거나 자연적인 테마 금지.",
+    "기획전":       "목적이 기획전(통합 라인업·프리미엄)입니다. brutal·luxury·cosmos 같이 임팩트 있는 테마를 선택하세요.",
+    "신규 커리큘럼":"목적이 신규 커리큘럼(강사 신뢰·전문성)입니다. inception·amber·cosmos 같이 무게감 있는 테마를 선택하세요.",
 }
 SEC_LABELS = {
     "banner":"🏠 메인 배너","intro":"👤 강사 소개","why":"💡 필요한 이유",
@@ -354,29 +362,62 @@ def safe_json(raw: str) -> dict:
         f"원본 (처음 200자): {raw[:200]}"
     )
 
+def fetch_pixabay_url(query: str) -> str:
+    """Pixabay API로 실사 배경 이미지 URL 반환. 키 없으면 빈 문자열."""
+    key = st.session_state.get("pixabay_key", "").strip()
+    if not key:
+        return ""
+    if not isinstance(st.session_state.bg_cache, dict):
+        st.session_state.bg_cache = {}
+    if query in st.session_state.bg_cache:
+        return st.session_state.bg_cache[query]
+    try:
+        r = requests.get(
+            "https://pixabay.com/api/",
+            params={
+                "key": key, "q": query, "image_type": "photo",
+                "orientation": "horizontal", "per_page": 20,
+                "safesearch": "true", "min_width": 1280, "order": "popular"
+            },
+            timeout=8,
+        )
+        if r.ok:
+            hits = r.json().get("hits", [])
+            if hits:
+                hit = random.choice(hits[:min(len(hits), 10)])
+                url = hit.get("largeImageURL") or hit.get("webformatURL", "")
+                if url:
+                    st.session_state.bg_cache[query] = url
+                    return url
+    except Exception:
+        pass
+    return ""
+
+
 def build_bg_url(mood: str) -> str:
-    """무드 → 실사 배경 이미지 URL (Unsplash 기반)"""
-    if not mood: return ""
+    """무드 → 배경 이미지 URL. Pixabay 우선, 없으면 picsum fallback."""
+    if not mood:
+        return ""
     text = mood.lower()
     found = []
-    # 긴 키워드 우선 매칭
     for ko, en in sorted(KO_BG.items(), key=lambda x: -len(x[0])):
         if ko.lower() in text:
-            found = en.split("+")
+            found = en.split()
             break
-    # 영어 단어 직접 추출
     if not found:
         eng = [w for w in re.findall(r"[a-zA-Z]{4,}", mood)
                if w.lower() not in ("this","that","with","from","have","been","dark","light")]
         found.extend(eng[:4])
     if not found:
-        found = ["dramatic","dark","moody"]
-    # 키워드를 2~3개로 줄여서 Unsplash 정확도 높임
-    core_tags = list(dict.fromkeys(found))[:3]
-    query = ",".join(core_tags)
-    lock  = random.randint(1, 999999)
-    # 모든 케이스에 Unsplash 사용 (더 정확한 실사 이미지)
-    return f"https://source.unsplash.com/1920x1080/?{query}&sig={lock}"
+        found = ["dramatic", "dark", "moody"]
+    core = list(dict.fromkeys(t.strip() for t in found))[:3]
+    query = " ".join(core)
+    pix = fetch_pixabay_url(query)
+    if pix:
+        return pix
+    # Pixabay 키 없을 때 picsum fallback (unsplash 완전 제거)
+    seed = abs(hash(mood)) % 9999
+    return f"https://picsum.photos/seed/{seed}/1920/1080"
 
 
 # ══════════════════════════════════════════════════════
@@ -446,6 +487,8 @@ MOOD_COLOR_HINTS = {
 
 def gen_concept(seed: dict) -> dict:
     mood = seed.get("mood","")
+    ptype = st.session_state.get("purpose_type", "신규 커리큘럼")
+    ptype_hint = PURPOSE_THEME_HINTS.get(ptype, "")   # ← 추가
     # 무드 키워드 → 색상 힌트 찾기
     color_hint = ""
     for kw, hint in MOOD_COLOR_HINTS.items():
@@ -471,6 +514,7 @@ def gen_concept(seed: dict) -> dict:
 레이아웃 타입: {seed.get("layout","auto")} — {lg}
 폰트 방향: {fg}
 파티클: {seed.get("particle","none")}
+⚠️ 페이지 목적 필수: {ptype_hint}
 {color_hint}
 
 디자인 규칙:
@@ -840,7 +884,31 @@ def _particle_js(particle: str) -> str:
     if particle == "leaves":
         return """<style>.leaf{position:fixed;top:-20px;font-size:1em;animation:leaffall linear infinite;pointer-events:none;z-index:9999}@keyframes leaffall{0%{transform:translateY(-20px) rotate(0deg) translateX(0);opacity:.8}100%{transform:translateY(110vh) rotate(540deg) translateX(40px);opacity:0}}</style><script>(function(){const l=["🍃","🍂","🍁","🌿","🌾"];for(let i=0;i<18;i++){const el=document.createElement("span");el.className="leaf";el.textContent=l[Math.floor(Math.random()*l.length)];el.style.cssText=`left:${Math.random()*100}vw;font-size:${0.8+Math.random()*1.2}em;animation-duration:${5+Math.random()*7}s;animation-delay:${-Math.random()*7}s`;document.body.appendChild(el);}})()</script>"""
     return ""
-
+def _theme_fx(concept: str) -> str:
+    """테마별 시그니처 코딩 효과 HTML/JS/CSS"""
+    if concept == "acid":
+        return '<style>body::after{content:"";position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.05) 3px,rgba(0,0,0,.05) 4px);pointer-events:none;z-index:9994}@keyframes glitch{0%,78%,100%{clip-path:inset(100% 0 0 0);transform:translateX(0)}79%{clip-path:inset(8% 0 58% 0);transform:translateX(-4px)}81%{clip-path:inset(48% 0 18% 0);transform:translateX(4px)}85%{clip-path:inset(100% 0 0 0)}}h1.st{position:relative}h1.st::before{content:attr(data-g);position:absolute;top:0;left:0;width:100%;height:100%;color:#ff00ff;animation:glitch 5s infinite;pointer-events:none}h1.st::after{content:attr(data-g);position:absolute;top:0;left:0;width:100%;height:100%;color:#00ffff;animation:glitch 5s infinite .3s;pointer-events:none}</style><script>document.querySelectorAll("h1.st").forEach(e=>e.setAttribute("data-g",e.textContent));</script>'
+    if concept == "cinematic":
+        return '<style>#fg{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:9994;opacity:.05;mix-blend-mode:overlay}#vg{position:fixed;inset:0;pointer-events:none;z-index:9993;background:radial-gradient(ellipse 85% 65% at 50% 50%,transparent 35%,rgba(0,0,0,.75) 100%)}@keyframes shutter{0%,96%,100%{opacity:1}97%{opacity:.3}98%{opacity:.8}99%{opacity:.1}}body{animation:shutter 12s infinite}</style><canvas id="fg"></canvas><div id="vg"></div><script>(()=>{const c=document.getElementById("fg");if(!c)return;const ctx=c.getContext("2d");function r(){c.width=innerWidth;c.height=innerHeight;}r();addEventListener("resize",r);function g(){const d=ctx.createImageData(c.width,c.height);for(let i=0;i<d.data.length;i+=4){const v=Math.random()*255|0;d.data[i]=d.data[i+1]=d.data[i+2]=v;d.data[i+3]=255;}ctx.putImageData(d,0,0);}g();setInterval(g,60);})();</script>'
+    if concept == "stadium":
+        return '<style>@keyframes s1{0%{transform:translateX(-120%) rotate(-15deg);opacity:0}8%{opacity:.14}92%{opacity:.14}100%{transform:translateX(220%) rotate(-15deg);opacity:0}}@keyframes s2{0%{transform:translateX(120%) rotate(15deg);opacity:0}8%{opacity:.1}92%{opacity:.1}100%{transform:translateX(-220%) rotate(15deg);opacity:0}}#sp1,#sp2{position:fixed;top:-30%;width:50%;height:160%;background:conic-gradient(from 90deg,transparent 155deg,rgba(255,255,255,.08) 155deg 195deg,transparent 195deg);pointer-events:none;z-index:9993}#sp1{left:0;animation:s1 7s ease-in-out infinite}#sp2{right:0;animation:s2 9s ease-in-out 1.5s infinite}</style><div id="sp1"></div><div id="sp2"></div>'
+    if concept == "cosmos":
+        return '<style>@keyframes mt{0%{transform:translate(0,0) rotate(45deg);opacity:0}5%{opacity:1}100%{transform:translate(600px,600px) rotate(45deg);opacity:0}}@keyframes nb{0%,100%{opacity:.05;transform:scale(1)}50%{opacity:.12;transform:scale(1.08)}}.me{position:fixed;width:2px;height:70px;background:linear-gradient(to bottom,rgba(255,255,255,0),rgba(255,255,255,.9));pointer-events:none;z-index:9993}#nb1,#nb2{position:fixed;border-radius:50%;pointer-events:none;z-index:9992;filter:blur(60px)}#nb1{top:5%;left:55%;width:600px;height:400px;background:radial-gradient(ellipse,rgba(124,58,237,.18),rgba(6,182,212,.08),transparent 70%);animation:nb 9s ease-in-out infinite}#nb2{top:55%;left:5%;width:450px;height:350px;background:radial-gradient(ellipse,rgba(6,182,212,.12),rgba(124,58,237,.06),transparent 70%);animation:nb 11s ease-in-out 2s infinite}</style><div id="nb1"></div><div id="nb2"></div><script>(()=>{function lm(){const el=document.createElement("div");el.className="me";const d=.8+Math.random()*1.5;el.style.cssText=`top:${Math.random()*40}%;left:${5+Math.random()*60}%;animation:mt ${d}s linear forwards;`;document.body.appendChild(el);setTimeout(()=>{el.remove();setTimeout(lm,2000+Math.random()*6000);},d*1000);}for(let i=0;i<4;i++)setTimeout(lm,i*1800+Math.random()*2000);})();</script>'
+    if concept in ("inception", "amber", "luxury"):
+        c1 = {"inception":"rgba(45,184,124,.12)","amber":"rgba(245,158,11,.1)","luxury":"rgba(200,151,90,.1)"}.get(concept,"rgba(200,151,90,.1)")
+        return f'<style>@keyframes of{{0%,100%{{transform:translateY(0) scale(1);opacity:.06}}50%{{transform:translateY(-50px) scale(1.12);opacity:.13}}}}.lo{{position:fixed;border-radius:50%;pointer-events:none;z-index:9992;background:radial-gradient(circle,{c1},transparent 70%);filter:blur(40px);animation:of ease-in-out infinite}}</style><script>(()=>{{for(let i=0;i<6;i++){{const el=document.createElement("div");el.className="lo";const s=120+Math.random()*200;el.style.cssText=`width:${{s}}px;height:${{s}}px;top:${{5+Math.random()*75}}%;left:${{3+Math.random()*85}}%;animation-duration:${{7+Math.random()*9}}s;animation-delay:${{Math.random()*5}}s;`;document.body.appendChild(el);}}}})();</script>'
+    if concept == "fire":
+        return '<style>@keyframes flicker{0%,100%{opacity:1}92%{opacity:.65}96%{opacity:.75}}body{animation:flicker 9s infinite}#ml{position:fixed;bottom:0;left:0;right:0;height:4px;background:linear-gradient(90deg,transparent,#FF4500 15%,#FF8C00 50%,#FFD700 70%,#FF4500 85%,transparent);pointer-events:none;z-index:9998;box-shadow:0 0 24px #FF4500,0 0 48px rgba(255,69,0,.3)}</style><div id="ml"></div>'
+    if concept == "brutal":
+        return '<style>@keyframes hl{0%,88%,100%{opacity:0}89%{opacity:.5;transform:scaleY(1)}91%{opacity:.8;transform:scaleY(3)}95%{opacity:0}}#bhl{position:fixed;left:0;right:0;height:2px;background:#000;pointer-events:none;z-index:9997;animation:hl 6s steps(1) infinite;top:50%}</style><div id="bhl"></div>'
+    if concept == "violet_pop":
+        return '<style>@keyframes pp{0%{transform:scale(0);opacity:.5}100%{transform:scale(6);opacity:0}}.pc{position:fixed;border-radius:50%;background:rgba(124,58,237,.08);pointer-events:none;z-index:9992;animation:pp 1.2s ease-out forwards}</style><script>document.addEventListener("click",e=>{const el=document.createElement("div");el.className="pc";const s=20;el.style.cssText=`width:${s}px;height:${s}px;left:${e.clientX-s/2}px;top:${e.clientY-s/2}px;`;document.body.appendChild(el);setTimeout(()=>el.remove(),1200);});</script>'
+    if concept in ("floral", "sakura"):
+        c1 = "rgba(232,56,109,.18)" if concept == "floral" else "rgba(181,48,74,.12)"
+        return f'<style>@keyframes ls{{0%,100%{{opacity:0;transform:scale(.4)}}50%{{opacity:.1;transform:scale(1)}}}}.lb{{position:fixed;border-radius:50%;pointer-events:none;z-index:9992;background:radial-gradient(circle,{c1},transparent 70%);filter:blur(25px);animation:ls ease-in-out infinite}}</style><script>(()=>{{for(let i=0;i<5;i++){{const el=document.createElement("div");el.className="lb";const s=80+Math.random()*130;el.style.cssText=`width:${{s}}px;height:${{s}}px;top:${{10+Math.random()*70}}%;left:${{10+Math.random()*75}}%;animation-duration:${{4+Math.random()*5}}s;animation-delay:${{Math.random()*3}}s;`;document.body.appendChild(el);}}}})();</script>'
+    if concept == "ocean":
+        return '<style>@keyframes wp{0%,100%{opacity:.04}50%{opacity:.08}}#ow{position:fixed;bottom:0;left:0;right:0;height:6px;pointer-events:none;z-index:9993;background:linear-gradient(90deg,transparent,#0EA5E9 20%,#38BDF8 50%,#0EA5E9 80%,transparent);animation:wp 4s ease-in-out infinite;filter:blur(2px)}</style><div id="ow"></div>'
+    return ""
 # ══════════════════════════════════════════════════════
 # 섹션 빌더
 # ══════════════════════════════════════════════════════
@@ -1704,6 +1772,7 @@ def build_html(secs: list) -> str:
     body = "\n".join(mp[s](d,cp,T) for s in secs if s in mp)
     ttl  = cp.get("bannerTitle", cp.get("festHeroTitle", d["purpose_label"]))
     particle_js = _particle_js(T.get("particle","none"))
+    concept_key = st.session_state.concept if st.session_state.concept != "custom" else "custom"
     return (
         f'<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"/>'
         f'<meta name="viewport" content="width=device-width,initial-scale=1.0"/>'
@@ -1713,8 +1782,12 @@ def build_html(secs: list) -> str:
         f'<link href="{T["fonts"]}" rel="stylesheet"/>'
         f'<style>:root{{{T["vars"]}}}{BASE_CSS}{T["extra_css"]}{dc}</style>'
         f'</head><body>{body}{particle_js}'
-        f'<script>const ro=new IntersectionObserver(es=>{{es.forEach(e=>{{if(e.isIntersecting){{e.target.classList.add("on");ro.unobserve(e.target);}}}});}},{{threshold:.08}});document.querySelectorAll(".rv").forEach(el=>ro.observe(el));</script>'
-        f'</body></html>'
+        f'<style>:root{{{T["vars"]}}}{BASE_CSS}{T["extra_css"]}{dc}</style>'
+        f'</head><body>{body}'
+        + _particle_js(T.get("particle","none"))
+        + _theme_fx(concept_key)                          # ← 이 줄 추가
+        + f'<script>const ro=new IntersectionObserver(...)...</script>'
+        + f'</body></html>'
     )
 
 # ══════════════════════════════════════════════════════
@@ -1759,6 +1832,11 @@ div[data-testid="stMetric"] div{color:#E0E8F8!important;font-weight:700!importan
 /* 테마 버튼 선택 하이라이트 */
 .stButton>button[kind="primary"][data-theme]{
   outline:2px solid var(--c1)!important;}
+  @media(max-width:768px){
+  [data-testid="stHorizontalBlock"]{flex-direction:column!important;}
+  .stMetric{margin-bottom:8px;}
+  iframe{min-height:600px!important;}
+}
 </style>""", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════
@@ -1780,6 +1858,19 @@ with st.sidebar:
     else:
         st.markdown('<a href="https://console.groq.com" target="_blank" style="font-size:11px;color:#5A6A8A">👆 console.groq.com → API Keys → Create</a>', unsafe_allow_html=True)
 
+st.markdown('<div class="sec-hdr">🖼 PIXABAY API KEY (배경 이미지)</div>', unsafe_allow_html=True)
+pix_in = st.text_input("Pixabay Key", type="password",
+                        value=st.session_state.pixabay_key,
+                        placeholder="pixabay.com에서 무료 발급",
+                        label_visibility="collapsed")
+if pix_in != st.session_state.pixabay_key:
+    st.session_state.pixabay_key = pix_in
+    st.session_state.bg_cache = {}   # 키 바뀌면 캐시 초기화
+if st.session_state.pixabay_key:
+    st.success("✓ Pixabay 배경 이미지 활성화", icon="🖼")
+else:
+    st.markdown('<a href="https://pixabay.com/api/docs/" target="_blank" style="font-size:11px;color:#5A6A8A">👆 pixabay.com → 무료 API 키 발급</a>', unsafe_allow_html=True)
+    
     st.divider()
 
     # 페이지 목적
@@ -1836,6 +1927,7 @@ with st.sidebar:
                     st.session_state.concept = "custom"
                     bg = build_bg_url(mood_in.strip())
                     st.session_state.bg_photo_url = bg
+                    st.session_state.preview_key = st.session_state.get("preview_key", 0) + 1
                     st.session_state.uploaded_bg_b64 = ""
                     st.success(f"✓ '{r.get('name','새 컨셉')}' 생성됨!")
                     st.rerun()
@@ -1891,6 +1983,7 @@ with st.sidebar:
                 st.session_state.concept = k
                 st.session_state.custom_theme = None
                 st.session_state.bg_photo_url = ""
+                st.session_state.preview_key = st.session_state.get("preview_key", 0) + 1
                 st.rerun()
     st.caption("기존 테마")
     cols_o = st.columns(2)
@@ -2030,6 +2123,7 @@ with L:
                     r = gen_copy(ctx, st.session_state.purpose_type,
                                  st.session_state.target, st.session_state.purpose_label)
                     st.session_state.custom_copy = r
+                    st.session_state.preview_key = st.session_state.get("preview_key", 0) + 1
                     st.success("✓ 문구 생성 완료!")
                 except Exception as e:
                     st.error(f"생성 실패: {e}")
@@ -2208,8 +2302,9 @@ with R:
     col_prev, col_ref = st.columns([4,1])
     with col_prev: st.markdown("### 👁 실시간 미리보기")
     with col_ref:
-        if st.button("🔄", key="refresh_preview", help="미리보기 새로고침"):
-            st.rerun()
+if st.button("🔄", key="refresh_preview"):
+    st.session_state.preview_key = st.session_state.get("preview_key", 0) + 1  # ← 추가
+    st.rerun()
     # (원래 markdown 제거됨, 위 col_prev에서 처리)
     td = (st.session_state.custom_theme.get("name","AI 커스텀")
           if st.session_state.concept=="custom" and st.session_state.custom_theme
