@@ -47,7 +47,7 @@ if not st.session_state.api_key:
 # 상수
 # ══════════════════════════════════════════════════════
 GROQ_URL    = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_MODELS = ["llama-3.3-70b-versatile", "llama3-70b-8192", "mixtral-8x7b-32768"]
+GROQ_MODELS = ["llama-3.3-70b-versatile", "llama-3.1-70b-versatile", "llama3-70b-8192"]
 
 # ── 15개 테마 ──────────────────────────────────────
 THEMES = {
