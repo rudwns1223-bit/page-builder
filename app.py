@@ -606,8 +606,9 @@ def _ensure_contrast(ct: dict) -> dict:
     return ct
 
 
+def get_theme() -> dict:
     if st.session_state.concept == "custom" and st.session_state.custom_theme:
-        ct = st.session_state.custom_theme
+        ct = _ensure_contrast(st.session_state.custom_theme)
         df  = ct.get("displayFont","Noto Sans KR")
         bf  = ct.get("bodyFont","Noto Sans KR")
         fw  = ct.get("fontWeights","400;700;900")
