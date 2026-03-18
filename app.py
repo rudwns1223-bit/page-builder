@@ -315,26 +315,44 @@ def clean_obj(obj):
 def safe_json(raw: str) -> dict:
     s = re.sub(r"```json\s*", "", raw.strip())
     s = re.sub(r"```\s*", "", s).strip()
-    fb, lb = s.find("{"), s.rfind("}")
-    if fb > 0: s = s[fb:]
-    if lb >= 0: s = s[:lb+1]
-    def _try(x):
-        try: return clean_obj(json.loads(x))
-        except Exception: return None
-    r = _try(s)
-    if r: return r
-    r = _try(s.replace("\n"," ").replace("\r",""))
-    if r: return r
-    depth, last = 0, -1
+    # 첫 번째 { 부터 대응되는 } 까지만 추출
+    start = s.find("{")
+    if start < 0:
+        raise ValueError(f"JSON 파싱 실패 - {{ 없음\n원본: {raw[:200]}")
+    s = s[start:]
+    # 깊이 추적으로 완전한 첫 JSON 객체 추출
+    depth, end_idx = 0, -1
+    in_str, escape = False, False
     for i, ch in enumerate(s):
+        if escape: escape = False; continue
+        if ch == "\\": escape = True; continue
+        if ch == '"' and not escape: in_str = not in_str; continue
+        if in_str: continue
         if ch == "{": depth += 1
         elif ch == "}":
             depth -= 1
-            if depth == 0: last = i
-    if last > 0:
-        r = _try(s[:last+1])
-        if r: return r
-    raise ValueError(f"JSON 파싱 실패\n원본: {raw[:300]}")
+            if depth == 0: end_idx = i; break
+    if end_idx < 0:
+        raise ValueError(f"JSON 파싱 실패 - 닫힘 }} 없음\n원본: {raw[:200]}")
+    candidate = s[:end_idx+1]
+    def _try(x):
+        try: return clean_obj(json.loads(x))
+        except Exception: return None
+    r = _try(candidate)
+    if r: return r
+    r = _try(candidate.replace("\n"," ").replace("\r",""))
+    if r: return r
+    # 마지막 수단: 일반적인 JSON 수리 시도
+    fixed = re.sub(r",\s*}", "}", candidate)
+    fixed = re.sub(r",\s*]", "]", fixed)
+    r = _try(fixed)
+    if r: return r
+    raise ValueError(
+        f"AI 응답 파싱 실패\n"
+        f"원인: JSON 형식 오류 (AI가 올바른 형식으로 응답하지 않음)\n"
+        f"해결: 다시 시도해주세요 (모델이 간헐적으로 실패함)\n"
+        f"원본 (처음 200자): {raw[:200]}"
+    )
 
 def build_bg_url(mood: str) -> str:
     """무드 → 실사 배경 이미지 URL (Unsplash 기반)"""
@@ -459,13 +477,14 @@ def gen_concept(seed: dict) -> dict:
 - 색상은 무드와 100% 일치해야 함 (야구장=짙은레드/블랙, 에시드=블랙/형광그린, 벚꽃=분홍/흰색 등)
 - ⚠️ 대비(contrast) 필수: bg가 어두우면(#000~#333) textHex는 반드시 밝게(#E0 이상), bg가 밝으면(#EEE~#FFF) textHex는 어둡게(#111~#333). 배경과 텍스트 계열이 비슷하면 절대 안 됨
 - ⚠️ c1(강조색)은 bg 위에서 확실히 눈에 띄는 색이어야 함 — bg와 같은 계열 금지
-- extraCSS: 최소 150자, clip-path/box-shadow/text-shadow/transform/backdrop-filter 적극 사용
+- displayFont: 반드시 Google Fonts에 실제로 존재하는 폰트만. 권장: 'Black Han Sans'(한국어 두껍), 'Noto Sans KR', 'Nanum Gothic', 'Bebas Neue'(영문), 'Space Grotesk'(영문)
+- 존재하지 않는 폰트명 절대 금지 (예: 'Korean Display', 'Bold Korean' 등 실제 없는 폰트)
 - heroStyle: "typographic"(배경색+거대타이포), "cinematic"(다크포토+영화), "billboard"(초대형텍스트), "editorial_bold"(에디토리얼), "split"(2컬럼), "immersive"(풀스크린포토) 중 무드에 맞는 것
 - 어두운 테마는 c4와 bg가 완전 다른 색이어야 함 (c4=가장어두운 bg=약간밝은)
 - extraCSS 내부 따옴표는 반드시 작은따옴표(') 사용
 
-JSON만 반환 (한 줄):
-{{"name":"2-4글자+이모지","dark":true,"heroStyle":"typographic","c1":"#hex","c2":"#hex","c3":"#hex","c4":"#hex","bg":"#hex","bg2":"#hex","bg3":"#hex","textHex":"#hex","textRgb":"r,g,b","bdAlpha":"rgba(r,g,b,.15)","displayFont":"Google Font name","bodyFont":"Noto Sans KR","fontWeights":"400;700;900","displayFontWeights":"400;700","borderRadiusPx":0,"btnBorderRadiusPx":2,"particle":"{seed.get('particle','none')}","ctaGradient":"linear-gradient(135deg,#hex,#hex)","extraCSS":"min 150 chars single-quote only"}}"""
+JSON만 반환 (한 줄, extraCSS 필드 제외):
+{{"name":"2-4글자+이모지","dark":true,"heroStyle":"typographic","c1":"#hex","c2":"#hex","c3":"#hex","c4":"#hex","bg":"#hex","bg2":"#hex","bg3":"#hex","textHex":"#hex","textRgb":"r,g,b","bdAlpha":"rgba(r,g,b,.15)","displayFont":"Google Font name","bodyFont":"Noto Sans KR","fontWeights":"400;700;900","displayFontWeights":"400;700","borderRadiusPx":0,"btnBorderRadiusPx":2,"particle":"{seed.get('particle','none')}","ctaGradient":"linear-gradient(135deg,#hex,#hex)"}}"""
     result = safe_json(call_ai(prompt, max_tokens=1400))
     # extraCSS 기본값 보정
     if not result.get("extraCSS") or len(result.get("extraCSS","")) < 30:
@@ -528,9 +547,10 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
 4. 실제처럼 들리는 수강평 (등급 변화, 학습법 언급 포함), 반드시 50자 이상
 5. 수치(만족도%, 합격생수) 절대 금지 — statBadges:[], introBadges:[]
 6. 한자 절대 금지
-7. curriculumSteps 설명은 반드시 50자 이상 — 이 단계가 왜 필요한지, 어떻게 달라지는지 학생 입장에서 서술
-8. targetItems는 반드시 40자 이상 — 학생의 구체적인 상황과 고민을 담을 것
-9. brandTagline: 페이지의 컨셉/무드를 담은 독창적 한 문장 (예: 축구장 무드 → "우리의 훈련장은, 어디서도 멈추지 않는다.", 영화관 무드 → "우리의 강의실은, 영화관이 됩니다.", 우주 무드 → "지식의 끝, 우주만큼 멀리 가라.")
+7. ⚠️ 반드시 한국어로만 작성. 영어·독일어·기타 외국어 단어가 섞이면 안 됨 (강사 고유명사 제외)
+8. curriculumSteps 설명은 반드시 50자 이상 — 이 단계가 왜 필요한지, 어떻게 달라지는지 학생 입장에서 서술
+9. targetItems는 반드시 40자 이상 — 학생의 구체적인 상황과 고민을 담을 것
+10. brandTagline: 페이지의 컨셉/무드를 담은 독창적 한 문장 (예: 축구장 무드 → "우리의 훈련장은, 어디서도 멈추지 않는다.", 영화관 무드 → "우리의 강의실은, 영화관이 됩니다.", 우주 무드 → "지식의 끝, 우주만큼 멀리 가라.")
 
 JSON만 반환:
 {schemas.get(ptype, schemas['신규 커리큘럼'])}"""
@@ -570,7 +590,7 @@ def gen_section(sec_id: str) -> dict:
 {inst_ctx}
 과목: {st.session_state.subject} | 브랜드: {st.session_state.purpose_label}
 
-규칙: 강사 고유 학습법 직접 사용, 현대적 어조, 한자 금지, 수치 금지
+규칙: 강사 고유 학습법 직접 사용, 현대적 어조, 한자 금지, 수치 금지, 반드시 순수 한국어로만 작성(외국어 섞기 절대 금지)
 JSON만: {schema}"""
     return safe_json(call_ai(prompt, max_tokens=900))
 
@@ -678,8 +698,14 @@ def get_theme() -> dict:
         rb  = ct.get("btnBorderRadiusPx",4)
         tr  = ct.get("textRgb","255,255,255")
         bd  = ct.get("bdAlpha","rgba(255,255,255,.12)")
-        fonts = (f"https://fonts.googleapis.com/css2?family={df.replace(' ','+')}:wght@{dfw}"
-                 f"&family={bf.replace(' ','+')}:wght@{fw}&display=swap")
+        # 폰트 이름 정규화 (Black Han Sans는 weight 파라미터 불필요)
+        _no_weight_fonts = ["Black Han Sans","Bebas Neue","Orbitron","Nanum Brush Script"]
+        if df in _no_weight_fonts:
+            fonts = (f"https://fonts.googleapis.com/css2?family={df.replace(' ','+')}",)
+            fonts = fonts[0] + f"&family={bf.replace(' ','+')}:wght@{fw}&display=swap"
+        else:
+            fonts = (f"https://fonts.googleapis.com/css2?family={df.replace(' ','+')}:wght@{dfw}"
+                     f"&family={bf.replace(' ','+')}:wght@{fw}&display=swap")
         v = (f"--c1:{ct['c1']};--c2:{ct['c2']};--c3:{ct['c3']};--c4:{ct['c4']};"
              f"--bg:{ct['bg']};--bg2:{ct['bg2']};--bg3:{ct['bg3']};"
              f"--text:{ct['textHex']};--t70:rgba({tr},.7);--t45:rgba({tr},.45);"
@@ -861,7 +887,7 @@ def sec_banner(d, cp, T):
             + s["overlay"]
             + f'<div style="position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(to top,rgba(0,0,0,.92) 0%,rgba(0,0,0,.25) 50%,transparent 100%);z-index:1;pointer-events:none"></div>'
             + f'<div style="position:absolute;top:-0.05em;right:-0.05em;font-family:var(--fh);font-size:38vw;font-weight:900;line-height:0.85;color:var(--c1);opacity:.04;pointer-events:none;overflow:hidden;z-index:1;user-select:none">{deco_word}</div>'
-            + f'<div style="position:relative;z-index:2;padding:clamp(60px,8vw,100px) clamp(40px,7vw,100px);max-width:1000px">'
+            + f'<div style="position:relative;z-index:2;padding:clamp(60px,8vw,100px) clamp(40px,7vw,100px);max-width:min(1000px,100%)">'
             + f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:28px"><div style="width:36px;height:3px;background:{accent_col}"></div><span style="font-size:9.5px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:{accent_col}">{sub}</span></div>'
             + f'<h1 style="font-family:var(--fh);font-size:clamp(48px,7vw,110px);font-weight:900;line-height:.9;letter-spacing:-.04em;word-break:keep-all;overflow-wrap:break-word;color:{text_col};margin-bottom:20px" class="st">{title}</h1>'
             + (f'<div style="font-size:clamp(15px,1.7vw,20px);font-style:italic;font-weight:300;color:{accent_col};margin-bottom:18px;letter-spacing:-.01em;line-height:1.5;opacity:.9">{tagline}</div>' if tagline else "")
@@ -1980,31 +2006,90 @@ with L:
 
     st.divider()
 
-    # 문구 직접 편집
+    # 문구 직접 편집 — 섹션별 개별 필드 즉시 반영
     st.markdown("### ✏️ 문구 직접 편집")
     if st.session_state.custom_copy:
         cp = st.session_state.custom_copy
-        if st.session_state.purpose_type == "신규 커리큘럼":
-            with st.expander("🏠 배너"):
-                bt = st.text_input("메인 제목", value=cp.get("bannerTitle",""), key="ebt")
-                bl = st.text_area("리드 문구", value=cp.get("bannerLead",""), height=60, key="ebl")
-                cc_ = st.text_input("버튼 텍스트", value=cp.get("ctaCopy",""), key="ecc")
-                if st.button("적용", key="ab"):
-                    st.session_state.custom_copy.update({"bannerTitle":bt,"bannerLead":bl,"ctaCopy":cc_}); st.rerun()
-            with st.expander("👤 강사 소개"):
-                it = st.text_input("소개 제목", value=cp.get("introTitle",""), key="eit")
-                id_ = st.text_area("소개 본문", value=cp.get("introDesc",""), height=60, key="eid")
-                if st.button("적용", key="ai_"):
-                    st.session_state.custom_copy.update({"introTitle":it,"introDesc":id_}); st.rerun()
-        with st.expander("📣 CTA"):
-            ctk = "festCtaTitle" if st.session_state.purpose_type=="기획전" else "ctaTitle"
-            csk = "festCtaSub"   if st.session_state.purpose_type=="기획전" else "ctaSub"
-            ct_ = st.text_area("CTA 제목", value=cp.get(ctk,""), height=60, key="ect")
-            cs_ = st.text_input("서브문구", value=cp.get(csk,""), key="ecs")
-            if st.button("적용", key="ac"):
-                st.session_state.custom_copy.update({ctk:ct_,csk:cs_}); st.rerun()
+
+        # 편집 가능한 섹션 목록 동적 구성
+        edit_sections = []
+        pt = st.session_state.purpose_type
+        if pt == "신규 커리큘럼":
+            edit_sections = [
+                ("🏠 배너", [
+                    ("text_input","메인 제목","bannerTitle"),
+                    ("text_area","리드 문구","bannerLead"),
+                    ("text_input","버튼 텍스트","ctaCopy"),
+                    ("text_input","브랜드 문구","brandTagline"),
+                ]),
+                ("👤 강사 소개", [
+                    ("text_input","소개 제목","introTitle"),
+                    ("text_area","소개 본문","introDesc"),
+                    ("text_input","한줄 약력","introBio"),
+                ]),
+                ("💡 수강 이유", [
+                    ("text_input","섹션 제목","whyTitle"),
+                    ("text_input","서브 제목","whySub"),
+                ]),
+                ("📚 커리큘럼", [
+                    ("text_input","섹션 제목","curriculumTitle"),
+                    ("text_input","서브 제목","curriculumSub"),
+                ]),
+                ("📣 CTA", [
+                    ("text_area","CTA 제목","ctaTitle"),
+                    ("text_input","서브문구","ctaSub"),
+                    ("text_input","버튼 텍스트","ctaCopy"),
+                ]),
+            ]
+        elif pt == "이벤트":
+            edit_sections = [
+                ("🏠 배너", [
+                    ("text_input","메인 제목","bannerTitle"),
+                    ("text_area","리드 문구","bannerLead"),
+                ]),
+                ("📅 이벤트 개요", [
+                    ("text_input","이벤트 제목","eventTitle"),
+                    ("text_area","이벤트 설명","eventDesc"),
+                ]),
+                ("⏰ 마감 안내", [
+                    ("text_input","마감 제목","deadlineTitle"),
+                    ("text_area","마감 메시지","deadlineMsg"),
+                ]),
+                ("📣 CTA", [
+                    ("text_input","버튼 텍스트","ctaCopy"),
+                ]),
+            ]
+        elif pt == "기획전":
+            edit_sections = [
+                ("🏆 히어로", [
+                    ("text_input","히어로 제목","festHeroTitle"),
+                    ("text_input","서브 카피","festHeroCopy"),
+                    ("text_area","설명","festHeroSub"),
+                ]),
+                ("📣 기획전 CTA", [
+                    ("text_input","CTA 제목","festCtaTitle"),
+                    ("text_area","서브문구","festCtaSub"),
+                ]),
+            ]
+
+        for sec_label, fields in edit_sections:
+            with st.expander(sec_label, expanded=False):
+                changed = {}
+                for ftype, flabel, fkey in fields:
+                    cur_val = cp.get(fkey,"")
+                    wkey = f"ed_{fkey}"
+                    if ftype == "text_area":
+                        val = st.text_area(flabel, value=cur_val, height=72, key=wkey)
+                    else:
+                        val = st.text_input(flabel, value=cur_val, key=wkey)
+                    if val != cur_val:
+                        changed[fkey] = val
+                if changed:
+                    if st.button("✓ 적용", key=f"apply_{sec_label}"):
+                        st.session_state.custom_copy.update(changed)
+                        st.rerun()
     else:
-        st.caption("AI로 문구를 생성하면 여기서 직접 수정할 수 있습니다.")
+        st.caption("💡 AI로 문구를 먼저 생성하면 여기서 항목별로 수정할 수 있습니다.")
 
     st.divider()
 
@@ -2051,7 +2136,12 @@ with L:
 
 
 with R:
-    st.markdown("### 👁 실시간 미리보기")
+    col_prev, col_ref = st.columns([4,1])
+    with col_prev: st.markdown("### 👁 실시간 미리보기")
+    with col_ref:
+        if st.button("🔄", key="refresh_preview", help="미리보기 새로고침"):
+            st.rerun()
+    # (원래 markdown 제거됨, 위 col_prev에서 처리)
     td = (st.session_state.custom_theme.get("name","AI 커스텀")
           if st.session_state.concept=="custom" and st.session_state.custom_theme
           else THEMES.get(st.session_state.concept,{}).get("label",""))
