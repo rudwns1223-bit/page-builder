@@ -1774,21 +1774,19 @@ def build_html(secs: list) -> str:
     particle_js = _particle_js(T.get("particle","none"))
     concept_key = st.session_state.concept if st.session_state.concept != "custom" else "custom"
     return (
-        f'<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"/>'
-        f'<meta name="viewport" content="width=device-width,initial-scale=1.0"/>'
-        f'<title>{d["name"]} {d["subject"]} · {ttl}</title>'
-        f'<link rel="preconnect" href="https://fonts.googleapis.com"/>'
-        f'<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>'
-        f'<link href="{T["fonts"]}" rel="stylesheet"/>'
-        f'<style>:root{{{T["vars"]}}}{BASE_CSS}{T["extra_css"]}{dc}</style>'
-        f'</head><body>{body}{particle_js}'
-        f'<style>:root{{{T["vars"]}}}{BASE_CSS}{T["extra_css"]}{dc}</style>'
-        f'</head><body>{body}'
-        + _particle_js(T.get("particle","none"))
-        + _theme_fx(concept_key)                          # ← 이 줄 추가
-        + f'<script>const ro=new IntersectionObserver(...)...</script>'
-        + f'</body></html>'
-    )
+    f'<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"/>'
+    f'<meta name="viewport" content="width=device-width,initial-scale=1.0"/>'
+    f'<title>{d["name"]} {d["subject"]} · {ttl}</title>'
+    f'<link rel="preconnect" href="https://fonts.googleapis.com"/>'
+    f'<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>'
+    f'<link href="{T["fonts"]}" rel="stylesheet"/>'
+    f'<style>:root{{{T["vars"]}}}{BASE_CSS}{T["extra_css"]}{dc}</style>'
+    f'</head><body>{body}'
+    + _particle_js(T.get("particle","none"))
+    + _theme_fx(concept_key)
+    + f'<script>const ro=new IntersectionObserver(es=>{{es.forEach(e=>{{if(e.isIntersecting){{e.target.classList.add("on");ro.unobserve(e.target);}}}});}},{{threshold:.08}});document.querySelectorAll(".rv").forEach(el=>ro.observe(el));</script>'
+    + f'</body></html>'
+)
 
 # ══════════════════════════════════════════════════════
 # UI CSS (사이드바 + 메인)
@@ -2302,22 +2300,20 @@ with L:
 
 with R:
     st.markdown("### 👁 실시간 미리보기")
-    
-    td = (st.session_state.custom_theme.get("name","AI 커스텀")
-          if st.session_state.concept=="custom" and st.session_state.custom_theme
-          else THEMES.get(st.session_state.concept,{}).get("label",""))
-    
+
+    td = (st.session_state.custom_theme.get("name", "AI 커스텀")
+          if st.session_state.concept == "custom" and st.session_state.custom_theme
+          else THEMES.get(st.session_state.concept, {}).get("label", ""))
+
     col_info1, col_info2, col_info3, col_ref = st.columns([2, 2, 2, 1])
     with col_info1: st.metric("컨셉", td)
-    with col_info2: st.metric("히어로", T_now.get("heroStyle","—"))
+    with col_info2: st.metric("히어로", T_now.get("heroStyle", "—"))
     with col_info3: st.metric("섹션 수", len(ordered))
     with col_ref:
         if st.button("🔄", key="refresh_preview", help="미리보기 새로고침"):
             st.session_state.preview_key = st.session_state.get("preview_key", 0) + 1
             st.rerun()
 
-    # 새 탭 버튼 → HTML 파일 다운로드 후 열기 안내 대신
-    # 토글로 크게/작게 전환
     if "preview_large" not in st.session_state:
         st.session_state.preview_large = False
 
