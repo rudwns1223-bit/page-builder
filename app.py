@@ -2053,7 +2053,7 @@ with st.sidebar:
     # 섹션 ON/OFF
     st.markdown('<div class="sec-hdr">📑 섹션 ON/OFF</div>', unsafe_allow_html=True)
     for sid in PURPOSE_SECTIONS[st.session_state.purpose_type]:
-    chk = st.checkbox(SEC_LABELS.get(sid,sid),
+        chk = st.checkbox(SEC_LABELS.get(sid,sid),
                       value=sid in st.session_state.active_sections, key=f"sec_{sid}")
     if chk and sid not in st.session_state.active_sections:
         st.session_state.active_sections.append(sid)
