@@ -2160,8 +2160,8 @@ with L:
 
 st.divider()
 
-    st.markdown("### 🎲 섹션별 문구 재생성")
-    st.caption("클릭 시 해당 섹션 문구만 새롭게 교체됩니다")
+        st.markdown("### 🎲 섹션별 문구 재생성")
+        st.caption("클릭 시 해당 섹션 문구만 새롭게 교체됩니다")
 
     SEC_SHORT = {
         'banner':'배너', 'intro':'소개', 'why':'이유', 'curriculum':'커리큘럼',
