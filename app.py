@@ -213,92 +213,61 @@ SUBJ_KW = {
 
 # ── 배경 이미지 키워드 맵 (대폭 강화) ──────────
 KO_BG = {
-    # 스포츠/경기장
-    "야구장":    "baseball,stadium,night",
-    "야구":      "baseball,stadium",
-    "경기장":    "sports,arena,stadium",
-    "축구장":    "soccer,field,stadium",
-    "축구":      "soccer,pitch,green",
-    "농구장":    "basketball,court,arena",
-    "스포츠":    "sports,stadium,action",
-    "관중":      "crowd,stadium,lights",
-    "골":        "goal,soccer,stadium",
-    "선수":      "athlete,action,sport",
-    "격투":      "martial,arts,ring",
-    "수영장":    "swimming,pool,water",
-    "트랙":      "running,track,stadium",
-    # 도시/야경
-    "사이버펑크": "cyberpunk,neon,city",
-    "네온":      "neon,lights,night",
-    "도시":      "city,skyline,night",
-    "루프탑":    "rooftop,city,night",
-    "밤거리":    "street,night,city",
-    "극장":      "cinema,theater,dark",
-    "영화관":    "cinema,theater,dark",
-    "공연장":    "concert,stage,lights",
-    "카페":      "cafe,coffee,interior",
-    "사무실":    "office,workspace,modern",
-    # 자연
-    "벚꽃":      "cherry,blossom,spring",
-    "단풍":      "autumn,leaves,forest",
-    "숲":        "forest,trees,misty",
-    "자작나무":  "birch,forest,white",
-    "겨울":      "winter,snow,landscape",
-    "눈":        "snow,winter,white",
-    "오로라":    "aurora,northern,lights",
-    "바다":      "ocean,sea,waves",
-    "해변":      "beach,ocean,sand",
-    "산":        "mountain,peak,dramatic",
-    "폭포":      "waterfall,nature,dramatic",
-    "들판":      "field,meadow,golden",
-    # 학습/공간
-    "도서관":    "library,books,interior",
-    "책":        "books,library,reading",
-    "교실":      "classroom,school,chalkboard",
-    "칠판":      "chalkboard,classroom",
-    "사찰":      "temple,zen,peaceful",
-    "카페테리아": "cafeteria,interior,modern",
-    # 우주/신비
-    "우주":      "space,galaxy,nebula",
-    "별":        "stars,night,milky",
-    "은하":      "galaxy,space,cosmos",
-    "플라네타리움": "planetarium,stars,dome",
-    # 건축/분위기
-    "건축":      "architecture,brutalist,concrete",
-    "고딕":      "gothic,dark,architecture",
-    "이집트":    "egypt,pyramid,desert",
-    "사막":      "desert,sand,dunes",
-    "로마":      "rome,ancient,architecture",
-    "성":        "castle,dark,dramatic",
-    # 스타일/분위기
-    "빈티지":    "vintage,retro,film",
-    "흑백":      "monochrome,black,white",
-    "앰버":      "amber,golden,warm",
-    "골드":      "gold,luxury,dark",
-    "불꽃":      "fire,flames,dark",
-    "안개":      "fog,mist,atmospheric",
-    "연기":      "smoke,dark,moody",
-    "비":        "rain,street,wet",
-    "먹구름":    "storm,clouds,dramatic",
-    # 직업/인물
-    "강사":      "teacher,education,classroom",
-    "학생":      "student,study,university",
-    "독서":      "reading,books,study",
-    # 영어 단어 지원
-    "baseball":  "baseball,stadium",
-    "soccer":    "soccer,field",
-    "library":   "library,books",
-    "space":     "space,galaxy",
-    "fire":      "fire,flames",
-    "neon":      "neon,lights",
-    "ocean":     "ocean,waves",
-    "cinema":    "cinema,theater",
-    "stadium":   "stadium,crowd",
-    "mountain":  "mountain,dramatic",
-    "forest":    "forest,trees",
-    "desert":    "desert,sand",
-    "snow":      "snow,winter",
-    "rain":      "rain,street",
+    "야구장":"baseball stadium night crowd","야구":"baseball stadium crowd",
+    "경기장":"sports arena stadium","축구장":"soccer field stadium night",
+    "축구":"soccer pitch grass","농구장":"basketball court arena",
+    "스포츠":"sports stadium action","관중":"crowd stadium lights",
+    "군중":"crowd people busy","응원":"crowd cheering stadium",
+    "함성":"crowd stadium cheering","선수":"athlete action sport",
+    "사이버펑크":"cyberpunk neon city rain","네온":"neon lights night city",
+    "도시":"city skyline night","시내":"city street night urban",
+    "번화가":"busy city street night","골목":"alley urban city night",
+    "루프탑":"rooftop city night","밤거리":"street night city",
+    "밤":"night city dark","야경":"city night skyline",
+    "극장":"cinema theater dark","영화관":"cinema theater dark",
+    "공연장":"concert stage lights","카페":"cafe coffee interior",
+    "지하철":"subway underground train","기차":"train railway motion",
+    "공항":"airport terminal modern","빌딩":"skyscraper glass modern",
+    "벚꽃":"cherry blossom spring","단풍":"autumn leaves forest",
+    "숲":"forest trees misty","겨울":"winter snow landscape",
+    "눈":"snow winter white","오로라":"aurora northern lights",
+    "바다":"ocean sea waves","해변":"beach ocean sand",
+    "산":"mountain peak dramatic","강":"river landscape scenic",
+    "호수":"lake reflection calm","하늘":"sky clouds dramatic",
+    "노을":"sunset golden sky","새벽":"dawn misty morning",
+    "안개":"fog mist atmospheric","구름":"clouds sky dramatic",
+    "비":"rain street wet","폭풍":"storm lightning dramatic",
+    "번개":"lightning storm dark","먹구름":"storm clouds dramatic",
+    "꽃":"flowers nature colorful","장미":"roses red romantic",
+    "도서관":"library books interior","책":"books library reading",
+    "교실":"classroom school","칠판":"chalkboard classroom",
+    "사찰":"temple zen peaceful","학교":"school building campus",
+    "강의실":"lecture hall university","캠퍼스":"university campus building",
+    "우주":"space galaxy nebula","별":"stars night milky way",
+    "은하":"galaxy space cosmos","달":"moon night sky",
+    "이집트":"egypt pyramid desert","사막":"desert sand dunes",
+    "건축":"architecture brutalist concrete","고딕":"gothic dark architecture",
+    "불꽃":"fire flames dark","연기":"smoke dark moody",
+    "빈티지":"vintage retro film","흑백":"monochrome black white",
+    "앰버":"amber golden warm dark","골드":"gold luxury dark",
+    "먹빛":"dark ink atmosphere","형광":"neon fluorescent dark",
+    "에시드":"neon green dark abstract","미래":"futuristic technology sci-fi",
+    "에펠탑":"eiffel tower paris night","파리":"paris france city",
+    "뉴욕":"new york city skyline","도쿄":"tokyo japan night",
+    "런던":"london city landmark","홍콩":"hong kong city skyline",
+    "집중":"focus study desk lamp","수험생":"student study desk night",
+    "열정":"fire passion dramatic","고요":"peaceful calm zen",
+    "사람 많은":"crowd people busy street","도전":"mountain climbing summit",
+    "baseball":"baseball stadium","soccer":"soccer field",
+    "library":"library books","space":"space galaxy",
+    "fire":"fire flames","neon":"neon lights",
+    "ocean":"ocean waves","crowd":"crowd people busy",
+    "city":"city skyline night","paris":"paris france eiffel",
+    "tokyo":"tokyo japan night","mountain":"mountain dramatic",
+    "forest":"forest trees","desert":"desert sand",
+    "snow":"snow winter","rain":"rain street",
+    "storm":"storm lightning","night":"night city dark",
+    "vintage":"vintage retro","abstract":"abstract art colorful",
 }
 
 # ══════════════════════════════════════════════════════
@@ -400,22 +369,35 @@ def build_bg_url(mood: str) -> str:
         return ""
     text = mood.lower()
     found = []
+    # 1단계: KO_BG 딕셔너리 매칭 (긴 키워드 우선)
     for ko, en in sorted(KO_BG.items(), key=lambda x: -len(x[0])):
         if ko.lower() in text:
             found = en.split()
             break
+    # 2단계: 영어 단어 직접 추출 (3글자 이상으로 완화)
     if not found:
-        eng = [w for w in re.findall(r"[a-zA-Z]{4,}", mood)
-               if w.lower() not in ("this","that","with","from","have","been","dark","light")]
-        found.extend(eng[:4])
+        eng = [w for w in re.findall(r"[a-zA-Z]{3,}", mood)
+               if w.lower() not in ("this","that","with","from","have","been","very","some")]
+        found.extend(eng[:3])
+    # 3단계: 한글 첫 글자 계열로 다양한 fallback
     if not found:
-        found = ["dramatic", "dark", "moody"]
+        first = mood.strip()[:1]
+        char_map = {
+            "시":"city urban street","도":"city urban night",
+            "밤":"night dark city","사":"people crowd busy",
+            "건":"building architecture modern","자":"nature landscape outdoor",
+            "바":"ocean sea waves","하":"sky clouds dramatic",
+            "학":"study desk lamp focus","수":"water nature calm",
+            "열":"fire passion energy","고":"ancient history stone",
+            "새":"dawn morning misty","빌":"building skyscraper glass",
+        }
+        found = char_map.get(first, "atmospheric dramatic moody").split()
     core = list(dict.fromkeys(t.strip() for t in found))[:3]
     query = " ".join(core)
     pix = fetch_pixabay_url(query)
     if pix:
         return pix
-    # Pixabay 키 없을 때 picsum fallback (unsplash 완전 제거)
+    # picsum fallback — mood 전체 해시로 다양성 보장
     seed = abs(hash(mood)) % 9999
     return f"https://picsum.photos/seed/{seed}/1920/1080"
 
