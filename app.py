@@ -208,10 +208,13 @@ KO_BG = {
     "야구장":"baseball+stadium+night+crowd",
     "야구":"baseball+stadium+crowd",
     "경기장":"sports+arena+stadium+night",
-    "축구장":"soccer+stadium+night+crowd",
+    "축구장":"football+pitch+soccer+field",
+    "축구":"football+soccer+pitch+green",
     "농구장":"basketball+arena+court",
     "스포츠":"sports+stadium+dramatic",
     "관중":"stadium+crowd+lights",
+    "골":"football+goal+stadium",
+    "선수":"athlete+sports+action",
     # 도시/밤
     "사이버펑크":"cyberpunk+neon+city+rain+dark",
     "네온":"neon+lights+city+night",
@@ -321,8 +324,13 @@ def build_bg_url(mood: str) -> str:
         found.extend(eng[:3])
     if not found:
         found = ["dramatic","dark","study"]
-    tags = ",".join(list(dict.fromkeys(found))[:3])
+    tags = ",".join(list(dict.fromkeys(found))[:4])
     lock = random.randint(1, 99999)
+    # 스포츠 계열은 로레플리커보다 unsplash가 더 정확
+    sport_kw = ["football","soccer","baseball","basketball","stadium","pitch","court","arena","athlete"]
+    if any(k in tags for k in sport_kw):
+        # unsplash source (1920x900 landscape)
+        return f"https://source.unsplash.com/1920x900/?{tags}&sig={lock}"
     return f"https://loremflickr.com/1920/900/{tags}?lock={lock}"
 
 # ══════════════════════════════════════════════════════
@@ -371,6 +379,8 @@ MOOD_COLOR_HINTS = {
     "야구장":"배경 #020008 거의검정, 강조색 #FF2244 크림슨레드, 서브 #FF6688, 텍스트 #F5F5FF, 레이아웃 typographic, 폰트 Black Han Sans bold",
     "야구":"배경 #030008 다크, 강조색 #FF2244 레드, 레이아웃 typographic, 폰트 bold sans",
     "경기장":"배경 #020008, 강조색 #FF4400 오렌지레드, 레이아웃 typographic",
+    "축구장":"배경 #041200 극다크그린, 강조색 #00FF6A 형광그린 또는 #FFFFFF 화이트, 텍스트 #F0FFF0 밝은민트, 레이아웃 typographic, 폰트 Black Han Sans, 배경이미지 football+pitch+floodlight+night",
+    "축구":"배경 #051505 다크그린블랙, 강조색 #7CFC00 잔디그린 또는 #FF4400 레드, 텍스트 #F5FFF5, 레이아웃 typographic",
     "사이버펑크":"배경 #020008 극도어두움, 강조색 #A855F7 보라+#06B6D4 사이언, 레이아웃 typographic, 폰트 Orbitron",
     "네온":"배경 #030308, 강조색 #AAFF00 네온그린 또는 #FF00FF 마젠타, 레이아웃 typographic",
     "이집트":"배경 #0A0600 다크앰버, 강조색 #C8975A 골드, 서브 #F5C842, 레이아웃 editorial_bold",
@@ -419,6 +429,8 @@ def gen_concept(seed: dict) -> dict:
 
 디자인 규칙:
 - 색상은 무드와 100% 일치해야 함 (야구장=짙은레드/블랙, 에시드=블랙/형광그린, 벚꽃=분홍/흰색 등)
+- ⚠️ 대비(contrast) 필수: bg가 어두우면(#000~#333) textHex는 반드시 밝게(#E0 이상), bg가 밝으면(#EEE~#FFF) textHex는 어둡게(#111~#333). 배경과 텍스트 계열이 비슷하면 절대 안 됨
+- ⚠️ c1(강조색)은 bg 위에서 확실히 눈에 띄는 색이어야 함 — bg와 같은 계열 금지
 - extraCSS: 최소 150자, clip-path/box-shadow/text-shadow/transform/backdrop-filter 적극 사용
 - heroStyle: "typographic"(배경색+거대타이포), "cinematic"(다크포토+영화), "billboard"(초대형텍스트), "editorial_bold"(에디토리얼), "split"(2컬럼), "immersive"(풀스크린포토) 중 무드에 맞는 것
 - 어두운 테마는 c4와 bg가 완전 다른 색이어야 함 (c4=가장어두운 bg=약간밝은)
@@ -442,6 +454,7 @@ JSON만 반환 (한 줄):
         elif any(k in mood_l for k in ["불꽃","파이어","ember"]): result["particle"] = "embers"
         elif any(k in mood_l for k in ["황금","gold","이집트","앰버"]): result["particle"] = "gold"
         elif any(k in mood_l for k in ["단풍","낙엽","숲"]): result["particle"] = "leaves"
+    result = _ensure_contrast(result)
     return result
 
 
@@ -464,9 +477,9 @@ def _get_instructor_context() -> str:
 def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
     inst_ctx = _get_instructor_context()
     schemas = {
-        "신규 커리큘럼": '{"bannerSub":"10자이내","bannerTitle":"20자이내","bannerLead":"40-60자 수험생 심리 자극 문구","ctaCopy":"10자이내","ctaTitle":"CTA 제목","ctaSub":"30자이내","ctaBadge":"15자이내","statBadges":[],"introTitle":"20자이내","introDesc":"50-80자 강사 차별점","introBio":"강사 학습법 포함 40자이내","introBadges":[],"whyTitle":"20자이내","whySub":"30자이내","whyReasons":[["이모지","12자제목","45자구체설명"],["이모지","12자","45자"],["이모지","12자","45자"]],"curriculumTitle":"20자이내","curriculumSub":"30자이내","curriculumSteps":[["01","8자","학생에게 필요한 이유 20자","기간"],["02","8자","20자","기간"],["03","8자","20자","기간"],["04","8자","20자","기간"]],"targetTitle":"20자이내","targetItems":["25자이내","항목2","항목3","항목4"],"reviews":[["30자이내 구체적 변화 인용문","이름","변화뱃지"],["인용문","이름","뱃지"],["인용문","이름","뱃지"]],"faqs":[["구체적 질문15자","답변40자"],["질문","답변"],["질문","답변"]]}',
-        "이벤트": '{"bannerSub":"10자","bannerTitle":"20자","bannerLead":"50자 긴박감","ctaCopy":"10자","ctaTitle":"CTA","ctaSub":"30자","ctaBadge":"15자","statBadges":[],"eventTitle":"20자","eventDesc":"40자","eventDetails":[["📅","이벤트 기간","날짜"],["🎯","대상","값"],["💰","혜택","값"]],"benefitsTitle":"20자","eventBenefits":[{"icon":"이모지","title":"혜택명","desc":"35자","badge":"8자","no":"01"},{"icon":"이모지","title":"혜택명","desc":"35자","badge":"8자","no":"02"},{"icon":"이모지","title":"혜택명","desc":"35자","badge":"8자","no":"03"}],"deadlineTitle":"20자","deadlineMsg":"60자 긴박감","reviews":[["30자 인용문","이름","뱃지"],["인용문","이름","뱃지"],["인용문","이름","뱃지"]]}',
-        "기획전": '{"festHeroTitle":"20자","festHeroCopy":"30자","festHeroSub":"40자","festHeroStats":[["수치","라벨"],["수치","라벨"],["수치","라벨"],["수치","라벨"]],"festLineupTitle":"20자","festLineupSub":"40자","festLineup":[{"name":"강사명","tag":"분야8자","tagline":"30자","badge":"8자","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"소개","badge":"뱃지","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"소개","badge":"뱃지","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"소개","badge":"뱃지","emoji":"이모지"}],"festBenefitsTitle":"20자","festBenefits":[{"icon":"이모지","title":"혜택명","desc":"35자","badge":"8자","no":"01"},{"icon":"이모지","title":"혜택명","desc":"35자","badge":"8자","no":"02"},{"icon":"이모지","title":"혜택명","desc":"35자","badge":"8자","no":"03"},{"icon":"이모지","title":"혜택명","desc":"35자","badge":"8자","no":"04"}],"festCtaTitle":"CTA제목","festCtaSub":"40자"}',
+        "신규 커리큘럼": '{"bannerSub":"10자이내","bannerTitle":"20자이내","brandTagline":"페이지 컨셉을 관통하는 브랜드 문구 1문장 (예: 우리의 강의실은, 영화관이 됩니다.)","bannerLead":"60-90자 수험생이 공감하는 구체적 고민을 찌르는 리드 문구","ctaCopy":"10자이내","ctaTitle":"CTA 제목","ctaSub":"30자이내","ctaBadge":"15자이내","statBadges":[],"introTitle":"20자이내","introDesc":"80-120자 강사만의 차별점과 학습 철학","introBio":"강사 학습법·특이점 포함 60자이내","introBadges":[],"whyTitle":"20자이내","whySub":"30자이내","whyReasons":[["이모지","12자제목","60자 학생 입장의 구체적 설명, 실제 변화 포함"],["이모지","12자","60자"],["이모지","12자","60자"]],"curriculumTitle":"20자이내","curriculumSub":"30자이내","curriculumSteps":[["01","8자제목","이 단계를 통해 무엇이 어떻게 달라지는지 학생 입장에서 50자 이상 설명","기간"],["02","8자","50자 이상","기간"],["03","8자","50자 이상","기간"],["04","8자","50자 이상","기간"]],"targetTitle":"20자이내","targetItems":["이런 학생을 대상으로 하는지 40-50자 구체적 상황 묘사","항목2 40자","항목3 40자","항목4 40자"],"reviews":[["지금도 쓸 것 같은 생생한 수강생 인용문 50-70자, 구체적 점수·방법 언급","이름","변화뱃지"],["50-70자 인용문","이름","뱃지"],["50-70자 인용문","이름","뱃지"]],"faqs":[["구체적 질문15자","명쾌한 답변 50자이상"],["질문","50자 답변"],["질문","50자 답변"]]}',
+        "이벤트": '{"bannerSub":"10자","bannerTitle":"20자","brandTagline":"이벤트 분위기를 담은 브랜드 문구 1문장","bannerLead":"60-80자 긴박감 있는 리드","ctaCopy":"10자","ctaTitle":"CTA","ctaSub":"30자","ctaBadge":"15자","statBadges":[],"eventTitle":"20자","eventDesc":"50자이상","eventDetails":[["📅","이벤트 기간","날짜"],["🎯","대상","값"],["💰","혜택","값"]],"benefitsTitle":"20자","eventBenefits":[{"icon":"이모지","title":"혜택명","desc":"50자이상","badge":"8자","no":"01"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"02"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"03"}],"deadlineTitle":"20자","deadlineMsg":"70자 긴박감","reviews":[["50-70자 구체적 인용문","이름","뱃지"],["인용문","이름","뱃지"],["인용문","이름","뱃지"]]}',
+        "기획전": '{"festHeroTitle":"20자","festHeroCopy":"30자","festHeroSub":"50자이상","brandTagline":"기획전 분위기를 담은 한 문장","festHeroStats":[["수치","라벨"],["수치","라벨"],["수치","라벨"],["수치","라벨"]],"festLineupTitle":"20자","festLineupSub":"40자","festLineup":[{"name":"강사명","tag":"분야8자","tagline":"강사를 한 문장으로 소개 40자","badge":"8자","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"소개 40자","badge":"뱃지","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"소개 40자","badge":"뱃지","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"소개 40자","badge":"뱃지","emoji":"이모지"}],"festBenefitsTitle":"20자","festBenefits":[{"icon":"이모지","title":"혜택명","desc":"50자이상","badge":"8자","no":"01"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"02"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"03"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"04"}],"festCtaTitle":"CTA제목","festCtaSub":"50자이상"}',
     }
     prompt = f"""대한민국 최고 수능 교육 랜딩페이지 카피라이터.
 
@@ -481,26 +494,29 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
 1. 강사 고유 커리큘럼명/학습법명 그대로 사용
 2. 현대적 직접적 어조 — "체계적", "최고의" 같은 올드한 표현 금지
 3. 수험생이 지금 느끼는 구체적 고민을 정확히 찌르는 문구
-4. 실제처럼 들리는 수강평 (등급 변화, 학습법 언급 포함)
+4. 실제처럼 들리는 수강평 (등급 변화, 학습법 언급 포함), 반드시 50자 이상
 5. 수치(만족도%, 합격생수) 절대 금지 — statBadges:[], introBadges:[]
 6. 한자 절대 금지
+7. curriculumSteps 설명은 반드시 50자 이상 — 이 단계가 왜 필요한지, 어떻게 달라지는지 학생 입장에서 서술
+8. targetItems는 반드시 40자 이상 — 학생의 구체적인 상황과 고민을 담을 것
+9. brandTagline: 페이지의 컨셉/무드를 담은 독창적 한 문장 (예: 축구장 무드 → "우리의 훈련장은, 어디서도 멈추지 않는다.", 영화관 무드 → "우리의 강의실은, 영화관이 됩니다.", 우주 무드 → "지식의 끝, 우주만큼 멀리 가라.")
 
 JSON만 반환:
 {schemas.get(ptype, schemas['신규 커리큘럼'])}"""
-    return safe_json(call_ai(prompt, max_tokens=2500))
+    return safe_json(call_ai(prompt, max_tokens=3500))
 
 
 def gen_section(sec_id: str) -> dict:
     inst_ctx = _get_instructor_context()
     schemas = {
-        "banner": '{"bannerSub":"10자","bannerTitle":"20자","bannerLead":"50자 수험생 심리 자극","ctaCopy":"10자","statBadges":[]}',
-        "intro":  '{"introTitle":"20자","introDesc":"60자 강사 차별점","introBio":"40자","introBadges":[]}',
-        "why":    '{"whyTitle":"20자","whySub":"30자","whyReasons":[["이모지","12자","45자구체설명"],["이모지","12자","45자"],["이모지","12자","45자"]]}',
-        "curriculum": '{"curriculumTitle":"20자","curriculumSub":"30자","curriculumSteps":[["01","8자","20자이유","기간"],["02","8자","20자","기간"],["03","8자","20자","기간"],["04","8자","20자","기간"]]}',
-        "target": '{"targetTitle":"20자","targetItems":["25자","항목2","항목3","항목4"]}',
-        "reviews": '{"reviews":[["30자구체변화인용문","이름","뱃지"],["인용문","이름","뱃지"],["인용문","이름","뱃지"]]}',
-        "faq":    '{"faqs":[["15자질문","40자답변"],["질문","답변"],["질문","답변"]]}',
-        "cta":    '{"ctaTitle":"CTA제목","ctaSub":"30자","ctaCopy":"10자","ctaBadge":"15자"}',
+        "banner": '{"bannerSub":"10자","bannerTitle":"20자","brandTagline":"컨셉을 담은 브랜드 한 문장","bannerLead":"60-90자 수험생이 공감하는 구체적 리드","ctaCopy":"10자","statBadges":[]}',
+        "intro":  '{"introTitle":"20자","introDesc":"80-120자 강사 철학과 차별점","introBio":"강사 학습법 포함 60자","introBadges":[]}',
+        "why":    '{"whyTitle":"20자","whySub":"30자","whyReasons":[["이모지","12자","학생 입장에서 구체적 설명 60자"],["이모지","12자","60자"],["이모지","12자","60자"]]}',
+        "curriculum": '{"curriculumTitle":"20자","curriculumSub":"30자","curriculumSteps":[["01","8자","이 단계 통해 무엇이 달라지는지 50자 이상 설명","기간"],["02","8자","50자 이상","기간"],["03","8자","50자 이상","기간"],["04","8자","50자 이상","기간"]]}',
+        "target": '{"targetTitle":"20자","targetItems":["이런 학생을 위한 40-50자 구체적 상황","항목2 40자","항목3 40자","항목4 40자"]}',
+        "reviews": '{"reviews":[["지금도 쓸 것 같은 생생한 50-70자 인용문, 구체적 점수·방법 언급","이름","뱃지"],["50-70자 인용문","이름","뱃지"],["50-70자 인용문","이름","뱃지"]]}',
+        "faq":    '{"faqs":[["15자 구체적 질문","명쾌한 답변 50자이상"],["질문","50자 이상 답변"],["질문","50자 이상 답변"]]}',
+        "cta":    '{"ctaTitle":"CTA제목","ctaSub":"40자이상 수강신청 동기부여 문구","ctaCopy":"10자","ctaBadge":"15자"}',
     }
     sec_name = SEC_LABELS.get(sec_id, sec_id)
     schema = schemas.get(sec_id, '{"title":"제목","desc":"설명"}')
@@ -511,7 +527,7 @@ def gen_section(sec_id: str) -> dict:
 
 규칙: 강사 고유 학습법 직접 사용, 현대적 어조, 한자 금지, 수치 금지
 JSON만: {schema}"""
-    return safe_json(call_ai(prompt, max_tokens=600))
+    return safe_json(call_ai(prompt, max_tokens=900))
 
 
 def gen_custom_sec(topic: str) -> dict:
@@ -520,7 +536,7 @@ def gen_custom_sec(topic: str) -> dict:
 {inst_ctx} | 과목: {st.session_state.subject}
 한자 금지. JSON만:
 {{"tag":"8자이내","title":"20자이내","desc":"60자이내","items":[{{"icon":"이모지","title":"15자","desc":"45자"}},{{"icon":"이모지","title":"15자","desc":"45자"}},{{"icon":"이모지","title":"15자","desc":"45자"}}]}}"""
-    return safe_json(call_ai(prompt, max_tokens=600))
+    return safe_json(call_ai(prompt, max_tokens=900))
 
 
 # ── 강사 DB ─────────────────────────────────────────
@@ -565,7 +581,31 @@ JSON만: {{"found":true,"bio":"1문장","slogan":"","signatureMethods":[],"teach
 # ══════════════════════════════════════════════════════
 # 테마 리졸버
 # ══════════════════════════════════════════════════════
-def get_theme() -> dict:
+def _hex_luminance(h: str) -> float:
+    """간단한 상대 휘도 계산 (0=어두움, 1=밝음)"""
+    try:
+        h = h.lstrip("#")
+        if len(h) == 3: h = "".join(c*2 for c in h)
+        r,g,b = int(h[0:2],16)/255, int(h[2:4],16)/255, int(h[4:6],16)/255
+        def lin(v): return v/12.92 if v<=0.04045 else ((v+0.055)/1.055)**2.4
+        return 0.2126*lin(r)+0.7152*lin(g)+0.0722*lin(b)
+    except Exception: return 0.5
+
+def _ensure_contrast(ct: dict) -> dict:
+    """AI 생성 테마의 배경-텍스트 대비 자동 보정"""
+    bg_l  = _hex_luminance(ct.get("bg","#111"))
+    tx_l  = _hex_luminance(ct.get("textHex","#fff"))
+    ratio = (max(bg_l,tx_l)+0.05)/(min(bg_l,tx_l)+0.05)
+    if ratio < 3.5:  # 대비 부족
+        if bg_l < 0.18:  # 어두운 배경 → 텍스트를 밝게
+            ct["textHex"] = "#F0F0F0"
+            ct["textRgb"] = "240,240,240"
+        else:  # 밝은 배경 → 텍스트를 어둡게
+            ct["textHex"] = "#111111"
+            ct["textRgb"] = "17,17,17"
+    return ct
+
+
     if st.session_state.concept == "custom" and st.session_state.custom_theme:
         ct = st.session_state.custom_theme
         df  = ct.get("displayFont","Noto Sans KR")
@@ -709,6 +749,7 @@ def sec_banner(d, cp, T):
     sub   = strip_hanja(cp.get("bannerSub", d["subject"]+" 완성"))
     title = strip_hanja(cp.get("bannerTitle", d["purpose_label"]))
     lead  = strip_hanja(cp.get("bannerLead", f"{d['target']}을 위한 커리큘럼"))
+    tagline = strip_hanja(cp.get("brandTagline", ""))  # 컨셉 브랜드 문구
     cta   = strip_hanja(cp.get("ctaCopy", "수강신청하기"))
     stats = cp.get("statBadges", [])
     kws   = SUBJ_KW.get(d["subject"], ["개념","기출","실전","파이널"])
@@ -735,7 +776,8 @@ def sec_banner(d, cp, T):
             + f'<div style="position:absolute;top:-0.05em;right:-0.05em;font-family:var(--fh);font-size:38vw;font-weight:900;line-height:0.85;color:var(--c1);opacity:.04;pointer-events:none;overflow:hidden;z-index:1;user-select:none">{deco_word}</div>'
             + f'<div style="position:relative;z-index:2;padding:clamp(60px,8vw,100px) clamp(40px,7vw,100px);max-width:1000px">'
             + f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:28px"><div style="width:36px;height:3px;background:{accent_col}"></div><span style="font-size:9.5px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:{accent_col}">{sub}</span></div>'
-            + f'<h1 style="font-family:var(--fh);font-size:clamp(56px,9vw,130px);font-weight:900;line-height:.82;letter-spacing:-.05em;color:{text_col};margin-bottom:24px" class="st">{title}</h1>'
+            + f'<h1 style="font-family:var(--fh);font-size:clamp(56px,9vw,130px);font-weight:900;line-height:.82;letter-spacing:-.05em;color:{text_col};margin-bottom:20px" class="st">{title}</h1>'
+            + (f'<div style="font-size:clamp(15px,1.7vw,20px);font-style:italic;font-weight:300;color:{accent_col};margin-bottom:18px;letter-spacing:-.01em;line-height:1.5;opacity:.9">{tagline}</div>' if tagline else "")
             + f'<div style="width:100%;height:1px;background:linear-gradient(to right,{accent_col},transparent);margin-bottom:24px;opacity:.4"></div>'
             + f'<p style="font-size:clamp(14px,1.6vw,17px);line-height:1.9;color:{t70_col};max-width:520px;padding-left:18px;border-left:3px solid {accent_col};margin-bottom:28px">{lead}</p>'
             + f'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:28px">{kh}</div>'
@@ -761,7 +803,8 @@ def sec_banner(d, cp, T):
             + f'<div style="display:inline-flex;align-items:center;gap:10px;margin-bottom:24px;padding:5px 18px;border:1.5px solid var(--c1);border-radius:var(--r-btn,2px)">'
             + f'<div style="width:8px;height:8px;background:var(--c1);border-radius:50%;animation:pulse-accent 1.5s ease-in-out infinite"></div>'
             + f'<span style="font-size:10px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--c1)">{sub}</span></div>'
-            + f'<h1 style="font-family:var(--fh);font-size:clamp(48px,7.5vw,110px);font-weight:900;line-height:.82;letter-spacing:-.04em;color:#fff;margin-bottom:20px" class="st">{title}</h1>'
+            + f'<h1 style="font-family:var(--fh);font-size:clamp(48px,7.5vw,110px);font-weight:900;line-height:.82;letter-spacing:-.04em;color:#fff;margin-bottom:16px" class="st">{title}</h1>'
+            + (f'<div style="font-size:clamp(14px,1.6vw,19px);font-style:italic;font-weight:300;color:var(--c1);margin-bottom:18px;line-height:1.5;opacity:.9">{tagline}</div>' if tagline else "")
             + f'<p style="font-size:15px;line-height:2;color:rgba(255,255,255,.72);max-width:480px;border-left:3px solid var(--c1);padding-left:20px;margin-bottom:32px">{lead}</p>'
             + f'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:28px">{kh}</div>'
             + f'<div style="display:flex;gap:12px">'
@@ -795,6 +838,7 @@ def sec_banner(d, cp, T):
             + (f'<div style="font-family:var(--fh);font-size:clamp(72px,13vw,180px);font-weight:900;line-height:.82;letter-spacing:-.06em;color:transparent;-webkit-text-stroke:2px var(--c1);">{line2}</div>' if line2 else "")
             + f'<div style="display:flex;align-items:center;gap:32px;margin-top:40px;padding-top:32px;border-top:2px solid var(--c1)">'
             + f'<p style="font-size:14px;line-height:1.9;color:var(--t70);max-width:380px">{lead}</p>'
+            + (f'<div style="font-size:clamp(13px,1.5vw,18px);font-style:italic;font-weight:300;color:var(--c1);margin-top:12px;line-height:1.5">{tagline}</div>' if tagline else "")
             + f'<div style="display:flex;flex-direction:column;gap:10px;flex-shrink:0">'
             + f'<a class="btn-p" href="#" style="font-size:15px;padding:16px 44px">{cta} →</a>'
             + f'<div style="display:flex;gap:5px;flex-wrap:wrap">{kh}</div></div>'
@@ -821,7 +865,8 @@ def sec_banner(d, cp, T):
             # 메인 콘텐츠
             + f'<div style="position:relative;z-index:2;padding:clamp(48px,6vw,80px) clamp(40px,6vw,88px);display:flex;flex-direction:column;justify-content:center">'
             + f'<div style="display:inline-flex;align-items:center;gap:8px;margin-bottom:20px"><span style="font-size:10px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:{accent_c}">{sub}</span></div>'
-            + f'<h1 style="font-family:var(--fh);font-size:clamp(44px,7vw,96px);font-weight:900;line-height:.9;letter-spacing:-.04em;color:{text_col};max-width:800px;margin-bottom:24px" class="st">{title}</h1>'
+            + f'<h1 style="font-family:var(--fh);font-size:clamp(44px,7vw,96px);font-weight:900;line-height:.9;letter-spacing:-.04em;color:{text_col};max-width:800px;margin-bottom:16px" class="st">{title}</h1>'
+            + (f'<div style="font-size:clamp(14px,1.5vw,18px);font-style:italic;font-weight:300;color:{accent_c};margin-bottom:20px;line-height:1.5;opacity:.9">{tagline}</div>' if tagline else "")
             + f'<div style="display:flex;gap:40px;align-items:flex-start;flex-wrap:wrap">'
             + f'<p style="font-size:clamp(13px,1.4vw,16px);line-height:1.95;color:{t70_col};max-width:420px;padding-left:20px;border-left:3px solid {accent_c}">{lead}</p>'
             + f'<div style="display:flex;flex-direction:column;gap:12px;flex-shrink:0">'
