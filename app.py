@@ -1849,7 +1849,7 @@ with st.sidebar:
 
     # GROQ API Key
     st.markdown('<div class="sec-hdr">🔑 GROQ API KEY</div>', unsafe_allow_html=True)
-   api_in = st.text_input("API Key", type="password", value=st.session_state.api_key,
+    api_in = st.text_input("API Key", type="password", value=st.session_state.api_key,
                        placeholder="gsk_...", label_visibility="collapsed")
     if api_in != st.session_state.api_key:
         st.session_state.api_key = api_in
