@@ -814,7 +814,7 @@ def _ensure_contrast(ct: dict) -> dict:
     bg_l  = _hex_luminance(ct.get("bg","#111"))
     tx_l  = _hex_luminance(ct.get("textHex","#fff"))
     ratio = (max(bg_l,tx_l)+0.05)/(min(bg_l,tx_l)+0.05)
-    if ratio < 3.5:  # 대비 부족
+    if ratio < 4.5:  # 대비 부족
         if bg_l < 0.18:  # 어두운 배경 → 텍스트를 밝게
             ct["textHex"] = "#F0F0F0"
             ct["textRgb"] = "240,240,240"
@@ -1044,9 +1044,17 @@ def sec_banner(d, cp, T):
     if hs == "typographic":
         # 제목 첫 단어/글자를 거대 배경 데코로 사용
         deco_word = title[:3] if title else sub[:3]
-        text_col = "#fff" if (dark or bg_url) else "var(--text)"
-        t70_col  = "rgba(255,255,255,.7)" if (dark or bg_url) else "var(--t70)"
-        accent_col = s["c1c"] if bg_url else "var(--c1)"
+        bg_lum = _hex_luminance(
+    st.session_state.custom_theme.get("bg", "#111")
+    if st.session_state.concept == "custom" and st.session_state.custom_theme
+    else THEMES.get(st.session_state.concept, {}).get("vars","").split("--bg:")[1].split(";")[0].strip()
+    if "--bg:" in THEMES.get(st.session_state.concept, {}).get("vars","")
+    else "#111"
+)
+_is_light_bg = (not dark) and (not bg_url) and bg_lum > 0.4
+text_col   = "#111111" if _is_light_bg else ("#fff" if (dark or bg_url) else "var(--text)")
+t70_col    = "rgba(0,0,0,.65)" if _is_light_bg else ("rgba(255,255,255,.75)" if (dark or bg_url) else "var(--t70)")
+accent_col = "var(--c4)" if _is_light_bg else (s["c1c"] if bg_url else "var(--c1)")
         return (
             f'<section id="hero" style="position:relative;min-height:100vh;overflow:hidden;{s["hero_bg"]};display:flex;flex-direction:column;justify-content:flex-end">'
             + s["overlay"]
