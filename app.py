@@ -30,6 +30,8 @@ _D = {
     "custom_section_on": False, "custom_section_topic": "",
     "uploaded_bg_b64": "",
     "pixabay_key": "", "bg_cache": {}, "preview_key": 0,
+    "copy_tone": "🔥 강렬·도발",
+    "history": [],
 }
 for _k, _v in _D.items():
     if _k not in st.session_state:
@@ -47,6 +49,13 @@ if not st.session_state.api_key:
 # 상수
 # ══════════════════════════════════════════════════════
 GROQ_URL    = "https://api.groq.com/openai/v1/chat/completions"
+COPY_TONES = {
+    "🔥 강렬·도발":   "어조: 직접적이고 도발적. '아직도 감으로 공부해?' 같은 도전적 문체. 짧고 강렬한 문장.",
+    "🤝 친근·공감":   "어조: 따뜻하고 공감하는 선배 느낌. '저도 그 막막함 알아요' 같은 감성. 부드러운 문체.",
+    "💎 프리미엄·권위":"어조: 격조 있고 권위적. '선택받은 수험생만의 커리큘럼' 같은 고급 브랜드 톤. 절제된 문체.",
+    "😎 쿨·MZ":      "어조: 트렌디하고 간결. MZ 감성, 유행어 적절히 사용. 짧고 위트 있는 문체.",
+    "📖 차분·신뢰":   "어조: 전문적이고 차분. 데이터와 근거 중심. 신뢰감 주는 설명체.",
+}
 GROQ_MODELS = [
     "llama-3.3-70b-versatile",          # 메인 (기존 유지)
     "meta-llama/llama-4-scout-17b-16e-instruct",  # Llama 4 Scout
@@ -703,6 +712,7 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
         "이벤트": '{"bannerSub":"10자","bannerTitle":"20자","brandTagline":"이벤트 분위기를 담은 브랜드 문구 1문장","bannerLead":"60-80자 긴박감 있는 리드","ctaCopy":"10자","ctaTitle":"CTA","ctaSub":"30자","ctaBadge":"15자","statBadges":[],"eventTitle":"20자","eventDesc":"50자이상","eventDetails":[["📅","이벤트 기간","날짜"],["🎯","대상","값"],["💰","혜택","값"]],"benefitsTitle":"20자","eventBenefits":[{"icon":"이모지","title":"혜택명","desc":"50자이상","badge":"8자","no":"01"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"02"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"03"}],"deadlineTitle":"20자","deadlineMsg":"70자 긴박감","reviews":[["50-70자 구체적 인용문","이름","뱃지"],["인용문","이름","뱃지"],["인용문","이름","뱃지"]]}',
         "기획전": '{"festHeroTitle":"20자","festHeroCopy":"30자","festHeroSub":"50자이상","brandTagline":"기획전 분위기를 담은 한 문장","festHeroStats":[["수치","라벨"],["수치","라벨"],["수치","라벨"],["수치","라벨"]],"festLineupTitle":"20자","festLineupSub":"40자","festLineup":[{"name":"강사명","tag":"분야8자","tagline":"강사를 한 문장으로 소개 40자","badge":"8자","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"소개 40자","badge":"뱃지","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"소개 40자","badge":"뱃지","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"소개 40자","badge":"뱃지","emoji":"이모지"}],"festBenefitsTitle":"20자","festBenefits":[{"icon":"이모지","title":"혜택명","desc":"50자이상","badge":"8자","no":"01"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"02"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"03"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"04"}],"festCtaTitle":"CTA제목","festCtaSub":"50자이상"}',
     }
+    tone_instruction = COPY_TONES.get(st.session_state.copy_tone, "")
     prompt = f"""대한민국 최고 수능 교육 랜딩페이지 카피라이터.
 
 {FEW_SHOT_EXAMPLES}
@@ -716,6 +726,7 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
 ===페이지 정보===
 맥락: "{ctx}"
 목적: {ptype} | 대상: {tgt} | 브랜드: {plabel}
+카피 어조: {tone_instruction}
 
 ===문구 품질 기준===
 1. 강사 고유 커리큘럼명/학습법명 그대로 사용
@@ -840,6 +851,7 @@ def gen_section(sec_id: str) -> dict:
 
 {inst_ctx}
 과목: {st.session_state.subject} | 브랜드: {st.session_state.purpose_label}
+카피 어조: {COPY_TONES.get(st.session_state.copy_tone, "")}
 
 규칙: 강사 고유 학습법 직접 사용, 현대적 어조, 한자 금지, 수치 금지, 반드시 순수 한국어로만 작성(외국어 섞기 절대 금지)
 추가 규칙: "교수" 절대 금지(반드시 "선생님" 또는 "강사"), 확인되지 않은 학력·소속·경력 지어내기 금지, 문구는 짧고 밋밋하게 쓰지 말고 수험생 감정을 건드리는 구체적·임팩트 있는 표현으로 작성
@@ -2587,6 +2599,15 @@ with st.sidebar:
     st.divider()
 
     # 강사 정보
+    st.markdown('<div class="sec-hdr">🎭 카피 어조</div>', unsafe_allow_html=True)
+    tone_options = list(COPY_TONES.keys())
+    selected_tone = st.radio("어조", tone_options,
+        index=tone_options.index(st.session_state.copy_tone),
+        label_visibility="collapsed")
+    if selected_tone != st.session_state.copy_tone:
+        st.session_state.copy_tone = selected_tone
+    st.caption(COPY_TONES[st.session_state.copy_tone])
+    st.divider()
     st.markdown('<div class="sec-hdr">👤 강사 정보</div>', unsafe_allow_html=True)
     nm = st.text_input("강사명", value=st.session_state.instructor_name,
                        placeholder="강사명", label_visibility="collapsed")
@@ -2731,6 +2752,17 @@ with L:
                 status.empty()
                 prog.empty()
                 st.session_state.preview_key = st.session_state.get("preview_key", 0) + 1
+                import copy, datetime
+                snapshot = {
+                    "time": datetime.datetime.now().strftime("%H:%M"),
+                    "tone": st.session_state.copy_tone,
+                    "concept": st.session_state.concept,
+                    "copy": copy.deepcopy(st.session_state.custom_copy),
+                    "label": st.session_state.purpose_label[:10],
+                }
+                hist = st.session_state.history or []
+                hist.insert(0, snapshot)
+                st.session_state.history = hist[:5]
                 st.success(f"✓ 전체 {len(active)}개 섹션 문구 생성 완료!")
 
             except Exception as e:
@@ -2868,6 +2900,21 @@ with L:
     st.divider()
 
     # HTML 내보내기
+    if st.session_state.history:
+        st.markdown("### 🕐 생성 히스토리")
+        st.caption("클릭하면 해당 버전으로 복원됩니다")
+        for i, snap in enumerate(st.session_state.history):
+            col_h, col_btn = st.columns([3, 1])
+            with col_h:
+                st.markdown(f"**{snap['time']}** · {snap['tone']} · `{snap['label']}`")
+            with col_btn:
+                if st.button("복원", key=f"hist_{i}", use_container_width=True):
+                    st.session_state.custom_copy = snap["copy"]
+                    st.session_state.copy_tone   = snap["tone"]
+                    st.session_state.concept     = snap["concept"]
+                    st.session_state.preview_key = st.session_state.get("preview_key", 0) + 1
+                    st.rerun()
+        st.divider()
     st.markdown("### 📥 HTML 내보내기")
     cn = (st.session_state.custom_theme.get("name","custom")
           if st.session_state.concept=="custom" and st.session_state.custom_theme
