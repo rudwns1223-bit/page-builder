@@ -2054,14 +2054,14 @@ with st.sidebar:
     # 섹션 ON/OFF
     st.markdown('<div class="sec-hdr">📑 섹션 ON/OFF</div>', unsafe_allow_html=True)
     for sid in PURPOSE_SECTIONS[st.session_state.purpose_type]:
-        chk = st.checkbox(SEC_LABELS.get(sid,sid),
-                      value=sid in st.session_state.active_sections, key=f"sec_{sid}")
-    if chk and sid not in st.session_state.active_sections:
-        st.session_state.active_sections.append(sid)
-        st.rerun()  # ← 추가
-    elif not chk and sid in st.session_state.active_sections:
-        st.session_state.active_sections.remove(sid)
-        st.rerun()
+        st.checkbox(SEC_LABELS.get(sid,sid),
+                    value=sid in st.session_state.active_sections, key=f"sec_{sid}")
+
+    # 체크박스 위젯 상태 → active_sections 즉시 동기화 (rerun 불필요)
+    st.session_state.active_sections = [
+        sid for sid in PURPOSE_SECTIONS[st.session_state.purpose_type]
+        if st.session_state.get(f"sec_{sid}", False)
+    ]
 
     st.markdown("---")
     csec_on = st.checkbox("✏️ 기타 섹션 추가", value=st.session_state.custom_section_on, key="chk_cs")
