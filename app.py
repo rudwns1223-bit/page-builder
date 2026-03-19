@@ -804,7 +804,7 @@ def _pick_layout_variant(sec_id: str) -> str:
     weights = [1] + [3] * (len(variants) - 1)  # 첫 번째(현재 스타일) 확률 낮춤
     chosen = _random.choices(variants, weights=weights, k=1)[0]
     return chosen
-def gen_section_PATCHED(sec_id: str) -> dict:
+def gen_section(sec_id: str) -> dict:
     inst_ctx = _get_instructor_context()
     schemas = {
         "banner": '{"bannerSub":"10자","bannerTitle":"20자","brandTagline":"컨셉을 담은 브랜드 한 문장","bannerLead":"60-90자 수험생이 공감하는 구체적 리드","ctaCopy":"10자","statBadges":[]}',
@@ -1364,7 +1364,7 @@ def sec_intro(d, cp, T):
         f'</div></section>'
     )
 
-def sec_why_PATCHED(d, cp, T):
+def sec_why(d, cp, T):
     t = strip_hanja(cp.get('whyTitle', '이 강의가 필요한 이유'))
     s = strip_hanja(cp.get('whySub', f"{d['subject']} 1등급의 비결"))
     reasons = cp.get('whyReasons', [
@@ -1462,7 +1462,7 @@ def sec_curriculum(d, cp, T):
     )
 
 
-def sec_target_PATCHED(d, cp, T):
+def sec_target(d, cp, T):
     t = strip_hanja(cp.get("targetTitle","이런 분들께 추천합니다"))
     items = [strip_hanja(str(it)) for it in cp.get("targetItems",[
         f"수능까지 {d['subject']} 점수를 확실히 올리고 싶은 분",
