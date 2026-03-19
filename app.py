@@ -1135,9 +1135,10 @@ accent_col = "var(--c4)" if _is_light_bg else (s["c1c"] if bg_url else "var(--c1
 
     # ── 레이아웃 4: EDITORIAL_BOLD ────────────────
     elif hs == "editorial_bold":
-        text_col = "#fff" if (dark or bg_url) else "var(--text)"
-        t70_col  = "rgba(255,255,255,.72)" if (dark or bg_url) else "var(--t70)"
-        accent_c = s["c1c"] if bg_url else "var(--c1)"
+        _is_light_bg = (not dark) and (not bg_url)
+    text_col   = "#111111" if _is_light_bg else ("#fff" if (dark or bg_url) else "var(--text)")
+    t70_col    = "rgba(0,0,0,.65)" if _is_light_bg else ("rgba(255,255,255,.75)" if (dark or bg_url) else "var(--t70)")
+    accent_col = "var(--c1)" if _is_light_bg else (s["c1c"] if bg_url else "var(--c1)")
         bd_c     = s["bdc"] if bg_url else "var(--bd)"
         return (
             f'<section id="hero" style="position:relative;min-height:100vh;overflow:hidden;{s["hero_bg"]};display:grid;grid-template-rows:auto 1fr auto">'
