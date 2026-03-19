@@ -2224,15 +2224,45 @@ with L:
         elif not st.session_state.api_key:
             st.warning("API 키를 먼저 입력해주세요")
         else:
-            with st.spinner("문구 생성 중... (10~20초)"):
-                try:
-                    r = gen_copy(ctx, st.session_state.purpose_type,
-                                 st.session_state.target, st.session_state.purpose_label)
-                    st.session_state.custom_copy = r
-                    st.session_state.preview_key = st.session_state.get("preview_key", 0) + 1
-                    st.success("✓ 문구 생성 완료!")
-                except Exception as e:
-                    st.error(f"생성 실패: {e}")
+            # 활성 섹션 수에 따라 진행 표시
+            active = st.session_state.active_sections
+            extra_secs = [s for s in ["video","before_after","method","package"]
+                          if s in active]
+            total_steps = 1 + len(extra_secs)
+            prog = st.progress(0)
+            status = st.empty()
+
+            try:
+                # 1단계: 메인 문구 생성
+                status.info("✍️ 메인 문구 생성 중... (1/" + str(total_steps) + ")")
+                r = gen_copy(ctx, st.session_state.purpose_type,
+                             st.session_state.target, st.session_state.purpose_label)
+                st.session_state.custom_copy = r
+                prog.progress(int(1/total_steps*100))
+
+                # 2단계: 활성화된 추가 섹션 개별 생성
+                sec_labels = {"video":"영상","before_after":"수강 전/후",
+                              "method":"학습법","package":"구성 안내"}
+                for i, sid in enumerate(extra_secs):
+                    label = sec_labels.get(sid, sid)
+                    status.info(f"✍️ {label} 섹션 생성 중... ({i+2}/{total_steps})")
+                    try:
+                        sec_r = gen_section(sid)
+                        st.session_state.custom_copy.update(sec_r)
+                    except Exception:
+                        pass  # 일부 섹션 실패해도 나머지 계속
+                    prog.progress(int((i+2)/total_steps*100))
+
+                prog.progress(100)
+                status.empty()
+                prog.empty()
+                st.session_state.preview_key = st.session_state.get("preview_key", 0) + 1
+                st.success(f"✓ 전체 {len(active)}개 섹션 문구 생성 완료!")
+
+            except Exception as e:
+                prog.empty()
+                status.empty()
+                st.error(f"생성 실패: {e}")
 
     if st.session_state.custom_copy:
         st.success("✓ AI 문구 적용됨", icon="✅")
