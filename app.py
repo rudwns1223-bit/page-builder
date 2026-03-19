@@ -1577,12 +1577,51 @@ def sec_event_deadline(d, cp, T):
 
 
 def sec_fest_hero(d, cp, T):
-    t = strip_hanja(cp.get("festHeroTitle",f"{d['subject']} 기획전"))
-    cc = strip_hanja(cp.get("festHeroCopy","최고의 강사들이 한 자리에"))
-    sub = strip_hanja(cp.get("festHeroSub",f"수능 {d['subject']} 전 강사 라인업."))
-    stats = cp.get("festHeroStats",[])
-    sh = "".join(f'<div style="text-align:center"><div style="font-family:var(--fh);font-size:clamp(22px,3.5vw,36px);font-weight:900;color:var(--c1)">{sv}</div><div style="font-size:9px;color:rgba(255,255,255,.5);font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-top:4px">{sl}</div></div>' for sv,sl in stats) if stats else ""
-    return (f'<section id="fest-hero" style="position:relative;min-height:80vh;overflow:hidden;background:{T["cta"]};display:flex;flex-direction:column;justify-content:center;text-align:center;padding:clamp(80px,10vw,120px) clamp(28px,6vw,80px)"><div style="position:absolute;inset:0;background:radial-gradient(ellipse 80% 70% at 50% 30%,rgba(255,255,255,.07),transparent 65%);pointer-events:none"></div><div style="position:relative;z-index:2"><div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);padding:7px 22px;border-radius:var(--r-btn,4px);font-size:11px;font-weight:800;color:#fff;margin-bottom:28px;border:1px solid rgba(255,255,255,.2)">🏆 {d["subject"]} 기획전</div><h1 style="font-family:var(--fh);font-size:clamp(44px,8vw,112px);font-weight:900;line-height:.82;letter-spacing:-.05em;color:#fff;margin-bottom:22px" class="st">{t}</h1><p style="font-size:clamp(18px,2.5vw,24px);color:rgba(255,255,255,.78);margin-bottom:12px;font-weight:700">{cc}</p><p style="font-size:15px;color:rgba(255,255,255,.52);margin-bottom:52px;max-width:500px;margin-left:auto;margin-right:auto">{sub}</p>'+(f'<div style="display:flex;gap:52px;justify-content:center;flex-wrap:wrap;padding-top:40px;border-top:1px solid rgba(255,255,255,.15)">{sh}</div>' if sh else "")+'</div></section>')
+    t    = strip_hanja(cp.get("festHeroTitle", f"{d['subject']} 기획전"))
+    cc   = strip_hanja(cp.get("festHeroCopy", "최고의 강사들이 한 자리에"))
+    sub  = strip_hanja(cp.get("festHeroSub",  f"수능 {d['subject']} 전 강사 라인업."))
+    stats  = cp.get("festHeroStats", [])
+    bg_url = cp.get("bg_photo_url", "")
+
+    # 배경 처리 — 이미지 있으면 오버레이 포함, 없으면 그라디언트
+    if bg_url:
+        hero_bg  = f"background:url('{bg_url}') center/cover no-repeat"
+        overlay  = '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.58);z-index:1;pointer-events:none"></div>'
+        grad_overlay = '<div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.3) 0%,rgba(0,0,0,.7) 100%);z-index:1;pointer-events:none"></div>'
+    else:
+        hero_bg  = f"background:{T['cta']}"
+        overlay  = ""
+        grad_overlay = '<div style="position:absolute;inset:0;background:radial-gradient(ellipse 80% 70% at 50% 30%,rgba(255,255,255,.07),transparent 65%);pointer-events:none"></div>'
+
+    sh = "".join(
+        f'<div style="text-align:center">'
+        f'<div style="font-family:var(--fh);font-size:clamp(22px,3.5vw,36px);font-weight:900;color:var(--c1)">{sv}</div>'
+        f'<div style="font-size:9px;color:rgba(255,255,255,.5);font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-top:4px">{sl}</div>'
+        f'</div>'
+        for sv, sl in stats
+    ) if stats else ""
+
+    return (
+        f'<section id="fest-hero" style="position:relative;min-height:80vh;overflow:hidden;'
+        f'{hero_bg};display:flex;flex-direction:column;justify-content:center;'
+        f'text-align:center;padding:clamp(80px,10vw,120px) clamp(28px,6vw,80px)">'
+        + overlay
+        + grad_overlay
+        + f'<div style="position:relative;z-index:2">'
+        + f'<div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);'
+        +  f'backdrop-filter:blur(8px);padding:7px 22px;border-radius:var(--r-btn,4px);'
+        +  f'font-size:11px;font-weight:800;color:#fff;margin-bottom:28px;'
+        +  f'border:1px solid rgba(255,255,255,.2)">🏆 {d["subject"]} 기획전</div>'
+        + f'<h1 style="font-family:var(--fh);font-size:clamp(44px,8vw,112px);font-weight:900;'
+        +  f'line-height:.82;letter-spacing:-.05em;color:#fff;margin-bottom:22px" class="st">{t}</h1>'
+        + f'<p style="font-size:clamp(18px,2.5vw,24px);color:rgba(255,255,255,.85);'
+        +  f'margin-bottom:12px;font-weight:700">{cc}</p>'
+        + f'<p style="font-size:15px;color:rgba(255,255,255,.6);margin-bottom:52px;'
+        +  f'max-width:500px;margin-left:auto;margin-right:auto">{sub}</p>'
+        + (f'<div style="display:flex;gap:52px;justify-content:center;flex-wrap:wrap;'
+           f'padding-top:40px;border-top:1px solid rgba(255,255,255,.15)">{sh}</div>' if sh else "")
+        + f'</div></section>'
+    )
 
 
 def sec_fest_lineup(d, cp, T):
