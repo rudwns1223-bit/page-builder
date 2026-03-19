@@ -47,7 +47,12 @@ if not st.session_state.api_key:
 # 상수
 # ══════════════════════════════════════════════════════
 GROQ_URL    = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_MODELS = ["llama-3.3-70b-versatile"]
+GROQ_MODELS = [
+    "llama-3.3-70b-versatile",          # 메인 (기존 유지)
+    "meta-llama/llama-4-scout-17b-16e-instruct",  # Llama 4 Scout
+    "qwen/qwen3-32b",                   # Qwen 3 32B
+    "llama-3.1-8b-instant",             # 경량 빠른 모델 (gemma2-9b-it 후계)
+]
 
 # ── 문구 스타일 예시 (Few-shot) ──────────────────────
 FEW_SHOT_EXAMPLES = """
