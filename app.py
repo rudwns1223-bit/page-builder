@@ -810,17 +810,21 @@ def _hex_luminance(h: str) -> float:
     except Exception: return 0.5
 
 def _ensure_contrast(ct: dict) -> dict:
-    """AI 생성 테마의 배경-텍스트 대비 자동 보정"""
     bg_l  = _hex_luminance(ct.get("bg","#111"))
     tx_l  = _hex_luminance(ct.get("textHex","#fff"))
     ratio = (max(bg_l,tx_l)+0.05)/(min(bg_l,tx_l)+0.05)
-    if ratio < 4.5:  # 대비 부족
-        if bg_l < 0.18:  # 어두운 배경 → 텍스트를 밝게
+    if ratio < 4.5:
+        if bg_l < 0.18:
             ct["textHex"] = "#F0F0F0"
             ct["textRgb"] = "240,240,240"
-        else:  # 밝은 배경 → 텍스트를 어둡게
+        else:
             ct["textHex"] = "#111111"
             ct["textRgb"] = "17,17,17"
+    # 밝은 배경(luminance > 0.4)이면 c1도 어두운 색으로 보정
+    if bg_l > 0.4:
+        c1_l = _hex_luminance(ct.get("c1","#000"))
+        if c1_l > 0.4:
+            ct["c1"] = "#0A0A0A"
     return ct
 
 
@@ -1051,10 +1055,9 @@ def sec_banner(d, cp, T):
     if "--bg:" in THEMES.get(st.session_state.concept, {}).get("vars","")
     else "#111"
 )
-_is_light_bg = (not dark) and (not bg_url) and bg_lum > 0.4
-text_col   = "#111111" if _is_light_bg else ("#fff" if (dark or bg_url) else "var(--text)")
-t70_col    = "rgba(0,0,0,.65)" if _is_light_bg else ("rgba(255,255,255,.75)" if (dark or bg_url) else "var(--t70)")
-accent_col = "var(--c4)" if _is_light_bg else (s["c1c"] if bg_url else "var(--c1)")
+    text_col = "#fff" if (dark or bg_url) else "var(--text)"
+    t70_col  = "rgba(255,255,255,.7)" if (dark or bg_url) else "var(--t70)"
+    accent_col = s["c1c"] if bg_url else "var(--c1)"
     return (
             f'<section id="hero" style="position:relative;min-height:100vh;overflow:hidden;{s["hero_bg"]};display:flex;flex-direction:column;justify-content:flex-end">'
             + s["overlay"]
