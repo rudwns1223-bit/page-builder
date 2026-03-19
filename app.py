@@ -845,7 +845,14 @@ def gen_section(sec_id: str) -> dict:
 추가 규칙: "교수" 절대 금지(반드시 "선생님" 또는 "강사"), 확인되지 않은 학력·소속·경력 지어내기 금지, 문구는 짧고 밋밋하게 쓰지 말고 수험생 감정을 건드리는 구체적·임팩트 있는 표현으로 작성
 아래 JSON 형식만 반환. 다른 말 절대 금지. 마크다운 금지. 코드블록 금지:
 {schema}"""
-    return safe_json(call_ai(prompt, max_tokens=900))
+    last_err = None
+for _attempt in range(3):
+    try:
+        return safe_json(call_ai(prompt, max_tokens=900))
+    except Exception as e:
+        last_err = e
+        time.sleep(1)
+raise last_err
 
 
 def gen_custom_sec(topic: str) -> dict:
