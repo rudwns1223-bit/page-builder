@@ -1046,19 +1046,11 @@ def sec_banner(d, cp, T):
 
     # ── 레이아웃 1: TYPOGRAPHIC (기본) ────────────
     if hs == "typographic":
-        # 제목 첫 단어/글자를 거대 배경 데코로 사용
         deco_word = title[:3] if title else sub[:3]
-        bg_lum = _hex_luminance(
-    st.session_state.custom_theme.get("bg", "#111")
-    if st.session_state.concept == "custom" and st.session_state.custom_theme
-    else THEMES.get(st.session_state.concept, {}).get("vars","").split("--bg:")[1].split(";")[0].strip()
-    if "--bg:" in THEMES.get(st.session_state.concept, {}).get("vars","")
-    else "#111"
-)
-    text_col = "#fff" if (dark or bg_url) else "var(--text)"
-    t70_col  = "rgba(255,255,255,.7)" if (dark or bg_url) else "var(--t70)"
-    accent_col = s["c1c"] if bg_url else "var(--c1)"
-    return (
+        text_col = "#fff" if (dark or bg_url) else "var(--text)"
+        t70_col  = "rgba(255,255,255,.7)" if (dark or bg_url) else "var(--t70)"
+        accent_col = s["c1c"] if bg_url else "var(--c1)"
+        return (
             f'<section id="hero" style="position:relative;min-height:100vh;overflow:hidden;{s["hero_bg"]};display:flex;flex-direction:column;justify-content:flex-end">'
             + s["overlay"]
             + f'<div style="position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(to top,rgba(0,0,0,.92) 0%,rgba(0,0,0,.25) 50%,transparent 100%);z-index:1;pointer-events:none"></div>'
@@ -1138,11 +1130,10 @@ def sec_banner(d, cp, T):
 
     # ── 레이아웃 4: EDITORIAL_BOLD ────────────────
     elif hs == "editorial_bold":
-        _is_light_bg = (not dark) and (not bg_url)
-    text_col   = "#111111" if _is_light_bg else ("#fff" if (dark or bg_url) else "var(--text)")
-    t70_col    = "rgba(0,0,0,.65)" if _is_light_bg else ("rgba(255,255,255,.75)" if (dark or bg_url) else "var(--t70)")
-    accent_col = "var(--c1)" if _is_light_bg else (s["c1c"] if bg_url else "var(--c1)")
-        bd_c     = s["bdc"] if bg_url else "var(--bd)"
+        text_col   = "#fff" if (dark or bg_url) else "var(--text)"
+        t70_col    = "rgba(255,255,255,.75)" if (dark or bg_url) else "var(--t70)"
+        accent_c   = s["c1c"] if bg_url else "var(--c1)"
+        bd_c       = s["bdc"] if bg_url else "var(--bd)"
         return (
             f'<section id="hero" style="position:relative;min-height:100vh;overflow:hidden;{s["hero_bg"]};display:grid;grid-template-rows:auto 1fr auto">'
             + s["overlay"]
