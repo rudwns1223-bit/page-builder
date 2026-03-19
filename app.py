@@ -51,6 +51,12 @@ GROQ_MODELS = ["llama-3.3-70b-versatile"]
 
 # ── 문구 스타일 예시 (Few-shot) ──────────────────────
 FEW_SHOT_EXAMPLES = """
+=== 절대 규칙 (위반 시 전체 실패) ===
+- 강사 정보에 명시된 과목만 언급. 영어 강사면 영어만, 수학 강사면 수학만.
+- 학교명·직위·소속·경력은 강사 정보에 없으면 절대 지어내지 말 것.
+- "교수" 직함 절대 금지 — 반드시 "선생님" 또는 "강사".
+- 확인되지 않은 수치(합격생 수, 만족도 %) 절대 금지.
+
 === 실제 사용된 좋은 문구 예시 (스타일 참고용 — 그대로 쓰지 말고 더 창의적으로) ===
 
 [bannerTitle 스타일]
@@ -857,7 +863,11 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);overflow-x:hid
 a{text-decoration:none;color:inherit}
 
 /* ── 한국어 줄 맞춤 핵심 규칙 ── */
-h1,h2,h3,p,span,div{word-break:keep-all;overflow-wrap:break-word}
+h1,h2,h3,p,span,div{word-break:keep-all;overflow-wrap:break-word;white-space:normal}
+h1,h2,h3{line-height:1.15;letter-spacing:-.04em}
+p{line-height:1.9}
+/* 카드 내 텍스트 잘림 방지 */
+.card *,.rv *{overflow:visible;min-width:0}
 
 /* ── 인트로 애니메이션 ── */
 .rv{opacity:0;transform:translateY(22px);transition:opacity .9s cubic-bezier(.16,1,.3,1),transform .9s cubic-bezier(.16,1,.3,1)}
@@ -1252,19 +1262,23 @@ def sec_why(d, cp, T):
         rh += (
             f'<div class="rv d{min(i+1,4)}" style="display:grid;grid-template-columns:100px 1fr;gap:0;'
             f'align-items:stretch;border:1px solid var(--bd);border-radius:var(--r,4px);'
-            f'overflow:hidden;margin-bottom:12px">'
-            # 좌: 번호 + 이모지 (이미지 대신 텍스트로)
+            f'margin-bottom:12px;overflow:visible">'
+            # 좌: 번호 + 이모지
             f'<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;'
-            f'{alt_bg};padding:20px 12px;border-right:1px solid var(--bd)">'
+            f'{alt_bg};padding:20px 12px;border-right:1px solid var(--bd);'
+            f'border-radius:var(--r,4px) 0 0 var(--r,4px)">'
             f'<div style="font-family:var(--fh);font-size:36px;font-weight:900;line-height:1;'
             f'color:var(--c1);opacity:.3">{i+1:02d}</div>'
             f'<div style="font-size:24px;margin-top:6px;line-height:1">{ic}</div>'
             f'</div>'
             # 우: 제목 + 설명
-            f'<div style="padding:20px 24px;display:flex;flex-direction:column;justify-content:center">'
+            f'<div style="padding:20px 24px;display:flex;flex-direction:column;justify-content:center;'
+            f'border-radius:0 var(--r,4px) var(--r,4px) 0">'
             f'<div style="font-family:var(--fh);font-size:clamp(14px,1.4vw,17px);font-weight:800;'
-            f'margin-bottom:8px;letter-spacing:-.02em;color:var(--text)">{strip_hanja(tt)}</div>'
-            f'<p style="font-size:13px;line-height:1.85;color:var(--t70);margin:0">{strip_hanja(dc)}</p>'
+            f'margin-bottom:8px;letter-spacing:-.02em;color:var(--text);'
+            f'word-break:keep-all;overflow-wrap:break-word;white-space:normal">{strip_hanja(tt)}</div>'
+            f'<p style="font-size:13px;line-height:1.85;color:var(--t70);margin:0;'
+            f'word-break:keep-all;overflow-wrap:break-word">{strip_hanja(dc)}</p>'
             f'</div></div>'
         )
 
