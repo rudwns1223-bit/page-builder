@@ -1055,7 +1055,7 @@ _is_light_bg = (not dark) and (not bg_url) and bg_lum > 0.4
 text_col   = "#111111" if _is_light_bg else ("#fff" if (dark or bg_url) else "var(--text)")
 t70_col    = "rgba(0,0,0,.65)" if _is_light_bg else ("rgba(255,255,255,.75)" if (dark or bg_url) else "var(--t70)")
 accent_col = "var(--c4)" if _is_light_bg else (s["c1c"] if bg_url else "var(--c1)")
-        return (
+    return (
             f'<section id="hero" style="position:relative;min-height:100vh;overflow:hidden;{s["hero_bg"]};display:flex;flex-direction:column;justify-content:flex-end">'
             + s["overlay"]
             + f'<div style="position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(to top,rgba(0,0,0,.92) 0%,rgba(0,0,0,.25) 50%,transparent 100%);z-index:1;pointer-events:none"></div>'
