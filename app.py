@@ -279,27 +279,75 @@ SEC_LABELS = {
     "custom_section":"✏️ 기타 섹션",
 }
 RANDOM_SEEDS = [
-    {"mood":"사이버펑크 보라 네온사인 비오는 다크 도시","layout":"brutal","font":"display","particle":"none"},
-    {"mood":"고대 이집트 황금 신전 사막 모래 오벨리스크","layout":"editorial","font":"serif","particle":"gold"},
+    # ── 스포츠 ──────────────────────────────────────
     {"mood":"관중이 가득찬 야구장 밤 전광판 붉은빛 함성","layout":"brutal","font":"display","particle":"none"},
-    {"mood":"수험생 새벽 4시 형광등 책상 집중과 고요 먹빛","layout":"minimal","font":"mono","particle":"none"},
+    {"mood":"축구 경기장 잔디 조명 초록 밤 전광판 함성","layout":"brutal","font":"display","particle":"none"},
+    {"mood":"농구 코트 나무 바닥 스포트라이트 NBA 에너지","layout":"brutal","font":"display","particle":"none"},
+    {"mood":"복싱 링 위 스포트라이트 땀 격투 집중","layout":"brutal","font":"display","particle":"none"},
+    {"mood":"수영장 물결 파란 레인 선수 출발대 새벽","layout":"immersive","font":"display","particle":"none"},
+    # ── 자연·계절 ────────────────────────────────────
     {"mood":"극지방 오로라 청록 보라 새벽하늘 빙하","layout":"immersive","font":"display","particle":"stars"},
-    {"mood":"다크 아카데미아 빅토리안 고딕 도서관 촛불","layout":"editorial","font":"serif","particle":"none"},
-    {"mood":"ABPS 스타일 순수 블랙 네온 그린 테크 UI","layout":"brutal","font":"sans","particle":"none"},
-    {"mood":"인셉션 다크 에메랄드 그린 고급 교육 프리미엄","layout":"editorial","font":"serif","particle":"leaves"},
     {"mood":"겨울 새벽 눈 덮인 사찰 고요 집중 먹빛 설경","layout":"minimal","font":"serif","particle":"snow"},
-    {"mood":"마젠타 핫핑크 플로럴 에디토리얼 여성적 우아함","layout":"magazine","font":"serif","particle":"petals"},
-    {"mood":"미래 우주선 내부 홀로그램 코발트 블루 테크 UI","layout":"immersive","font":"mono","particle":"stars"},
-    {"mood":"빈티지 옥스퍼드 도서관 가죽 책 양피지 세피아","layout":"editorial","font":"serif","particle":"none"},
-    {"mood":"여름 밤 루프탑 인디고 블루 도시 스카이라인","layout":"immersive","font":"display","particle":"none"},
-    {"mood":"19세기 파리 아방가르드 예술 포스터 타이포그래피","layout":"brutal","font":"display","particle":"none"},
-    {"mood":"네온 팝아트 비비드 원색 90s 리트로 레이브","layout":"brutal","font":"display","particle":"none"},
-    {"mood":"브루탈리즘 건축 콘크리트 모노크롬 강렬한 타이포","layout":"brutal","font":"sans","particle":"none"},
     {"mood":"가을 단풍 교정 은행나무 따뜻한 주황 갈색 노을","layout":"organic","font":"serif","particle":"leaves"},
-    {"mood":"앰버 황금빛 위스키 바 재즈 다크 고급 무드","layout":"editorial","font":"serif","particle":"gold"},
+    {"mood":"봄 벚꽃 흩날리는 밤 조명 핑크 로맨틱","layout":"editorial","font":"serif","particle":"petals"},
+    {"mood":"여름 밤 루프탑 인디고 블루 도시 스카이라인","layout":"immersive","font":"display","particle":"none"},
+    {"mood":"태풍 전날 먹구름 번개 폭풍 드라마틱","layout":"immersive","font":"display","particle":"none"},
+    {"mood":"사막 모래폭풍 황금빛 석양 드넓음","layout":"editorial","font":"serif","particle":"gold"},
+    {"mood":"열대우림 정글 짙은 녹색 습기 비","layout":"organic","font":"serif","particle":"leaves"},
+    {"mood":"화산 분화 용암 붉은 검정 극적","layout":"brutal","font":"display","particle":"embers"},
+    # ── 도시·건축 ────────────────────────────────────
+    {"mood":"사이버펑크 보라 네온사인 비오는 다크 도시","layout":"brutal","font":"display","particle":"none"},
+    {"mood":"홍콩 야경 빽빽한 고층 네온 복잡 에너지","layout":"brutal","font":"display","particle":"none"},
+    {"mood":"도쿄 시부야 교차로 군중 빗속 네온","layout":"brutal","font":"display","particle":"none"},
+    {"mood":"뉴욕 타임스퀘어 광고판 눈부신 야경","layout":"billboard","font":"display","particle":"none"},
+    {"mood":"파리 에펠탑 황금빛 밤 로맨틱 클래식","layout":"editorial","font":"serif","particle":"gold"},
+    {"mood":"두바이 황금 마천루 사막 미래 럭셔리","layout":"editorial","font":"serif","particle":"gold"},
+    {"mood":"런던 빅벤 안개 빗속 클래식 영국","layout":"editorial","font":"serif","particle":"none"},
+    {"mood":"베를린 브루탈리즘 콘크리트 그레이 강렬","layout":"brutal","font":"sans","particle":"none"},
+    {"mood":"서울 한강 야경 다리 빛 반사 도시","layout":"immersive","font":"display","particle":"none"},
+    {"mood":"고딕 성당 스테인드글라스 빛 신비","layout":"editorial","font":"serif","particle":"none"},
+    # ── 학습·수험 ────────────────────────────────────
+    {"mood":"수험생 새벽 4시 형광등 책상 집중과 고요 먹빛","layout":"minimal","font":"mono","particle":"none"},
+    {"mood":"빈 강의실 새벽 의자 칠판 분필가루 고요","layout":"minimal","font":"serif","particle":"none"},
+    {"mood":"도서관 서가 오래된 책 세피아 먼지 빛","layout":"editorial","font":"serif","particle":"none"},
+    {"mood":"노트 필기 형광펜 빽빽한 메모 집중 클로즈업","layout":"minimal","font":"mono","particle":"none"},
+    {"mood":"시험지 위 연필 손 시계 긴장 순간","layout":"minimal","font":"mono","particle":"none"},
+    # ── 우주·SF ──────────────────────────────────────
+    {"mood":"우주 정거장 내부 홀로그램 코발트 블루 테크","layout":"immersive","font":"mono","particle":"stars"},
+    {"mood":"블랙홀 이벤트 호라이즌 빛 왜곡 심우주","layout":"immersive","font":"mono","particle":"stars"},
+    {"mood":"화성 표면 붉은 사막 탐사 미래","layout":"editorial","font":"mono","particle":"none"},
+    {"mood":"AI 회로 기판 초록 데이터 흐름 매트릭스","layout":"brutal","font":"mono","particle":"none"},
+    {"mood":"양자 컴퓨터 파란 빛 구체 에너지 추상","layout":"immersive","font":"mono","particle":"stars"},
+    # ── 예술·문화 ────────────────────────────────────
+    {"mood":"고대 이집트 황금 신전 사막 모래 오벨리스크","layout":"editorial","font":"serif","particle":"gold"},
+    {"mood":"빈티지 옥스퍼드 도서관 가죽 책 양피지 세피아","layout":"editorial","font":"serif","particle":"none"},
+    {"mood":"19세기 파리 아방가르드 예술 포스터 타이포","layout":"brutal","font":"display","particle":"none"},
+    {"mood":"재즈 바 스모키 앰버 조명 클래식 무드","layout":"editorial","font":"serif","particle":"gold"},
+    {"mood":"록 콘서트 무대 스포트라이트 연기 에너지","layout":"brutal","font":"display","particle":"embers"},
+    {"mood":"발레 무용수 무대 스포트라이트 우아 흰색","layout":"editorial","font":"serif","particle":"none"},
+    {"mood":"일본 전통 정원 벚꽃 고요 선 미학","layout":"minimal","font":"serif","particle":"petals"},
+    {"mood":"바이킹 fjord 북유럽 회색 석조 웅장","layout":"editorial","font":"display","particle":"snow"},
+    # ── 색감·무드 실험 ───────────────────────────────
+    {"mood":"ABPS 스타일 순수 블랙 네온 그린 테크 UI","layout":"brutal","font":"sans","particle":"none"},
+    {"mood":"에시드 형광 노랑 블랙 반전 그런지","layout":"brutal","font":"sans","particle":"none"},
+    {"mood":"마젠타 핫핑크 플로럴 에디토리얼 여성적","layout":"magazine","font":"serif","particle":"petals"},
+    {"mood":"네온 팝아트 비비드 원색 90s 리트로 레이브","layout":"brutal","font":"display","particle":"none"},
+    {"mood":"순수 흑백 영화 필름 노이즈 모노크롬","layout":"brutal","font":"mono","particle":"none"},
+    {"mood":"인디고 딥블루 오션 심해 어둠 고요","layout":"immersive","font":"serif","particle":"none"},
+    {"mood":"앰버 황금빛 위스키 바 재즈 다크 럭셔리","layout":"editorial","font":"serif","particle":"gold"},
     {"mood":"바이올렛 퍼플 팝 컬러 현대적 밝은 에너지","layout":"modern","font":"sans","particle":"none"},
-    {"mood":"순수 흑백 영화 필름 노이즈 모노크롬 시네마","layout":"brutal","font":"mono","particle":"none"},
+    {"mood":"다크 아카데미아 빅토리안 고딕 도서관 촛불","layout":"editorial","font":"serif","particle":"none"},
+    {"mood":"인셉션 다크 에메랄드 고급 교육 프리미엄","layout":"editorial","font":"serif","particle":"leaves"},
+    {"mood":"브루탈리즘 콘크리트 모노크롬 강렬 타이포","layout":"brutal","font":"sans","particle":"none"},
+    {"mood":"미니멀 흰 공간 단 하나의 선 여백 호흡","layout":"minimal","font":"serif","particle":"none"},
+    {"mood":"미래 우주선 내부 홀로그램 코발트 블루","layout":"immersive","font":"mono","particle":"stars"},
+    {"mood":"스팀펑크 황동 기어 갈색 증기 빅토리안","layout":"editorial","font":"serif","particle":"gold"},
+    {"mood":"글리치 아트 픽셀 깨짐 디지털 노이즈 에러","layout":"brutal","font":"mono","particle":"none"},
+    {"mood":"수묵화 번지는 먹 여백 동양 미니멀","layout":"minimal","font":"serif","particle":"none"},
+    {"mood":"홀로그램 무지개 빛 투명 미래 프리즘","layout":"immersive","font":"display","particle":"stars"},
+    {"mood":"캠프파이어 불꽃 밤 숲 따뜻 원초","layout":"editorial","font":"serif","particle":"embers"},
 ]
+
 
 SUBJ_KW = {
     "영어":["빈칸 추론","EBS 연계","순서·삽입","어법·어휘"],
@@ -688,8 +736,75 @@ JSON만 반환:
 {schemas.get(ptype, schemas['신규 커리큘럼'])}"""
     return safe_json(call_ai(prompt, max_tokens=3500))
 
-
-def gen_section(sec_id: str) -> dict:
+SEC_LAYOUT_VARIANTS = {
+    "why": [
+        "가로 2컬럼: 왼쪽 고정 타이틀, 오른쪽 스크롤 카드 리스트 (현재 스타일)",
+        "세로 풀와이드 3열 그리드: 각 이유를 큰 번호+아이콘+설명 카드로",
+        "타임라인 스타일: 세로 중앙선 기준 좌우 교차 배치",
+        "배경색 반전 블록: 각 이유가 배경색이 번갈아 바뀌는 풀와이드 스트라이프",
+        "아코디언 없이 펼쳐진 Q&A 스타일: 질문형 제목 + 아래 답변",
+    ],
+    "curriculum": [
+        "왼쪽 타임라인 + 오른쪽 단계 카드 (현재 스타일)",
+        "수평 스텝퍼: 가로로 나열된 화살표 연결 단계",
+        "크게 번호만 보이는 풀스크린 슬라이드 느낌 세로 배치",
+        "체크리스트 스타일: 완료 표시 + 단계명 + 기간 뱃지",
+        "좌우 지그재그: 홀수 단계 왼쪽, 짝수 단계 오른쪽",
+    ],
+    "target": [
+        "2컬럼 엇갈린 카드 (현재 스타일)",
+        "체크마크 리스트: 큰 체크아이콘 + 한 줄 설명",
+        "페르소나 카드: 이름·학년·고민이 적힌 사람 카드 형식",
+        "NOT/YES 대비형: 왼쪽 '이런 분은 아님', 오른쪽 '이런 분께 딱'",
+        "숫자 강조형: 01~04 번호가 매우 크고, 옆에 설명 텍스트",
+    ],
+    "reviews": [
+        "마소너리 그리드 + 첫 카드 풀와이드 강조 (현재 스타일)",
+        "트위터/SNS 카드 스타일: 프로필 이니셜 + 멘션 형식",
+        "필름스트립: 가로 스크롤 느낌의 카드 나열",
+        "큰 인용부호 강조: 배경에 거대한 따옴표, 텍스트 중앙 배치",
+        "점수 카드: 별점 그래프 + 변화 수치 강조",
+    ],
+    "intro": [
+        "3컬럼 그리드: 소개/프로필/시그니처 (현재 스타일)",
+        "좌우 2분할: 왼쪽 큰 이름+슬로건, 오른쪽 상세",
+        "세로 스크롤형: 제목→설명→메서드 순서로 풀와이드",
+        "타임라인형 경력: 연도별 주요 커리큘럼 히스토리",
+        "임팩트 숫자 강조: 강의 연차, 수강생 수 등 큰 숫자 먼저",
+    ],
+    "faq": [
+        "왼쪽 고정 타이틀 + 오른쪽 아코디언 (현재 스타일)",
+        "탭 방식: 카테고리 탭(수강/교재/환불) + 내용",
+        "2컬럼 그리드: 질문-답변 쌍을 카드로 나란히",
+        "채팅 버블: 질문은 왼쪽 말풍선, 답변은 오른쪽 말풍선",
+        "번호 리스트: Q1~Q5를 순서대로 풀와이드 블록으로",
+    ],
+    "banner": [
+        "풀스크린 배경 + 하단 정렬 텍스트 (현재 typographic 스타일)",
+        "중앙 정렬 히어로: 제목+리드+버튼이 화면 정중앙",
+        "왼쪽 정렬 + 오른쪽 강의 정보 미니카드",
+        "초대형 타이포만: 배경색 + 글자만 가득한 임팩트",
+        "상단 브랜드바 + 중앙 콘텐츠 + 하단 통계",
+    ],
+    "cta": [
+        "다크 그라디언트 배경 + 중앙 버튼 (현재 스타일)",
+        "풀와이드 두 컬럼: 왼쪽 제목, 오른쪽 버튼+서브텍스트",
+        "카운트다운 타이머 포함 긴박감 CTA",
+        "소셜 프루프 포함: 별점 + 수강생 수 + 버튼",
+        "배경 패턴 + 버튼만 크게: 미니멀 CTA",
+    ],
+}
+ 
+def _pick_layout_variant(sec_id: str) -> str:
+    """섹션 ID에 맞는 랜덤 레이아웃 변형 설명을 반환"""
+    variants = SEC_LAYOUT_VARIANTS.get(sec_id, [])
+    if not variants:
+        return ""
+    # 매번 다른 변형 선택 (현재 스타일 제외 가능성 높임)
+    weights = [1] + [3] * (len(variants) - 1)  # 첫 번째(현재 스타일) 확률 낮춤
+    chosen = _random.choices(variants, weights=weights, k=1)[0]
+    return chosen
+def gen_section_PATCHED(sec_id: str) -> dict:
     inst_ctx = _get_instructor_context()
     schemas = {
         "banner": '{"bannerSub":"10자","bannerTitle":"20자","brandTagline":"컨셉을 담은 브랜드 한 문장","bannerLead":"60-90자 수험생이 공감하는 구체적 리드","ctaCopy":"10자","statBadges":[]}',
@@ -1249,7 +1364,7 @@ def sec_intro(d, cp, T):
         f'</div></section>'
     )
 
-def sec_why(d, cp, T):
+def sec_why_PATCHED(d, cp, T):
     t = strip_hanja(cp.get('whyTitle', '이 강의가 필요한 이유'))
     s = strip_hanja(cp.get('whySub', f"{d['subject']} 1등급의 비결"))
     reasons = cp.get('whyReasons', [
@@ -1347,7 +1462,7 @@ def sec_curriculum(d, cp, T):
     )
 
 
-def sec_target(d, cp, T):
+def sec_target_PATCHED(d, cp, T):
     t = strip_hanja(cp.get("targetTitle","이런 분들께 추천합니다"))
     items = [strip_hanja(str(it)) for it in cp.get("targetItems",[
         f"수능까지 {d['subject']} 점수를 확실히 올리고 싶은 분",
