@@ -846,13 +846,13 @@ def gen_section(sec_id: str) -> dict:
 아래 JSON 형식만 반환. 다른 말 절대 금지. 마크다운 금지. 코드블록 금지:
 {schema}"""
     last_err = None
-for _attempt in range(3):
-    try:
-        return safe_json(call_ai(prompt, max_tokens=900))
-    except Exception as e:
-        last_err = e
-        time.sleep(1)
-raise last_err
+    for _attempt in range(3):       # ← 앞에 공백 4칸
+        try:                        # ← 앞에 공백 8칸
+            return safe_json(call_ai(prompt, max_tokens=900))  # ← 12칸
+        except Exception as e:      # ← 8칸
+            last_err = e            # ← 12칸
+            time.sleep(1)           # ← 12칸
+    raise last_err                  # ← 4칸
 
 
 def gen_custom_sec(topic: str) -> dict:
