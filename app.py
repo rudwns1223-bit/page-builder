@@ -2721,32 +2721,39 @@ with L:
         else:
             # 활성 섹션 수에 따라 진행 표시
             active = st.session_state.active_sections
-            extra_secs = [s for s in ["video","before_after","method","package"]
-                          if s in active]
+            ptype  = st.session_state.purpose_type
+
+            # 목적별로 gen_copy가 커버하는 섹션과 개별 생성할 섹션 구분
+            COPY_COVERS = {
+                "신규 커리큘럼": ["banner","intro","why","curriculum","target","reviews","faq","cta"],
+                "이벤트":       ["banner","event_overview","event_benefits","event_deadline","reviews","cta"],
+                "기획전":       ["fest_hero","fest_lineup","fest_benefits","fest_cta"],
+            }
+            covered     = set(COPY_COVERS.get(ptype, []))
+            extra_secs  = [s for s in active if s not in covered and s != "custom_section"]
             total_steps = 1 + len(extra_secs)
-            prog = st.progress(0)
+
+            prog   = st.progress(0)
             status = st.empty()
 
             try:
-                # 1단계: 메인 문구 생성
-                status.info("✍️ 메인 문구 생성 중... (1/" + str(total_steps) + ")")
-                r = gen_copy(ctx, st.session_state.purpose_type,
+                # 1단계: gen_copy로 메인 문구 생성 (톤+맥락 반영)
+                status.info(f"✍️ 전체 문구 생성 중... (1/{total_steps})")
+                r = gen_copy(ctx, ptype,
                              st.session_state.target, st.session_state.purpose_label)
                 st.session_state.custom_copy = r
-                prog.progress(int(1/total_steps*100))
+                prog.progress(int(1 / total_steps * 100))
 
-                # 2단계: 활성화된 추가 섹션 개별 생성
-                sec_labels = {"video":"영상","before_after":"수강 전/후",
-                              "method":"학습법","package":"구성 안내"}
+                # 2단계: gen_copy가 커버 못 하는 활성 섹션 개별 생성
                 for i, sid in enumerate(extra_secs):
-                    label = sec_labels.get(sid, sid)
+                    label = SEC_LABELS.get(sid, sid)
                     status.info(f"✍️ {label} 섹션 생성 중... ({i+2}/{total_steps})")
                     try:
                         sec_r = gen_section(sid)
                         st.session_state.custom_copy.update(sec_r)
                     except Exception:
-                        pass  # 일부 섹션 실패해도 나머지 계속
-                    prog.progress(int((i+2)/total_steps*100))
+                        pass
+                    prog.progress(int((i + 2) / total_steps * 100))
 
                 prog.progress(100)
                 status.empty()
