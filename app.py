@@ -1037,18 +1037,22 @@ p{line-height:1.9}
 /* ── 섹션 기본 ── */
 .sec{padding:clamp(60px,8vw,96px) clamp(28px,6vw,80px);position:relative}
 .sec.alt{background:var(--bg2)}
+.sec+.sec{border-top:1px solid var(--bd)}
+.sec+.sec.alt{border-top:none}
+.sec.alt+.sec{border-top:none}
+.sec-accent-line{display:block;width:48px;height:3px;background:var(--c1);margin-bottom:18px}
 .sec-inner{max-width:1200px;margin:0 auto}
 
 /* ── 섹션 구분선 (대각선) ── */
 .sec-diag-top::before{
-  content:'';position:absolute;top:-1px;left:0;right:0;height:60px;
-  background:var(--bg);
-  clip-path:polygon(0 0,100% 0,100% 0,0 100%);z-index:1;
+  content:'';position:absolute;top:-40px;left:0;right:0;height:40px;
+  background:inherit;
+  clip-path:polygon(0 100%,100% 0,100% 100%);z-index:2;
 }
 .sec-diag-bot::after{
-  content:'';position:absolute;bottom:-1px;left:0;right:0;height:60px;
-  background:var(--bg);
-  clip-path:polygon(0 0,100% 100%,0 100%);z-index:1;
+  content:'';position:absolute;bottom:-40px;left:0;right:0;height:40px;
+  background:inherit;
+  clip-path:polygon(0 0,100% 0,100% 100%);z-index:2;
 }
 
 /* ── 태그라인 ── */
@@ -1189,10 +1193,10 @@ def sec_banner(d, cp, T):
             f'<section id="hero" style="position:relative;min-height:100vh;overflow:hidden;{s["hero_bg"]};display:flex;flex-direction:column;justify-content:flex-end">'
             + s["overlay"]
             + f'<div style="position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(to top,rgba(0,0,0,.92) 0%,rgba(0,0,0,.25) 50%,transparent 100%);z-index:1;pointer-events:none"></div>'
-            + f'<div style="position:absolute;top:-0.05em;right:-0.05em;font-family:var(--fh);font-size:38vw;font-weight:900;line-height:0.85;color:var(--c1);opacity:.04;pointer-events:none;overflow:hidden;z-index:1;user-select:none">{deco_word}</div>'
+            + f'<div style="position:absolute;top:-0.05em;right:-0.05em;font-family:\'Black Han Sans\',var(--fh);font-size:40vw;font-weight:900;line-height:0.85;color:var(--c1);opacity:.06;pointer-events:none;overflow:hidden;z-index:1;user-select:none">{deco_word}</div>'
             + f'<div style="position:relative;z-index:2;padding:clamp(60px,8vw,100px) clamp(40px,7vw,100px);max-width:min(1000px,100%)">'
             + f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:28px"><div style="width:36px;height:3px;background:{accent_col}"></div><span style="font-size:9.5px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:{accent_col}">{sub}</span></div>'
-            + f'<h1 style="font-family:var(--fh);font-size:clamp(48px,7vw,110px);font-weight:900;line-height:.9;letter-spacing:-.04em;word-break:keep-all;overflow-wrap:break-word;color:{text_col};margin-bottom:20px" class="st">{title}</h1>'
+            + f'<h1 style="font-family:\'Black Han Sans\',var(--fh);font-size:clamp(52px,8vw,140px);font-weight:900;line-height:.88;letter-spacing:-.03em;word-break:keep-all;overflow-wrap:break-word;color:{text_col};margin-bottom:20px" class="st">{title}</h1>'
             + (f'<div style="font-size:clamp(15px,1.7vw,20px);font-style:italic;font-weight:300;color:{accent_col};margin-bottom:18px;letter-spacing:-.01em;line-height:1.5;opacity:.9">{tagline}</div>' if tagline else "")
             + f'<div style="width:100%;height:1px;background:linear-gradient(to right,{accent_col},transparent);margin-bottom:24px;opacity:.4"></div>'
             + f'<p style="font-size:clamp(14px,1.6vw,17px);line-height:1.9;color:{t70_col};max-width:520px;padding-left:18px;border-left:3px solid {accent_col};margin-bottom:28px">{lead}</p>'
@@ -1281,7 +1285,7 @@ def sec_banner(d, cp, T):
             # 메인 콘텐츠
             + f'<div style="position:relative;z-index:2;padding:clamp(48px,6vw,80px) clamp(40px,6vw,88px);display:flex;flex-direction:column;justify-content:center">'
             + f'<div style="display:inline-flex;align-items:center;gap:8px;margin-bottom:20px"><span style="font-size:10px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:{accent_c}">{sub}</span></div>'
-            + f'<h1 style="font-family:var(--fh);font-size:clamp(38px,5.5vw,80px);font-weight:900;line-height:.95;letter-spacing:-.04em;word-break:keep-all;overflow-wrap:break-word;color:{text_col};max-width:800px;margin-bottom:16px" class="st">{title}</h1>'
+            + f'<h1 style="font-family:\'Black Han Sans\',var(--fh);font-size:clamp(40px,6vw,96px);font-weight:900;line-height:.9;letter-spacing:-.03em;word-break:keep-all;overflow-wrap:break-word;color:{text_col};max-width:800px;margin-bottom:16px" class="st">{title}</h1>'
             + (f'<div style="font-size:clamp(14px,1.5vw,18px);font-style:italic;font-weight:300;color:{accent_c};margin-bottom:20px;line-height:1.5;opacity:.9">{tagline}</div>' if tagline else "")
             + f'<div style="display:flex;gap:40px;align-items:flex-start;flex-wrap:wrap">'
             + f'<p style="font-size:clamp(13px,1.4vw,16px);line-height:1.95;color:{t70_col};max-width:420px;padding-left:20px;border-left:3px solid {accent_c}">{lead}</p>'
@@ -2377,6 +2381,7 @@ def build_html(secs: list) -> str:
     f'<title>{d["name"]} {d["subject"]} · {ttl}</title>'
     f'<link rel="preconnect" href="https://fonts.googleapis.com"/>'
     f'<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>'
+    f'<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet"/>'
     f'<link href="{T["fonts"]}" rel="stylesheet"/>'
     f'<style>:root{{{T["vars"]}}}{BASE_CSS}{T["extra_css"]}{dc}</style>'
     f'</head><body>{body}'
