@@ -1110,6 +1110,25 @@ p{line-height:1.9}
   [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
   [style*="grid-template-columns:repeat(2,1fr)"]{grid-template-columns:1fr!important}
 }
+/* ── 다크/라이트 모드 토글 버튼 ── */
+#mode-toggle{
+  position:fixed;bottom:80px;right:24px;z-index:9991;
+  width:44px;height:44px;border-radius:50%;border:1.5px solid rgba(255,255,255,.2);
+  background:rgba(20,20,30,.7);backdrop-filter:blur(12px);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:18px;transition:all .2s;box-shadow:0 4px 20px rgba(0,0,0,.3)}
+#mode-toggle:hover{transform:scale(1.1);background:rgba(40,40,60,.9)}
+/* 라이트 모드 오버라이드 */
+body.light-mode{
+  --bg:#F5F5F0!important;--bg2:#EBEBEB!important;--bg3:#E0E0E0!important;
+  --text:#0A0A0A!important;--t70:rgba(10,10,10,.7)!important;--t45:rgba(10,10,10,.45)!important;
+  --bd:rgba(10,10,10,.12)!important;
+  background:var(--bg)!important;color:var(--text)!important}
+body.light-mode .card{background:var(--bg)!important;border-color:var(--bd)!important}
+body.light-mode #site-nav{background:rgba(245,245,240,.92)!important}
+body.light-mode #site-nav a{color:rgba(10,10,10,.65)!important}
+body.light-mode #site-nav a:hover{color:#0A0A0A!important}
+body.light-mode #mode-toggle{background:rgba(240,240,235,.9)!important;border-color:rgba(0,0,0,.15)!important}
 """
 
 
@@ -2003,15 +2022,31 @@ def sec_event_benefits(d, cp, T):
         else:
             icon, no, badge, title, desc = "✦", f"{i+1:02d}", "혜택", strip_hanja(str(b)), ""
         return (
-            f'<div class="card rv d{min(i+1,4)}" style="display:grid;grid-template-columns:64px 1fr;gap:20px;align-items:flex-start;padding:24px">'
-            f'<div style="width:64px;height:64px;border-radius:var(--r,4px);background:linear-gradient(135deg,var(--c1),var(--c2));display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0">{icon}</div>'
-            f'<div><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
-            f'<span style="font-size:9px;font-weight:800;color:var(--c1);opacity:.7">NO.{no}</span>'
-            f'<span style="background:var(--c1);color:#fff;font-size:9px;font-weight:800;padding:2px 10px;border-radius:100px">{badge}</span></div>'
-            f'<div style="font-family:var(--fh);font-size:15px;font-weight:700;margin-bottom:7px" class="st">{title}</div>'
-            f'<p style="font-size:12.5px;line-height:1.85;color:var(--t70)">{desc}</p>'
-            f'</div></div>'
+        f'<section class="sec" id="event-overview" style="position:relative;overflow:hidden">'
+        f'<div style="position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(var(--c1-rgb,255,34,68),.08),transparent 60%);pointer-events:none"></div>'
+        f'<div style="max-width:1200px;margin:0 auto;position:relative;z-index:1">'
+        f'<div class="rv" style="margin-bottom:48px">'
+        f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">'
+        f'<div style="width:40px;height:3px;background:var(--c1)"></div>'
+        f'<span style="font-size:9.5px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--c1)">이벤트 개요</span>'
+        f'</div>'
+        f'<h2 style="font-family:\'Black Han Sans\',var(--fh);font-size:clamp(28px,4.5vw,56px);font-weight:900;line-height:1.05;color:var(--text);margin-bottom:12px">{t}</h2>'
+        f'<p style="font-size:15px;line-height:1.9;color:var(--t70);max-width:560px">{desc}</p>'
+        f'</div>'
+        f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;border-radius:var(--r,4px);overflow:hidden;border:1px solid var(--bd)">'
+        + "".join(
+            f'<div class="rv d{i+1}" style="padding:36px 28px;background:{"var(--c1)" if i==0 else "var(--bg3)"};'
+            f'display:flex;flex-direction:column;gap:10px;position:relative;overflow:hidden">'
+            f'<div style="font-size:36px">{ic}</div>'
+            f'<div style="font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;'
+            f'color:{"rgba(255,255,255,.6)" if i==0 else "var(--c1)"};margin-top:4px">{lb}</div>'
+            f'<div style="font-family:\'Black Han Sans\',var(--fh);font-size:clamp(16px,2vw,22px);font-weight:900;'
+            f'color:{"#fff" if i==0 else "var(--text)"};line-height:1.2">{vl}</div>'
+            f'</div>'
+            for i,(ic,lb,vl) in enumerate(details)
         )
+        + f'</div></div></section>'
+    )
     bh = "".join(_safe_b(b, i) for i, b in enumerate(benefits))
     return f'<section class="sec alt" id="event-benefits"><div style="max-width:1200px;margin:0 auto"><div class="rv"><div class="tag-line">이벤트 혜택</div><h2 class="sec-h2 st">{t}</h2></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">{bh}</div></div></section>'
 
@@ -2045,13 +2080,29 @@ def sec_event_deadline(d, cp, T):
         + '})();</script>'
     )
     return (
-        f'<section class="sec" id="event-deadline" style="background:{T["cta"]};text-align:center">'
-        f'<div class="rv" style="max-width:680px;margin:0 auto">'
-        f'<div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.15);padding:6px 20px;border-radius:100px;font-size:11px;font-weight:800;color:#fff;margin-bottom:20px">⏰ 마감 안내</div>'
-        f'<h2 style="font-family:var(--fh);font-size:clamp(26px,4vw,44px);font-weight:900;color:#fff;margin-bottom:14px" class="st">{t}</h2>'
-        f'<p style="color:rgba(255,255,255,.7);font-size:15px;line-height:1.9;max-width:460px;margin:0 auto">{msg}</p>'
+        f'<section id="event-deadline" style="padding:clamp(80px,10vw,120px) clamp(28px,6vw,72px);'
+        f'text-align:center;position:relative;overflow:hidden;background:{T["cta"]}">'
+        f'<div style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 50% 100%,rgba(0,0,0,.4),transparent 70%);pointer-events:none"></div>'
+        f'<div style="position:absolute;top:0;left:0;right:0;height:4px;background:rgba(255,255,255,.3)"></div>'
+        f'<div class="rv" style="max-width:680px;margin:0 auto;position:relative;z-index:1">'
+        f'<div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.15);'
+        f'backdrop-filter:blur(8px);padding:7px 22px;border-radius:100px;font-size:11px;font-weight:800;'
+        f'color:#fff;margin-bottom:24px;border:1px solid rgba(255,255,255,.25)">⏰ 마감 임박</div>'
+        f'<h2 style="font-family:\'Black Han Sans\',var(--fh);font-size:clamp(28px,5vw,56px);'
+        f'font-weight:900;line-height:1.05;color:#fff;margin-bottom:16px">{t}</h2>'
+        f'<p style="color:rgba(255,255,255,.7);font-size:15px;line-height:1.9;max-width:460px;margin:0 auto 32px">{msg}</p>'
         f'{timer_html}'
-        f'<a style="display:inline-flex;align-items:center;gap:8px;background:#fff;color:#0A0A0A;font-weight:800;padding:16px 52px;border-radius:var(--r-btn,4px);font-size:16px;text-decoration:none" href="#">{cc} →</a>'
+        f'<div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">'
+        f'<a style="display:inline-flex;align-items:center;gap:10px;background:#fff;color:#0A0A0A;'
+        f'font-weight:900;padding:18px 52px;border-radius:var(--r-btn,4px);font-size:17px;'
+        f'text-decoration:none;box-shadow:0 8px 32px rgba(0,0,0,.25)" href="#">{cc} →</a>'
+        f'<a style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);'
+        f'backdrop-filter:blur(8px);color:rgba(255,255,255,.9);font-weight:700;padding:17px 32px;'
+        f'border-radius:var(--r-btn,4px);border:1.5px solid rgba(255,255,255,.3);font-size:15px;'
+        f'text-decoration:none" href="#">카카오톡 문의 💬</a>'
+        f'</div>'
+        f'<p style="margin-top:24px;font-size:11px;color:rgba(255,255,255,.35);letter-spacing:.06em">'
+        f'마감 후 혜택은 제공되지 않습니다</p>'
         f'</div></section>'
     )
 
@@ -2092,8 +2143,8 @@ def sec_fest_hero(d, cp, T):
         +  f'backdrop-filter:blur(8px);padding:7px 22px;border-radius:var(--r-btn,4px);'
         +  f'font-size:11px;font-weight:800;color:#fff;margin-bottom:28px;'
         +  f'border:1px solid rgba(255,255,255,.2)">🏆 {d["subject"]} 기획전</div>'
-        + f'<h1 style="font-family:var(--fh);font-size:clamp(44px,8vw,112px);font-weight:900;'
-        +  f'line-height:.82;letter-spacing:-.05em;color:#fff;margin-bottom:22px" class="st">{t}</h1>'
+        + f'<h1 style="font-family:\'Black Han Sans\',var(--fh);font-size:clamp(48px,9vw,128px);font-weight:900;'
+        +  f'line-height:.88;letter-spacing:-.02em;color:#fff;margin-bottom:22px" class="st">{t}</h1>'
         + f'<p style="font-size:clamp(18px,2.5vw,24px);color:rgba(255,255,255,.85);'
         +  f'margin-bottom:12px;font-weight:700">{cc}</p>'
         + f'<p style="font-size:15px;color:rgba(255,255,255,.6);margin-bottom:52px;'
@@ -2507,6 +2558,8 @@ def build_html(secs: list) -> str:
     + f'e.target.classList.add("on");ro.unobserve(e.target);}}}});}},{{threshold:.06,rootMargin:"0px 0px -40px 0px"}});'
     + f'document.querySelectorAll(".rv,.rv-left,.rv-right").forEach(el=>ro.observe(el));'
     + f'</script>'
+    + f'<button id="mode-toggle" onclick="(function(){{var b=document.body;b.classList.toggle(\'light-mode\');localStorage.setItem(\'mode\',b.classList.contains(\'light-mode\')?\' light\':\'dark\');this.textContent=b.classList.contains(\'light-mode\')?\'🌙\':\'☀️\'}}).call(this)" title="다크/라이트 모드">☀️</button>'
+    + f'<script>(function(){{var m=localStorage.getItem(\'mode\');var btn=document.getElementById(\'mode-toggle\');if(m===\'light\'){{document.body.classList.add(\'light-mode\');if(btn)btn.textContent=\'🌙\'}}}})()</script>'
     + f'</body></html>'
 )
 
