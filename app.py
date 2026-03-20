@@ -1871,13 +1871,7 @@ def sec_reviews(d, cp, T):
                     f'<span style="font-size:10px;background:var(--bg);color:var(--c1);padding:4px 14px;border-radius:var(--r-btn,100px);font-weight:800;border:1.5px solid var(--c1)">{badge}</span>'
                     f'</div></div>'
                 )
-                    f'<div style="display:flex;gap:2px;color:#F59E0B;font-size:12px">{"★"*5}</div>'
-                    f'<p style="font-size:13.5px;line-height:1.9;font-weight:500;flex:1">{strip_hanja(txt)}</p>'
-                    f'<div style="display:flex;align-items:center;justify-content:space-between;padding-top:12px;border-top:1px solid var(--bd)">'
-                    f'<span style="font-size:11px;color:var(--t45)">— {nm} 학생</span>'
-                    f'<span style="font-size:9.5px;background:var(--bg3);color:var(--c1);padding:3px 12px;border-radius:var(--r-btn,100px);font-weight:700;border:1px solid var(--bd)">{badge}</span>'
-                    f'</div></div>'
-                )
+                    
         return (
             f'<section class="sec alt" id="reviews"><div style="max-width:1200px;margin:0 auto">'
             f'<div class="rv" style="margin-bottom:40px;display:flex;align-items:flex-end;justify-content:space-between">'
