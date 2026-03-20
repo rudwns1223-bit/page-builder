@@ -1800,13 +1800,48 @@ def sec_reviews(d, cp, T):
         ['"3주 만에 독해 속도가 확실히 빨라졌어요. 실전에서 시간이 남는 게 느껴졌습니다."', "N수 이OO","실전 완성"],
         [f'"선생님 덕분에 {d["subject"]} 구조가 보이기 시작했어요."', "고2 박OO","자신감 회복"],
     ])
-    reviews = [
-        (list(r) + ["", ""])[:3] if isinstance(r, (list, tuple))
-        else [str(r), "", ""]
-        for r in reviews
-    ]
+    reviews = []
+    for r in cp.get("reviews", []):
+        if isinstance(r, dict):
+            txt   = strip_hanja(str(r.get("quote", r.get("text", r.get("content", str(r))))))
+            nm    = strip_hanja(str(r.get("name",  r.get("author", "수강생"))))
+            badge = strip_hanja(str(r.get("badge", r.get("tag", "수강 완료"))))
+            reviews.append([txt, nm, badge])
+        elif isinstance(r, (list, tuple)):
+            row = list(r) + ["", ""]
+            reviews.append([strip_hanja(str(row[0])), strip_hanja(str(row[1])), strip_hanja(str(row[2]))])
+        else:
+            reviews.append([strip_hanja(str(r)), "수강생", "수강 완료"])
+    if not reviews:
+        reviews = [
+            [f"{d['subject']} 공부 방식이 완전히 달라졌어요. 이제 지문이 보입니다.", "고3 김OO", "등급 향상"],
+            ["막막했던 실전이 이제는 자신 있어요. 시간도 남아요.", "N수 이OO", "실전 완성"],
+            [f"{d['subject']} 구조가 보이기 시작했어요. 선생님 덕분입니다.", "고2 박OO", "자신감 회복"],
+        ]
+```
+
+---
+
+## 문제 2 — AI 문구 품질 + 수강평 스키마 강화
+
+`gen_copy` 함수 안 `schemas` 딕셔너리에서 `"신규 커리큘럼"` 키의 `reviews` 부분을 찾으세요:
+```
+"reviews":[["지금도 쓸 것 같은 생생한 수강생 인용문 50-70자, 구체적 점수·방법 언급","이름","변화뱃지"],
+```
+
+이 부분이 포함된 스키마 전체에서 reviews 정의를 아래로 교체:
+```
+"reviews":[["quote 필드 없이 반드시 배열 형식으로. 50-70자 생생한 인용문, 구체적 등급변화 언급 필수","이름(예:고3 김OO)","뱃지(예:3→1등급)"],["50-70자 인용문","이름","뱃지"],["50-70자 인용문","이름","뱃지"]]
+```
+
+그리고 `gen_copy` 프롬프트 안 품질 기준에 아래 항목을 추가하세요. `===문구 품질 기준===` 블록 끝에 추가:
+```
+13. reviews는 반드시 [["인용문","이름","뱃지"], ...] 형식의 배열. 딕셔너리({}) 절대 금지
+14. 수강평 인용문은 구체적 등급 변화(예: "4등급에서 2등급으로") 또는 학습법 이름(예: "KISS Logic 덕분에") 반드시 포함
+15. 수강평 이름은 "고3 김OO", "N수 이OO" 형식으로 현실감 있게
  
-    v = random.randint(0, 3)
+    import hashlib
+    v = int(hashlib.md5((d.get("name","") + d.get("subject","") + str(len(reviews))).encode()).hexdigest(), 16) % 4
  
     if v == 1:
         # SNS 카드 스타일
