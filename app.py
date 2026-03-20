@@ -2047,7 +2047,7 @@ def sec_event_benefits(d, cp, T):
         )
         + f'</div></div></section>'
     )
-    bh = "".join(_safe_b(b, i) for i, b in enumerate(details))
+    bh = "".join(_safe_b(b, i) for i, b in enumerate(benefits))
     return f'<section class="sec alt" id="event-benefits"><div style="max-width:1200px;margin:0 auto"><div class="rv"><div class="tag-line">이벤트 혜택</div><h2 class="sec-h2 st">{t}</h2></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">{bh}</div></div></section>'
 
 
