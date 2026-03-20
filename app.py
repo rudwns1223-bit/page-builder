@@ -1833,7 +1833,7 @@ def sec_reviews(d, cp, T):
         ]
 
     import hashlib
-    v = int(hashlib.md5(...
+    v = int(hashlib.md5((d.get("name","") + d.get("subject","") + str(len(reviews))).encode()).hexdigest(), 16) % 4
  
     if v == 1:
         # SNS 카드 스타일
