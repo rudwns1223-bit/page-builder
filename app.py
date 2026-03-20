@@ -2022,31 +2022,15 @@ def sec_event_benefits(d, cp, T):
         else:
             icon, no, badge, title, desc = "✦", f"{i+1:02d}", "혜택", strip_hanja(str(b)), ""
         return (
-        f'<section class="sec" id="event-overview" style="position:relative;overflow:hidden">'
-        f'<div style="position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(var(--c1-rgb,255,34,68),.08),transparent 60%);pointer-events:none"></div>'
-        f'<div style="max-width:1200px;margin:0 auto;position:relative;z-index:1">'
-        f'<div class="rv" style="margin-bottom:48px">'
-        f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">'
-        f'<div style="width:40px;height:3px;background:var(--c1)"></div>'
-        f'<span style="font-size:9.5px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--c1)">이벤트 개요</span>'
-        f'</div>'
-        f'<h2 style="font-family:\'Black Han Sans\',var(--fh);font-size:clamp(28px,4.5vw,56px);font-weight:900;line-height:1.05;color:var(--text);margin-bottom:12px">{t}</h2>'
-        f'<p style="font-size:15px;line-height:1.9;color:var(--t70);max-width:560px">{desc}</p>'
-        f'</div>'
-        f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;border-radius:var(--r,4px);overflow:hidden;border:1px solid var(--bd)">'
-        + "".join(
-            f'<div class="rv d{i+1}" style="padding:36px 28px;background:{"var(--c1)" if i==0 else "var(--bg3)"};'
-            f'display:flex;flex-direction:column;gap:10px;position:relative;overflow:hidden">'
-            f'<div style="font-size:36px">{ic}</div>'
-            f'<div style="font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;'
-            f'color:{"rgba(255,255,255,.6)" if i==0 else "var(--c1)"};margin-top:4px">{lb}</div>'
-            f'<div style="font-family:\'Black Han Sans\',var(--fh);font-size:clamp(16px,2vw,22px);font-weight:900;'
-            f'color:{"#fff" if i==0 else "var(--text)"};line-height:1.2">{vl}</div>'
-            f'</div>'
-            for i,(ic,lb,vl) in enumerate(details)
+            f'<div class="card rv d{min(i+1,4)}" style="display:grid;grid-template-columns:64px 1fr;gap:20px;align-items:flex-start;padding:24px">'
+            f'<div style="width:64px;height:64px;border-radius:var(--r,4px);background:linear-gradient(135deg,var(--c1),var(--c2));display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0">{icon}</div>'
+            f'<div><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
+            f'<span style="font-size:9px;font-weight:800;color:var(--c1);opacity:.7">NO.{no}</span>'
+            f'<span style="background:var(--c1);color:#fff;font-size:9px;font-weight:800;padding:2px 10px;border-radius:100px">{badge}</span></div>'
+            f'<div style="font-family:var(--fh);font-size:15px;font-weight:700;margin-bottom:7px" class="st">{title}</div>'
+            f'<p style="font-size:12.5px;line-height:1.85;color:var(--t70)">{desc}</p>'
+            f'</div></div>'
         )
-        + f'</div></div></section>'
-    )
     bh = "".join(_safe_b(b, i) for i, b in enumerate(benefits))
     return f'<section class="sec alt" id="event-benefits"><div style="max-width:1200px;margin:0 auto"><div class="rv"><div class="tag-line">이벤트 혜택</div><h2 class="sec-h2 st">{t}</h2></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">{bh}</div></div></section>'
 
