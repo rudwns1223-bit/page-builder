@@ -805,7 +805,7 @@ SEC_LAYOUT_VARIANTS = {
         "배경 패턴 + 버튼만 크게: 미니멀 CTA",
     ],
 }
- 
+import random as _random
 def _pick_layout_variant(sec_id: str) -> str:
     """섹션 ID에 맞는 랜덤 레이아웃 변형 설명을 반환"""
     variants = SEC_LAYOUT_VARIANTS.get(sec_id, [])
@@ -858,13 +858,13 @@ def gen_section(sec_id: str) -> dict:
 아래 JSON 형식만 반환. 다른 말 절대 금지. 마크다운 금지. 코드블록 금지:
 {schema}"""
     last_err = None
-    for _attempt in range(3):       # ← 앞에 공백 4칸
-        try:                        # ← 앞에 공백 8칸
-            return safe_json(call_ai(prompt, max_tokens=900))  # ← 12칸
-        except Exception as e:      # ← 8칸
-            last_err = e            # ← 12칸
-            time.sleep(1)           # ← 12칸
-    raise last_err                  # ← 4칸
+    for _attempt in range(3):
+        try:
+            return safe_json(call_ai(prompt, max_tokens=900))
+        except Exception as e:
+            last_err = e
+            time.sleep(1)
+    raise last_err
 
 
 def gen_custom_sec(topic: str) -> dict:
@@ -1745,6 +1745,11 @@ def sec_reviews(d, cp, T):
         ['"3주 만에 독해 속도가 확실히 빨라졌어요. 실전에서 시간이 남는 게 느껴졌습니다."', "N수 이OO","실전 완성"],
         [f'"선생님 덕분에 {d["subject"]} 구조가 보이기 시작했어요."', "고2 박OO","자신감 회복"],
     ])
+    reviews = [
+        (list(r) + ["", ""])[:3] if isinstance(r, (list, tuple))
+        else [str(r), "", ""]
+        for r in reviews
+    ]
  
     v = random.randint(0, 3)
  
