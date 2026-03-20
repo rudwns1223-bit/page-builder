@@ -1004,6 +1004,8 @@ BASE_CSS = """
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{font-family:var(--fb);background:var(--bg);color:var(--text);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+#hero{scroll-margin-top:0}
+section[id]:not(#hero){scroll-margin-top:64px}
 a{text-decoration:none;color:inherit}
 
 /* ── 한국어 줄 맞춤 핵심 규칙 ── */
@@ -1014,9 +1016,13 @@ p{line-height:1.9}
 .card *,.rv *{overflow:visible;min-width:0}
 
 /* ── 인트로 애니메이션 ── */
-.rv{opacity:0;transform:translateY(22px);transition:opacity .9s cubic-bezier(.16,1,.3,1),transform .9s cubic-bezier(.16,1,.3,1)}
-.rv.on{opacity:1;transform:none}
-.d1{transition-delay:.12s}.d2{transition-delay:.26s}.d3{transition-delay:.42s}.d4{transition-delay:.58s}
+.rv{opacity:0;transform:translateY(32px) scale(.98);transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1)}
+.rv.on{opacity:1;transform:translateY(0) scale(1)}
+.d1{transition-delay:.1s}.d2{transition-delay:.22s}.d3{transition-delay:.36s}.d4{transition-delay:.52s}
+.rv-left{opacity:0;transform:translateX(-28px);transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1)}
+.rv-left.on{opacity:1;transform:translateX(0)}
+.rv-right{opacity:0;transform:translateX(28px);transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1)}
+.rv-right.on{opacity:1;transform:translateX(0)}
 @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
 @keyframes pulse-accent{0%,100%{opacity:.6}50%{opacity:1}}
 
@@ -2411,7 +2417,76 @@ def build_html(secs: list) -> str:
         "fest_lineup":sec_fest_lineup,"fest_benefits":sec_fest_benefits,
         "fest_cta":sec_fest_cta,"custom_section":sec_custom,
     }
-    body = "\n".join(mp[s](d,cp,T) for s in secs if s in mp)
+    # 네비게이션 섹션 레이블 맵
+    NAV_LABELS = {
+        "banner":"홈","intro":"강사 소개","why":"수강 이유",
+        "curriculum":"커리큘럼","target":"수강 대상","reviews":"수강평",
+        "faq":"FAQ","cta":"수강신청",
+        "video":"미리보기","before_after":"수강 전/후","method":"학습법","package":"구성",
+        "event_overview":"이벤트","event_benefits":"혜택","event_deadline":"마감",
+        "fest_hero":"기획전","fest_lineup":"라인업","fest_benefits":"혜택","fest_cta":"신청",
+    }
+    nav_items = [s for s in secs if s in NAV_LABELS and s != "banner"]
+    nav_id_map = {
+        "intro":"intro","why":"why","curriculum":"curriculum","target":"target",
+        "reviews":"reviews","faq":"faq","cta":"cta","video":"video",
+        "before_after":"before-after","method":"method","package":"package",
+        "event_overview":"event-overview","event_benefits":"event-benefits",
+        "event_deadline":"event-deadline","fest_hero":"fest-hero",
+        "fest_lineup":"fest-lineup","fest_benefits":"fest-benefits","fest_cta":"fest-cta",
+    }
+    nav_html = (
+        f'<nav id="site-nav" style="position:fixed;top:0;left:0;right:0;z-index:9990;'
+        f'background:rgba(0,0,0,0);backdrop-filter:blur(0px);-webkit-backdrop-filter:blur(0px);'
+        f'border-bottom:1px solid transparent;transition:all .35s cubic-bezier(.16,1,.3,1);padding:0">'
+        f'<div style="max-width:1200px;margin:0 auto;padding:0 clamp(20px,4vw,60px);'
+        f'display:flex;align-items:center;justify-content:space-between;height:56px">'
+        # 로고
+        f'<div style="font-family:\'Black Han Sans\',var(--fh);font-size:16px;font-weight:900;'
+        f'color:#fff;letter-spacing:.04em;white-space:nowrap">'
+        f'{d["name"] if d["name"] else d["subject"]} <span style="color:var(--c1)">·</span> {d["subject"]}</div>'
+        # 메뉴
+        f'<div style="display:flex;align-items:center;gap:4px;overflow-x:auto;scrollbar-width:none">'
+        + "".join(
+            f'<a href="#{nav_id_map.get(s,s)}" style="font-size:11px;font-weight:700;'
+            f'color:rgba(255,255,255,.65);padding:6px 12px;border-radius:var(--r-btn,4px);'
+            f'text-decoration:none;white-space:nowrap;transition:color .15s,background .15s;'
+            f'letter-spacing:.04em" '
+            f'onmouseover="this.style.color=\'#fff\';this.style.background=\'rgba(255,255,255,.1)\'" '
+            f'onmouseout="this.style.color=\'rgba(255,255,255,.65)\';this.style.background=\'transparent\'">'
+            f'{NAV_LABELS.get(s,s)}</a>'
+            for s in nav_items[:7]
+        )
+        + f'</div>'
+        # CTA 버튼
+        f'<a href="#cta" class="btn-p" style="font-size:11px;padding:8px 20px;flex-shrink:0;'
+        f'margin-left:12px">수강신청 →</a>'
+        f'</div></nav>'
+        # 네비 스크롤 JS
+        f'<script>'
+        f'(function(){{'
+        f'var nav=document.getElementById("site-nav");'
+        f'var scrolled=false;'
+        f'window.addEventListener("scroll",function(){{'
+        f'if(window.scrollY>80){{if(!scrolled){{'
+        f'nav.style.background="rgba(10,10,18,.92)";'
+        f'nav.style.backdropFilter="blur(20px)";'
+        f'nav.style.webkitBackdropFilter="blur(20px)";'
+        f'nav.style.borderBottomColor="rgba(255,255,255,.08)";'
+        f'nav.style.padding="0";'
+        f'scrolled=true;'
+        f'}}}}else{{if(scrolled){{'
+        f'nav.style.background="rgba(0,0,0,0)";'
+        f'nav.style.backdropFilter="blur(0px)";'
+        f'nav.style.webkitBackdropFilter="blur(0px)";'
+        f'nav.style.borderBottomColor="transparent";'
+        f'scrolled=false;'
+        f'}}}}'
+        f'}});'
+        f'}})();'
+        f'</script>'
+    )
+    body = nav_html + "\n".join(mp[s](d,cp,T) for s in secs if s in mp)
     ttl  = cp.get("bannerTitle", cp.get("festHeroTitle", d["purpose_label"]))
     particle_js = _particle_js(T.get("particle","none"))
     concept_key = st.session_state.concept if st.session_state.concept != "custom" else "custom"
@@ -2427,7 +2502,11 @@ def build_html(secs: list) -> str:
     f'</head><body>{body}'
     + _particle_js(T.get("particle","none"))
     + _theme_fx(concept_key)
-    + f'<script>const ro=new IntersectionObserver(es=>{{es.forEach(e=>{{if(e.isIntersecting){{e.target.classList.add("on");ro.unobserve(e.target);}}}});}},{{threshold:.08}});document.querySelectorAll(".rv").forEach(el=>ro.observe(el));</script>'
+    + f'<script>'
+    + f'const ro=new IntersectionObserver(es=>{{es.forEach(e=>{{if(e.isIntersecting){{'
+    + f'e.target.classList.add("on");ro.unobserve(e.target);}}}});}},{{threshold:.06,rootMargin:"0px 0px -40px 0px"}});'
+    + f'document.querySelectorAll(".rv,.rv-left,.rv-right").forEach(el=>ro.observe(el));'
+    + f'</script>'
     + f'</body></html>'
 )
 
