@@ -2724,16 +2724,27 @@ with st.sidebar:
     uploaded_img = st.file_uploader("배경 이미지", type=["jpg","jpeg","png","webp"],
                                     label_visibility="collapsed", key="bg_uploader")
     if uploaded_img is not None:
-        b64 = base64.b64encode(uploaded_img.read()).decode()
-        mime = uploaded_img.type or "image/jpeg"
-        st.session_state.uploaded_bg_b64 = f"data:{mime};base64,{b64}"
-        st.session_state.bg_photo_url = ""
-        st.success(f"✓ '{uploaded_img.name}' 업로드됨!")
-        st.rerun()
-    if st.session_state.uploaded_bg_b64:
-        if st.button("🗑 업로드 이미지 제거", use_container_width=True, key="rm_bg"):
-            st.session_state.uploaded_bg_b64 = ""
-            st.rerun()
+    from PIL import Image
+    import io
+
+    # 이미지 열기
+    img = Image.open(uploaded_img).convert("RGB")
+
+    # 너무 크면 1920px로 줄이기
+    if img.width > 1920:
+        ratio = 1920 / img.width
+        img = img.resize((1920, int(img.height * ratio)), Image.LANCZOS)
+
+    # JPEG로 압축 (품질 80%)
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=80, optimize=True)
+    buf.seek(0)
+
+    b64 = base64.b64encode(buf.read()).decode()
+    st.session_state.uploaded_bg_b64 = f"data:image/jpeg;base64,{b64}"
+    st.session_state.bg_photo_url = ""
+    st.success(f"✓ '{uploaded_img.name}' 업로드됨!")
+    st.rerun()
 
     # 영상 섹션 URL 입력 (video 섹션이 활성화된 경우)
     if "video" in st.session_state.active_sections:
