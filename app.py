@@ -1696,7 +1696,7 @@ def sec_curriculum(d, cp, T):
             f'<p class="sec-sub" style="text-align:center;margin:0 auto">{s}</p></div>'
             f'{sh}</div></section>'
         )
-   elif v == 4:
+    elif v == 4:
         # R'GORITHM 스타일: 대형 번호 + 색상 블록 교차
         STEP_COLORS = [
             ("var(--c1)", "#fff"),
