@@ -2358,7 +2358,67 @@ def sec_custom(d, cp, T):
 # ══════════════════════════════════════════════════════
 # 추가 고급 섹션들 (ABPS / OVS 시안 수준)
 # ══════════════════════════════════════════════════════
-
+def sec_before_after(d, cp, T):
+    t   = strip_hanja(cp.get('baTitle', '공부 방식이 이렇게 달라집니다'))
+    sub = strip_hanja(cp.get('baSub', f"{d['purpose_label']} 이후의 변화"))
+    befores = cp.get('baBeforeItems', [
+        f"{d['subject']} 지문이 무슨 말인지 몰라 처음부터 다 읽는다",
+        '시간이 부족해 뒷문제를 찍는 일이 반복된다',
+        '아는 내용인데 시험장에서 실수가 계속 나온다',
+    ])
+    afters = cp.get('baAfterItems', [
+        '구조가 보여서 필요한 부분만 정확히 읽는다',
+        '시간이 10분 이상 남아 검토까지 완료한다',
+        '실전에서 배운 대로 정확히 풀어낸다',
+    ])
+    bh = ''.join(
+        f'<div style="display:flex;gap:12px;align-items:flex-start;'
+        f'padding:14px 0;border-bottom:1px solid rgba(255,80,80,.12)">'
+        f'<div style="flex-shrink:0;width:22px;height:22px;border-radius:50%;'
+        f'background:rgba(255,80,80,.2);border:1.5px solid #FF5050;'
+        f'display:flex;align-items:center;justify-content:center;'
+        f'font-size:11px;color:#FF5050;font-weight:900;margin-top:1px">✕</div>'
+        f'<p style="font-size:14px;line-height:1.75;color:rgba(255,255,255,.7);margin:0">'
+        f'{strip_hanja(b)}</p></div>'
+        for b in befores
+    )
+    ah = ''.join(
+        f'<div style="display:flex;gap:12px;align-items:flex-start;'
+        f'padding:14px 0;border-bottom:1px solid var(--bd)">'
+        f'<div style="flex-shrink:0;width:22px;height:22px;border-radius:50%;'
+        f'background:var(--c1);display:flex;align-items:center;justify-content:center;'
+        f'font-size:11px;color:#fff;font-weight:900;margin-top:1px">✓</div>'
+        f'<p style="font-size:14px;line-height:1.75;color:var(--text);margin:0;font-weight:500">'
+        f'{strip_hanja(a)}</p></div>'
+        for a in afters
+    )
+    return (
+        f'<section class="sec" id="before-after">'
+        f'<div style="max-width:1000px;margin:0 auto">'
+        f'<div class="rv" style="text-align:center;margin-bottom:40px">'
+        f'<div class="tag-line" style="justify-content:center">수강 전/후</div>'
+        f'<h2 class="sec-h2 st" style="text-align:center">{t}</h2>'
+        f'<p class="sec-sub" style="text-align:center;margin:0 auto">{sub}</p>'
+        f'</div>'
+        f'<div style="display:grid;grid-template-columns:1fr 48px 1fr;gap:0;align-items:stretch" class="rv d1">'
+        f'<div style="background:#1A0808;border-radius:var(--r,4px) 0 0 var(--r,4px);'
+        f'padding:28px;border:1px solid rgba(255,80,80,.2);border-right:none">'
+        f'<div style="font-size:11px;font-weight:800;color:#FF5050;letter-spacing:.14em;'
+        f'text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:8px">'
+        f'<div style="width:8px;height:8px;border-radius:50%;background:#FF5050"></div>BEFORE</div>'
+        f'{bh}</div>'
+        f'<div style="background:var(--c1);display:flex;align-items:center;justify-content:center">'
+        f'<div style="font-size:18px;font-weight:900;color:#fff">→</div>'
+        f'</div>'
+        f'<div style="background:var(--bg3);border-radius:0 var(--r,4px) var(--r,4px) 0;'
+        f'padding:28px;border:1px solid var(--bd);border-left:none">'
+        f'<div style="font-size:11px;font-weight:800;color:var(--c1);letter-spacing:.14em;'
+        f'text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:8px">'
+        f'<div style="width:8px;height:8px;border-radius:50%;background:var(--c1)"></div>AFTER</div>'
+        f'{ah}</div>'
+        f'</div>'
+        f'</div></section>'
+    )
 def sec_video(d, cp, T):
     yt_url  = cp.get('videoUrl', '')
     title   = strip_hanja(cp.get('videoTitle', f"{d['name']} 선생님 강의 미리보기"))
