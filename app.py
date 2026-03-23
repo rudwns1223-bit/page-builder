@@ -497,27 +497,27 @@ def clean_obj(obj):
     return obj
 
 def safe_json(raw: str) -> dict:
-    s = re.sub(r"```json\s*", "", raw.strip())
-    s = re.sub(r"```\s*", "", s).strip()
-    # 첫 번째 { 부터 대응되는 } 까지만 추출
-    start = s.find("{")
-    if start < 0:
-        raise ValueError(f"JSON 파싱 실패 - {{ 없음\n원본: {raw[:200]}")
-    s = s[start:]
-    # 깊이 추적으로 완전한 첫 JSON 객체 추출
-    depth, end_idx = 0, -1
-    in_str, escape = False, False
-    for i, ch in enumerate(s):
-        if escape: escape = False; continue
-        if ch == "\\": escape = True; continue
-        if ch == '"' and not escape: in_str = not in_str; continue
-        if in_str: continue
-        if ch == "{": depth += 1
-        elif ch == "}":
-            depth -= 1
-            if depth == 0: end_idx = i; break
-    if end_idx < 0:
-        raise ValueError(f"JSON 파싱 실패 - 닫힘 }} 없음\n원본: {raw[:200]}")
+    """마크다운이나 불필요한 텍스트가 섞여 있어도 순수 JSON 객체만 추출"""
+    # 처음 '{' 와 마지막 '}' 사이의 텍스트만 추출
+    start = raw.find('{')
+    end = raw.rfind('}')
+    
+    if start == -1 or end == -1 or start > end:
+        raise ValueError(f"JSON 객체를 찾을 수 없습니다.\n원본: {raw[:200]}")
+        
+    s = raw[start:end+1]
+    
+    # 줄바꿈 처리 및 찌꺼기 문자 제거
+    s = s.replace('\n', ' ').replace('\r', '')
+    
+    # Llama 모델이 가끔 남기는 문법 오류(마지막 항목 뒤의 쉼표) 강제 수정
+    s = re.sub(r",\s*}", "}", s)
+    s = re.sub(r",\s*]", "]", s)
+    
+    try:
+        return clean_obj(json.loads(s))
+    except Exception as e:
+        raise ValueError(f"JSON 파싱 실패: {e}\n수정된 문자열: {s[:200]}")
     candidate = s[:end_idx+1]
     def _try(x):
         try: return clean_obj(json.loads(x))
@@ -3303,7 +3303,16 @@ with st.sidebar:
     st.caption("원하는 이미지를 직접 올리면 히어로 배경으로 사용됩니다")
     uploaded_img = st.file_uploader("배경 이미지", type=["jpg","jpeg","png","webp"],
                                     label_visibility="collapsed", key="bg_uploader")
-    if uploaded_img is not None:
+    
+    # 💡 [수정] X 버튼을 눌러 이미지를 삭제했을 때의 처리
+    if uploaded_img is None:
+        if st.session_state.get("uploaded_bg_b64"):  # 기존에 업로드된 이미지가 있었다면
+            st.session_state.uploaded_bg_b64 = ""    # 메모리에서 삭제
+            st.session_state.bg_photo_url = ""       # URL도 초기화
+            st.rerun()                               # 즉시 화면 새로고침
+            
+    # 새로운 이미지가 업로드 되었을 때의 처리
+    else:
         from PIL import Image
         import io
 
@@ -3318,10 +3327,14 @@ with st.sidebar:
         buf.seek(0)
 
         b64 = base64.b64encode(buf.read()).decode()
-        st.session_state.uploaded_bg_b64 = f"data:image/jpeg;base64,{b64}"
-        st.session_state.bg_photo_url = ""
-        st.success(f"✓ '{uploaded_img.name}' 업로드됨!")
-        st.rerun()
+        new_b64 = f"data:image/jpeg;base64,{b64}"
+        
+        # 기존에 올린 이미지와 다를 때만 업데이트하고 새로고침 (무한 로딩 방지)
+        if st.session_state.get("uploaded_bg_b64") != new_b64:
+            st.session_state.uploaded_bg_b64 = new_b64
+            st.session_state.bg_photo_url = ""
+            st.success(f"✓ '{uploaded_img.name}' 업로드됨!")
+            st.rerun()
 
     # 영상 섹션 URL 입력 (video 섹션이 활성화된 경우)
     if "video" in st.session_state.active_sections:
