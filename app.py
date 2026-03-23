@@ -823,8 +823,8 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
     if ptype == "이벤트":
         purpose_specific_rule = (
             "⚠️ [!!! 가장 중요한 이벤트 페이지 절대 규칙 !!!]\n"
-            f"1. 제목(bannerTitle)은 반드시 다음 사용자가 입력한 맥락을 바탕으로 작성하세요: '{ctx}'\n"
-            "2. 'KISS Logic'이나 강사의 정규 커리큘럼 명칭을 제목(bannerTitle)에 **절대 포함하지 마세요**.\n"
+            f"1. 제목뿐만 아니라 **모든 섹션(eventTitle, eventDesc, eventBenefits 등)**을 반드시 다음 사용자가 입력한 맥락을 최우선으로 반영해 작성하세요: '{ctx}'\n"
+            "2. 'KISS Logic'이나 강사의 정규 커리큘럼 명칭은 어울리지 않으니 **절대 포함하지 마세요**.\n"
             "3. bannerTags는 과목(어법, 빈칸)이 아니라, 이벤트 전용 혜택 단어(예: 기간한정, 전원증정, 모의고사 등)로 3개 작성하세요.\n"
         )
     elif ptype == "기획전":
@@ -3320,6 +3320,7 @@ with L:
                 hist.insert(0, snapshot)
                 st.session_state.history = hist[:5]
                 st.success(f"✓ 전체 {len(active)}개 섹션 문구 생성 완료!")
+                st.rerun() # <--- 화면을 즉시 새로고침하는 마법의 주문!
 
             except Exception as e:
                 prog.empty()
