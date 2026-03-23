@@ -1151,14 +1151,14 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);overflow-x:hid
 section[id]:not(#hero){scroll-margin-top:64px}
 a{text-decoration:none;color:inherit}
 
-/* ── 한국어 줄 맞춤 핵심 규칙 ── */
+/* -- 한국어 줄 맞춤 핵심 규칙 -- */
 h1,h2,h3,p,span,div{word-break:keep-all;overflow-wrap:break-word;white-space:normal}
 h1,h2,h3{line-height:1.15;letter-spacing:-.04em}
 p{line-height:1.9}
 /* 카드 내 텍스트 잘림 방지 */
 .card *,.rv *{overflow:visible;min-width:0}
 
-/* ── 인트로 애니메이션 ── */
+/* -- 인트로 애니메이션 -- */
 .rv{opacity:0;transform:translateY(32px) scale(.98);transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1)}
 .rv.on{opacity:1;transform:translateY(0) scale(1)}
 .d1{transition-delay:.1s}.d2{transition-delay:.22s}.d3{transition-delay:.36s}.d4{transition-delay:.52s}
@@ -1169,7 +1169,7 @@ p{line-height:1.9}
 @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
 @keyframes pulse-accent{0%,100%{opacity:.6}50%{opacity:1}}
 
-/* ── 버튼 ── */
+/* -- 버튼 -- */
 .btn-p{display:inline-flex;align-items:center;gap:8px;background:var(--c1);color:#fff;
   font-family:var(--fb);font-size:12px;font-weight:800;padding:11px 24px;
   border-radius:var(--r-btn,4px);border:none;cursor:pointer;
@@ -1183,7 +1183,7 @@ p{line-height:1.9}
   cursor:pointer;transition:border-color .15s,color .15s;text-decoration:none;white-space:nowrap}
 .btn-s:hover{border-color:var(--c1);color:var(--c1)}
 
-/* ── 섹션 기본 ── */
+/* -- 섹션 기본 -- */
 .sec{padding:clamp(60px,8vw,96px) clamp(28px,6vw,80px);position:relative}
 .sec.alt{background:var(--bg2)}
 .sec+.sec{border-top:1px solid var(--bd)}
@@ -1192,7 +1192,7 @@ p{line-height:1.9}
 .sec-accent-line{display:block;width:48px;height:3px;background:var(--c1);margin-bottom:18px}
 .sec-inner{max-width:1200px;margin:0 auto}
 
-/* ── 섹션 구분선 (대각선) ── */
+/* -- 섹션 구분선 (대각선) -- */
 .sec-diag-top::before{
   content:'';position:absolute;top:-40px;left:0;right:0;height:40px;
   background:inherit;
@@ -1204,39 +1204,39 @@ p{line-height:1.9}
   clip-path:polygon(0 0,100% 0,100% 100%);z-index:2;
 }
 
-/* ── 태그라인 ── */
+/* -- 태그라인 -- */
 .tag-line{display:inline-flex;align-items:center;gap:9px;font-size:9.5px;font-weight:800;
   letter-spacing:.18em;text-transform:uppercase;color:var(--c1);margin-bottom:14px}
 .tag-line::before{content:'';display:block;width:24px;height:2px;background:var(--c1)}
 
-/* ── 섹션 타이틀 ── */
+/* -- 섹션 타이틀 -- */
 .sec-h2{font-family:var(--fh);font-size:clamp(24px,3.5vw,40px);font-weight:900;
   line-height:1.15;letter-spacing:-.04em;color:var(--text);margin-bottom:12px;
   word-break:keep-all;overflow-wrap:break-word}
 .sec-sub{font-size:14px;line-height:1.9;color:var(--t70);margin-bottom:36px;
   max-width:560px;word-break:keep-all;overflow-wrap:break-word}
 
-/* ── 카드 ── */
+/* -- 카드 -- */
 .card{background:var(--bg);border:1px solid var(--bd);border-radius:var(--r,4px);
   padding:24px;transition:transform .25s,box-shadow .25s}
 .card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,.12)}
 
-/* ── 강조 숫자 배경 데코 ── */
+/* -- 강조 숫자 배경 데코 -- */
 .num-deco{position:absolute;font-family:var(--fh);font-size:clamp(120px,18vw,220px);
   font-weight:900;line-height:1;opacity:.035;color:var(--c1);pointer-events:none;
   user-select:none;z-index:0}
 
-/* ── 형광 강조 텍스트 ── */
+/* -- 형광 강조 텍스트 -- */
 .highlight{background:var(--c1);color:#fff;padding:0 6px;display:inline}
 
-/* ── 타이포그래피 히어로 전용 ── */
+/* -- 타이포그래피 히어로 전용 -- */
 .hero-word-accent{
   -webkit-text-stroke:2px var(--c1);
   color:transparent;
   font-family:var(--fh);
 }
 
-/* ── 반응형 그리드 안전장치 ── */
+/* -- 반응형 그리드 안전장치 -- */
 @media(max-width:900px){
   .sec{padding:clamp(48px,8vw,72px) clamp(20px,5vw,40px)}
   [style*="grid-template-columns:1fr 1.4fr"],
@@ -1253,7 +1253,7 @@ p{line-height:1.9}
   [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
   [style*="grid-template-columns:repeat(2,1fr)"]{grid-template-columns:1fr!important}
 }
-/* ── 다크/라이트 모드 토글 버튼 ── */
+/* -- 다크/라이트 모드 토글 버튼 -- */
 #mode-toggle{
   position:fixed;bottom:80px;right:24px;z-index:9991;
   width:44px;height:44px;border-radius:50%;border:1.5px solid rgba(255,255,255,.2);
