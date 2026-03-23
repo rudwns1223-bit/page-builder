@@ -759,30 +759,31 @@ def _get_instructor_context() -> str:
 
 def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
     inst_ctx = _get_instructor_context()
-    schemas = {
-        "신규 커리큘럼": '{"bannerSub":"10자이내","bannerTitle":"20자이내","brandTagline":"페이지 컨셉을 관통하는 브랜드 문구 1문장 (예: 우리의 강의실은, 영화관이 됩니다.)","bannerLead":"60-90자 수험생이 공감하는 구체적 고민을 찌르는 리드 문구","ctaCopy":"10자이내","ctaTitle":"CTA 제목","ctaSub":"30자이내","ctaBadge":"15자이내","statBadges":[],"introTitle":"20자이내","introDesc":"80-120자 강사만의 차별점과 학습 철학","introBio":"강사 학습법·특이점 포함 60자이내","introBadges":[],"whyTitle":"20자이내","whySub":"30자이내","whyReasons":[["이모지","12자제목","60자 학생 입장의 구체적 설명, 실제 변화 포함"],["이모지","12자","60자"],["이모지","12자","60자"]],"curriculumTitle":"20자이내","curriculumSub":"30자이내","curriculumSteps":[["01","8자제목","이 단계를 통해 무엇이 어떻게 달라지는지 학생 입장에서 50자 이상 설명","기간"],["02","8자","50자 이상","기간"],["03","8자","50자 이상","기간"],["04","8자","50자 이상","기간"]],"targetTitle":"20자이내","targetItems":["이런 학생을 대상으로 하는지 40-50자 구체적 상황 묘사","항목2 40자","항목3 40자","항목4 40자"],"reviews":[["지금도 쓸 것 같은 생생한 수강생 인용문 50-70자, 구체적 점수·방법 언급","이름","변화뱃지"],["50-70자 인용문","이름","뱃지"],["50-70자 인용문","이름","뱃지"]],"faqs":[["구체적 질문15자","명쾌한 답변 50자이상"],["질문","50자 답변"],["질문","50자 답변"]],"videoTitle":"영상 섹션 제목 20자","videoSub":"40자 설명","videoTag":"OFFICIAL TRAILER","baTitle":"수강 전/후 비교 제목","baSub":"30자","baBeforeItems":["수강 전 학생 고민 40자","고민2 40자","고민3 40자"],"baAfterItems":["수강 후 변화 40자","변화2 40자","변화3 40자"],"methodTitle":"학습법 시각화 제목","methodSub":"30자","methodSteps":[{"step":"STEP 01","label":"단계명","desc":"이 단계에서 무엇을 어떻게 하는지 45자이상"},{"step":"STEP 02","label":"단계명","desc":"45자이상"},{"step":"STEP 03","label":"단계명","desc":"45자이상"}],"pkgTitle":"구성 안내 제목","pkgSub":"30자","packages":[{"icon":"📗","name":"구성명","desc":"구성 설명 40자이상","badge":"필수"},{"icon":"📖","name":"구성명","desc":"40자이상","badge":"포함"},{"icon":"🎯","name":"구성명","desc":"40자이상","badge":"포함"},{"icon":"💬","name":"구성명","desc":"40자이상","badge":"특전"}]}',
-        "이벤트": '{"bannerSub":"10자","bannerTitle":"20자","brandTagline":"이벤트 분위기를 담은 브랜드 문구 1문장","bannerLead":"60-80자 긴박감 있는 리드","ctaCopy":"10자","ctaTitle":"CTA","ctaSub":"30자","ctaBadge":"15자","statBadges":[],"eventTitle":"20자","eventDesc":"50자이상","eventDetails":[["📅","이벤트 기간","날짜"],["🎯","대상","값"],["💰","혜택","값"]],"benefitsTitle":"20자","eventBenefits":[{"icon":"이모지","title":"혜택명","desc":"50자이상","badge":"8자","no":"01"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"02"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"03"}],"deadlineTitle":"20자","deadlineMsg":"70자 긴박감","reviews":[["50-70자 구체적 인용문","이름","뱃지"],["인용문","이름","뱃지"],["인용문","이름","뱃지"]]}',
-        "기획전": '{"festHeroTitle":"20자","festHeroCopy":"30자","festHeroSub":"50자이상","brandTagline":"기획전 분위기를 담은 한 문장","festHeroStats":[["수치","라벨"],["수치","라벨"],["수치","라벨"],["수치","라벨"]],"festLineupTitle":"20자","festLineupSub":"40자","festLineup":[{"name":"강사명","tag":"분야8자","tagline":"강사를 한 문장으로 소개 40자","badge":"8자","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"소개 40자","badge":"뱃지","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"소개 40자","badge":"뱃지","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"소개 40자","badge":"뱃지","emoji":"이모지"}],"festBenefitsTitle":"20자","festBenefits":[{"icon":"이모지","title":"혜택명","desc":"50자이상","badge":"8자","no":"01"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"02"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"03"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"04"}],"festCtaTitle":"CTA제목","festCtaSub":"50자이상"}',
-    }
     
-    # ── 목적별 AI 규칙 오버라이드 ──
+    # 💡 bannerTags 속성이 추가되었습니다.
+    schemas = {
+        "신규 커리큘럼": '{"bannerSub":"10자이내","bannerTitle":"20자이내","brandTagline":"페이지 컨셉을 관통하는 브랜드 문구 1문장","bannerLead":"60-90자 수험생 고민을 찌르는 리드","bannerTags":["키워드1","키워드2","키워드3"],"ctaCopy":"10자이내","ctaTitle":"CTA 제목","ctaSub":"30자이내","ctaBadge":"15자이내","statBadges":[],"introTitle":"20자이내","introDesc":"80-120자 강사만의 차별점","introBio":"강사 학습법 포함 60자이내","introBadges":[],"whyTitle":"20자이내","whySub":"30자이내","whyReasons":[["이모지","12자제목","60자 구체적 설명"],["이모지","12자","60자"],["이모지","12자","60자"]],"curriculumTitle":"20자이내","curriculumSub":"30자이내","curriculumSteps":[["01","8자제목","학생 입장에서 50자 이상 설명","기간"],["02","8자","50자 이상","기간"],["03","8자","50자 이상","기간"],["04","8자","50자 이상","기간"]],"targetTitle":"20자이내","targetItems":["이런 학생을 대상으로 하는지 40자 상황 묘사","항목2 40자","항목3 40자","항목4 40자"],"reviews":[["생생한 인용문 50-70자","이름","변화뱃지"],["50-70자 인용문","이름","뱃지"],["50-70자 인용문","이름","뱃지"]],"faqs":[["구체적 질문15자","명쾌한 답변 50자이상"],["질문","50자 답변"],["질문","50자 답변"]],"videoTitle":"영상 섹션 제목 20자","videoSub":"40자 설명","videoTag":"OFFICIAL TRAILER","baTitle":"수강 전/후 비교 제목","baSub":"30자","baBeforeItems":["수강 전 학생 고민 40자","고민2 40자","고민3 40자"],"baAfterItems":["수강 후 변화 40자","변화2 40자","변화3 40자"],"methodTitle":"학습법 시각화 제목","methodSub":"30자","methodSteps":[{"step":"STEP 01","label":"단계명","desc":"45자이상"},{"step":"STEP 02","label":"단계명","desc":"45자이상"},{"step":"STEP 03","label":"단계명","desc":"45자이상"}],"pkgTitle":"구성 안내 제목","pkgSub":"30자","packages":[{"icon":"📗","name":"구성명","desc":"구성 설명 40자이상","badge":"필수"},{"icon":"📖","name":"구성명","desc":"40자이상","badge":"포함"},{"icon":"🎯","name":"구성명","desc":"40자이상","badge":"포함"},{"icon":"💬","name":"구성명","desc":"40자이상","badge":"특전"}]}',
+        "이벤트": '{"bannerSub":"10자","bannerTitle":"20자","brandTagline":"이벤트 분위기를 담은 한 문장","bannerLead":"60-80자 긴박감 있는 리드","bannerTags":["이벤트특징1","이벤트특징2","이벤트특징3"],"ctaCopy":"10자","ctaTitle":"CTA","ctaSub":"30자","ctaBadge":"15자","statBadges":[],"eventTitle":"20자","eventDesc":"50자이상","eventDetails":[["📅","이벤트 기간","날짜"],["🎯","대상","값"],["💰","혜택","값"]],"benefitsTitle":"20자","eventBenefits":[{"icon":"이모지","title":"혜택명","desc":"50자이상","badge":"8자","no":"01"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"02"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"03"}],"deadlineTitle":"20자","deadlineMsg":"70자 긴박감","reviews":[["50-70자 구체적 인용문","이름","뱃지"],["인용문","이름","뱃지"],["인용문","이름","뱃지"]]}',
+        "기획전": '{"festHeroTitle":"20자","festHeroCopy":"30자","festHeroSub":"50자이상","brandTagline":"기획전 분위기를 담은 한 문장","festHeroStats":[["수치","라벨"],["수치","라벨"],["수치","라벨"],["수치","라벨"]],"festLineupTitle":"20자","festLineupSub":"40자","festLineup":[{"name":"강사명","tag":"분야8자","tagline":"40자","badge":"8자","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지","emoji":"이모지"}],"festBenefitsTitle":"20자","festBenefits":[{"icon":"이모지","title":"혜택명","desc":"50자이상","badge":"8자","no":"01"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"02"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"03"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"04"}],"festCtaTitle":"CTA제목","festCtaSub":"50자이상"}',
+    }
+
+    # 💡 AI가 예시를 앵무새처럼 베끼지 못하게 하는 강력한 룰 추가
     purpose_specific_rule = ""
     if ptype == "이벤트":
         purpose_specific_rule = (
             "⚠️ [이벤트 페이지 절대 규칙]\n"
-            "1. bannerTitle은 단순 커리큘럼명('KISS Logic' 등) 단독 사용을 절대 금지합니다! 반드시 이벤트 성격을 나타내는 제목(예: 'KISS Logic 기대평 이벤트', '단 7일 한정 혜택', '수강후기 남기고 선물 받자!')으로 작성하세요.\n"
-            "2. bannerLead는 강의 설명이 아니라, 혜택 안내와 참여를 독려하는 이벤트 맞춤형 리드로 작성하세요."
+            "1. bannerTitle에 'KISS Logic' 같은 커리큘럼명을 무조건 쓰지 마세요. 사용자가 [페이지 맥락]에 명시한 주제(예: '기대평 이벤트', '모의고사 특강')를 1순위로 제목으로 만드세요.\n"
+            "2. bannerTags는 '빈칸 추론' 같은 과목 키워드가 아니라, 이벤트 관련 키워드(예: '전원증정', '기간한정', '무료제공')로 3개 작성하세요.\n"
         )
     elif ptype == "기획전":
         purpose_specific_rule = (
             "⚠️ [기획전 페이지 절대 규칙]\n"
-            "1. bannerTitle은 단순 커리큘럼명이 아니라 기획전 성격을 나타내는 통합적 제목(예: '수능 1등급 마스터 기획전', '전 영역 최강 라인업')으로 작성하세요.\n"
-            "2. bannerLead는 여러 강사와 혜택을 아우르는 웅장한 톤으로 작성하세요."
+            "1. 사용자가 [페이지 맥락]에 적은 주제를 최우선으로 반영하여 통합적인 제목을 작성하세요.\n"
         )
     else:
         purpose_specific_rule = (
-            "⚠️ [신규 커리큘럼 페이지 절대 규칙]\n"
-            "1. bannerTitle은 반드시 강사의 고유 커리큘럼/학습법 브랜드를 메인으로 사용하세요 (예: 'KISS Logic', '인셉션')."
+            "⚠️ [신규 커리큘럼 절대 규칙]\n"
+            "1. 사용자가 [페이지 맥락]에 명시한 커리큘럼이 있다면 무조건 그것을 bannerTitle로 사용하세요. 맥락이 비어있을 때만 강사 DB의 대표 커리큘럼을 사용하세요."
         )
 
     tone_instruction = COPY_TONES.get(st.session_state.copy_tone, "")
@@ -791,13 +792,13 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
 {FEW_SHOT_EXAMPLES}
 
 ===문구 생성 지침===
-위 예시는 스타일 참고용입니다. 예시를 그대로 쓰지 말고, 같은 어조·밀도·구체성을 유지하되 강사와 커리큘럼에 맞게 완전히 새로운 문구로 작성하세요.
+위 예시는 스타일 참고용입니다. 예시를 절대 그대로 쓰지 말고, 사용자의 [페이지 맥락]을 최우선으로 반영하세요!
 
 ===강사 정보===
 {inst_ctx}
 
 ===페이지 정보===
-맥락: "{ctx}"
+맥락: "{ctx if ctx else '입력된 맥락 없음. 강사 정보 기반으로 창작할 것'}"
 목적: {ptype} | 대상: {tgt} | 브랜드: {plabel}
 카피 어조: {tone_instruction}
 
@@ -809,7 +810,7 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
 3. 수험생이 지금 느끼는 구체적 고민을 정확히 찌르는 문구
 4. 실제처럼 들리는 수강평 (등급 변화, 학습법 언급 포함), 반드시 50자 이상
 5. 수치(만족도%, 합격생수) 절대 금지 — statBadges:[], introBadges:[]
-6. 한자 절대 금지
+6. 한자 절대 금지. 확인되지 않은 수치(%) 지어내지 말 것.
 7. ⚠️ 반드시 한국어로만 작성. 영어·독일어·기타 외국어 단어가 섞이면 안 됨 (강사 고유명사 제외)
 8. curriculumSteps 설명은 반드시 50자 이상 — 이 단계가 왜 필요한지, 어떻게 달라지는지 학생 입장에서 서술
 9. targetItems는 반드시 40자 이상 — 학생의 구체적인 상황과 고민을 담을 것
@@ -818,6 +819,8 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
 12. bannerLead·introDesc·ctaSub·whyReasons 설명·curriculumSteps 설명은 반드시 충분히 길고 임팩트 있게 작성.
 13. whyReasons 3개의 아이콘·제목은 서로 완전히 다른 관점이어야 함
 14. brandTagline: 페이지의 컨셉/무드를 담은 독창적 한 문장.
+15. ⚠️ [가장 중요한 규칙] 사용자가 '페이지 맥락'에 특정 내용을 적었다면, 예시('KISS Logic' 등)나 기본 강사 정보보다 그 맥락을 1순위로 반영하여 제목과 내용을 작성해야 합니다.
+16. bannerTags는 해당 목적(커리큘럼 특징 또는 이벤트 혜택)에 맞는 짧은 키워드로 3~4개 생성.
 
 JSON만 반환:
 {schemas.get(ptype, schemas['신규 커리큘럼'])}"""
@@ -895,8 +898,9 @@ def gen_section(sec_id: str) -> dict:
     inst_ctx = _get_instructor_context()
     ptype = st.session_state.purpose_type
     
+    # 💡 banner 스키마에 bannerTags가 추가되었습니다.
     schemas = {
-        "banner": '{"bannerSub":"10자","bannerTitle":"20자","brandTagline":"컨셉을 담은 브랜드 한 문장","bannerLead":"60-90자 수험생이 공감하는 구체적 리드","ctaCopy":"10자","statBadges":[]}',
+        "banner": '{"bannerSub":"10자","bannerTitle":"20자","brandTagline":"컨셉을 담은 브랜드 한 문장","bannerLead":"60-90자 수험생이 공감하는 구체적 리드","bannerTags":["키워드1","키워드2","키워드3"],"ctaCopy":"10자","statBadges":[]}',
         "intro":  '{"introTitle":"20자","introDesc":"80-120자 강사 철학과 차별점","introBio":"강사 학습법 포함 60자","introBadges":[]}',
         "why":    '{"whyTitle":"20자","whySub":"30자","whyReasons":[["이모지","12자","학생 입장에서 구체적 설명 60자"],["이모지","12자","60자"],["이모지","12자","60자"]]}',
         "curriculum": '{"curriculumTitle":"20자","curriculumSub":"30자","curriculumSteps":[["01","8자","이 단계 통해 무엇이 달라지는지 50자 이상 설명","기간"],["02","8자","50자 이상","기간"],["03","8자","50자 이상","기간"],["04","8자","50자 이상","기간"]]}',
@@ -920,7 +924,7 @@ def gen_section(sec_id: str) -> dict:
     purpose_specific_rule = ""
     if sec_id == "banner":
         if ptype == "이벤트":
-            purpose_specific_rule = "⚠️ [중요] 페이지 목적이 '이벤트'입니다. bannerTitle은 단순 커리큘럼명('KISS Logic' 등) 단독 사용을 절대 금지하며, 반드시 이벤트 제목(예: '기대평 이벤트', '수강료 지원 혜택')으로 작성하세요."
+            purpose_specific_rule = "⚠️ [중요] 페이지 목적이 '이벤트'입니다. bannerTitle은 단순 커리큘럼명('KISS Logic' 등) 단독 사용을 절대 금지하며, 반드시 이벤트 제목(예: '기대평 이벤트', '수강료 지원 혜택')으로 작성하세요. bannerTags는 이벤트 성격에 맞는 단어(기간한정, 무료제공 등)를 쓰세요."
         elif ptype == "기획전":
             purpose_specific_rule = "⚠️ [중요] 페이지 목적이 '기획전'입니다. bannerTitle은 '수능 [과목] 마스터 기획전' 같은 통합적인 제목으로 작성하세요."
     
@@ -1282,7 +1286,10 @@ def sec_banner(d, cp, T):
     tagline = strip_hanja(cp.get("brandTagline", ""))  # 컨셉 브랜드 문구
     cta   = strip_hanja(cp.get("ctaCopy", "수강신청하기"))
     stats = cp.get("statBadges", [])
-    kws   = SUBJ_KW.get(d["subject"], ["개념","기출","실전","파이널"])
+    
+    # 💡 고정 키워드 제거! AI가 맥락에 맞게 생성한 'bannerTags'를 가져옵니다. (없으면 기본값)
+    kws   = cp.get("bannerTags", SUBJ_KW.get(d["subject"], ["개념","기출","실전","파이널"]))
+    
     bg_url= cp.get("bg_photo_url", "")
     hs    = T.get("heroStyle", "typographic")
     s     = _bg_vars(bg_url, T["dark"])
@@ -1324,7 +1331,6 @@ def sec_banner(d, cp, T):
             f'<section id="hero" style="position:relative;min-height:100vh;overflow:hidden;{s["hero_bg"]};display:flex;flex-direction:column;justify-content:flex-end">'
             + s["overlay"]
             + f'<div style="position:absolute;inset:0;background:linear-gradient(160deg,transparent 30%,rgba(0,0,0,.85) 100%);z-index:1;pointer-events:none"></div>'
-            # 시네마틱 레터박스 라인
             + f'<div style="position:absolute;top:0;left:0;right:0;height:6px;background:var(--c1);z-index:3"></div>'
             + f'<div style="position:absolute;bottom:0;left:0;right:0;height:6px;background:var(--c1);z-index:3"></div>'
             + f'<div style="position:relative;z-index:2;padding:80px clamp(40px,7vw,100px) 80px;display:grid;grid-template-columns:1fr 340px;gap:60px;align-items:flex-end">'
@@ -1342,7 +1348,6 @@ def sec_banner(d, cp, T):
             + f'</div>'
             + (f'<div style="display:flex;gap:40px;margin-top:44px;padding-top:22px;border-top:1px solid rgba(255,255,255,.15)">{sh}</div>' if sh else "")
             + f'</div>'
-            # 우측 미니 카드
             + f'<div style="padding:28px;background:rgba(0,0,0,.7);{s["blur"]};border:1px solid rgba(255,255,255,.12);border-radius:var(--r,4px)">'
             + f'<div style="font-family:var(--fh);font-size:11px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--c1);margin-bottom:16px">강의 정보</div>'
             + "".join(f'<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.1)"><span style="font-size:11px;color:rgba(255,255,255,.5)">{l}</span><span style="font-size:12px;font-weight:700;color:#fff">{v}</span></div>' for l,v in [["강의 대상",d["target"]],["과목",d["subject"]],["브랜드",d["purpose_label"][:14]]])
@@ -1353,9 +1358,7 @@ def sec_banner(d, cp, T):
     # ── 레이아웃 3: BILLBOARD (초대형 타이포만) ─────
     elif hs == "billboard":
         bg_col = "var(--bg)"
-        line_col = "var(--c1)"
         title_parts = title.split()
-        # 첫 줄은 채움, 두 번째 줄은 outline 처리
         line1 = title_parts[0] if title_parts else title
         line2 = " ".join(title_parts[1:]) if len(title_parts) > 1 else ""
         return (
@@ -1386,12 +1389,10 @@ def sec_banner(d, cp, T):
             f'<section id="hero" style="position:relative;min-height:100vh;overflow:hidden;{s["hero_bg"]};display:grid;grid-template-rows:auto 1fr auto">'
             + s["overlay"]
             + f'<div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.2) 0%,rgba(0,0,0,.75) 100%);z-index:1;pointer-events:none"></div>'
-            # 헤더 바
             + f'<div style="position:relative;z-index:2;padding:28px clamp(40px,6vw,88px);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid {bd_c}">'
             + f'<div style="font-family:var(--fh);font-size:15px;font-weight:900;color:{text_col};letter-spacing:.06em">{d["subject"].upper()} · {d["name"] if d["name"] else "강사"}</div>'
             + f'<div style="display:flex;gap:5px">{kh}</div>'
             + f'</div>'
-            # 메인 콘텐츠
             + f'<div style="position:relative;z-index:2;padding:clamp(48px,6vw,80px) clamp(40px,6vw,88px);display:flex;flex-direction:column;justify-content:center">'
             + f'<div style="display:inline-flex;align-items:center;gap:8px;margin-bottom:20px"><span style="font-size:10px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:{accent_c}">{sub}</span></div>'
             + f'<h1 style="font-family:\'Black Han Sans\',var(--fh);font-size:clamp(40px,6vw,96px);font-weight:900;line-height:.9;letter-spacing:-.03em;word-break:keep-all;overflow-wrap:break-word;color:{text_col};max-width:800px;margin-bottom:16px" class="st">{title}</h1>'
@@ -1402,7 +1403,6 @@ def sec_banner(d, cp, T):
             + f'<a class="btn-p" href="#" style="font-size:15px;padding:16px 44px">{cta} →</a>'
             + f'<a href="#" style="display:inline-flex;align-items:center;justify-content:center;gap:7px;color:{text_col};font-weight:600;padding:14px 24px;border-radius:var(--r-btn,4px);border:1.5px solid {bd_c};font-size:13px;text-decoration:none">강의 미리보기</a>'
             + f'</div></div></div>'
-            # 하단 스탯
             + (f'<div style="position:relative;z-index:2;padding:24px clamp(40px,6vw,88px);border-top:1px solid {bd_c};display:flex;gap:48px">{sh}</div>' if sh else "<div></div>")
             + f'</section>'
         )
@@ -1412,7 +1412,6 @@ def sec_banner(d, cp, T):
         return (
             f'<section id="hero" style="position:relative;min-height:100vh;overflow:hidden;{s["hero_bg"]};display:grid;grid-template-columns:1fr 1fr">'
             + s["overlay"]
-            # 좌측
             + f'<div style="position:relative;z-index:2;display:flex;flex-direction:column;justify-content:center;padding:clamp(60px,7vw,100px) clamp(32px,5vw,64px)">'
             + f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:24px"><div style="width:40px;height:3px;background:{s["c1c"] if bg_url else "var(--c1)"}"></div><span style="font-size:9.5px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:{s["c1c"] if bg_url else "var(--c1)"}">{sub}</span></div>'
             + f'<h1 style="font-family:var(--fh);font-size:clamp(38px,5.5vw,72px);font-weight:900;line-height:.88;letter-spacing:-.04em;{"color:#fff" if (dark or bg_url) else "color:var(--text)"};margin-bottom:20px" class="st">{title}</h1>'
@@ -1420,7 +1419,6 @@ def sec_banner(d, cp, T):
             + f'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:24px">{kh}</div>'
             + f'<a class="btn-p" href="#" style="align-self:flex-start;font-size:14px;padding:14px 36px">{cta} →</a>'
             + f'</div>'
-            # 우측 — 강의 카드
             + f'<div style="position:relative;z-index:2;background:var(--c1);display:flex;align-items:center;justify-content:center;padding:48px 36px">'
             + f'<div style="width:100%;max-width:320px">'
             + f'<div style="font-size:11px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:rgba(0,0,0,.5);margin-bottom:20px">{d["purpose_label"]}</div>'
