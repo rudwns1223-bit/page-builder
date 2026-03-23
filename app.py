@@ -49,13 +49,35 @@ if not st.session_state.api_key:
 # 상수
 # ══════════════════════════════════════════════════════
 GROQ_URL    = "https://api.groq.com/openai/v1/chat/completions"
+# 기존 COPY_TONES 딕셔너리를 아래로 교체 (83행)
 COPY_TONES = {
-    "🔥 강렬·도발":   "어조: 직접적이고 도발적. '아직도 감으로 공부해?' 같은 도전적 문체. 짧고 강렬한 문장.",
-    "🤝 친근·공감":   "어조: 따뜻하고 공감하는 선배 느낌. '저도 그 막막함 알아요' 같은 감성. 부드러운 문체.",
-    "💎 프리미엄·권위":"어조: 격조 있고 권위적. '선택받은 수험생만의 커리큘럼' 같은 고급 브랜드 톤. 절제된 문체.",
-    "😎 쿨·MZ":      "어조: 트렌디하고 간결. MZ 감성, 유행어 적절히 사용. 짧고 위트 있는 문체.",
-    "📖 차분·신뢰":   "어조: 전문적이고 차분. 데이터와 근거 중심. 신뢰감 주는 설명체.",
+    "🔥 강렬·도발": (
+        "어조: 직접적·도전적. 수험생의 현실 안일함을 정면으로 찌름. "
+        "'아직도 감으로 공부해?' '남은 시간이 없어요' 같은 긴장감 문체. "
+        "문장은 짧고 끊어쳐야 함. 마침표 대신 줄바꿈. 감탄문·의문문 적극 활용."
+    ),
+    "🤝 친근·공감": (
+        "어조: 선배 느낌. 학생의 고민을 먼저 말해주는 방식. "
+        "'저도 그 막막함 알아요' '이 느낌 있죠?' 같은 공감 문체. "
+        "따뜻하지만 구체적. 추상적 위로 금지 — 반드시 구체적 상황 묘사 포함."
+    ),
+    "💎 프리미엄·권위": (
+        "어조: 절제된 고급 브랜드 톤. '선택받은 수험생만의 커리큘럼' 느낌. "
+        "수식어 최소화, 사실과 결과 중심. 문장 끝을 명사형으로 마무리. "
+        "과장 금지 — 단 하나의 가장 강한 근거만 제시."
+    ),
+    "😎 쿨·MZ": (
+        "어조: 트렌디하고 간결. '솔직히 말할게요' '그냥 됩니다' 같은 직설 문체. "
+        "긴 문장 금지. 한 줄에 하나의 메시지. 이모지 1~2개 허용. "
+        "설명하지 말고 결과만 말할 것."
+    ),
+    "📖 차분·신뢰": (
+        "어조: 전문적·데이터 중심. '기출 분석 결과' '패턴 기반 학습' 같은 근거 제시형. "
+        "숫자 대신 '반복 패턴', '출제 원리'로 구체화. "
+        "신뢰는 주장이 아니라 방법론으로 쌓아야 함."
+    ),
 }
+
 GROQ_MODELS = [
     "llama-3.3-70b-versatile",          # 메인 (기존 유지)
     "meta-llama/llama-4-scout-17b-16e-instruct",  # Llama 4 Scout
@@ -65,6 +87,34 @@ GROQ_MODELS = [
 
 # ── 문구 스타일 예시 (Few-shot) ──────────────────────
 FEW_SHOT_EXAMPLES = """
+=== 레퍼런스 스타일 핵심 규칙 ===
+- bannerTitle은 반드시 강사의 고유 커리큘럼 브랜드명 사용 (LIM IT, SYNTAX, R'GORITHM, CIRCLE 같은 방식)
+  예) 커리큘럼명이 "KISS Logic"이면 bannerTitle = "KISS Logic"
+  예) 커리큘럼명이 "인셉션"이면 bannerTitle = "인셉션"
+- bannerSub은 과목+포지션 (예: "영어 독해의 절대 기준", "사회탐구 성공의 전제")
+- brandTagline은 반드시 영어 한 문장 포함 (예: "Conquer the Pattern. Master the Score.")
+- introDesc 도입부는 반드시 학생 고민에서 시작 ("아직도 지문이 안 읽히나요?" 방식)
+
+[bannerTitle — 브랜드명 전면 배치 스타일]
+- KISS Logic
+- 인셉션
+- R'GORITHM
+- All Of KICE
+
+[bannerSub — 포지셔닝 문구]
+- 영어 독해의 절대 기준
+- 수학 1등급의 유일한 루트
+- 국어 비문학, 이제 다르게 읽힌다
+
+[brandTagline — 영어 슬로건 필수 포함]
+- "The Beginning Is Always Here."
+- "Conquer the Pattern. Master the Score."
+- "Read Different. Score Different."
+- "One Method. One Direction. One Grade."
+
+[introDesc — 학생 고민 먼저 시작]
+- 지문은 읽히는데 답이 안 보이는 학생들이 있습니다. 어법은 외웠는데 실전에서 틀리는 학생들이 있습니다. 이 강의는 그 지점을 정확히 짚습니다.
+- 공부는 하는데 성적이 안 오르는 느낌, 다들 한번씩 겪습니다. 문제는 방법이 아니라 방향입니다.
 === 절대 규칙 (위반 시 전체 실패) ===
 - 강사 정보에 명시된 과목만 언급. 영어 강사면 영어만, 수학 강사면 수학만.
 - 학교명·직위·소속·경력은 강사 정보에 없으면 절대 지어내지 말 것.
@@ -262,7 +312,7 @@ THEMES = {
 }
 
 PURPOSE_SECTIONS = {
-    "신규 커리큘럼": ["banner","intro","video","before_after","method","why","curriculum","target","package","reviews","faq","cta"],
+    "신규 커리큘럼": ["banner","intro","video","grade_stats","before_after","method","why","curriculum","target","package","reviews","faq","cta"],
     "이벤트":       ["banner","event_overview","event_benefits","event_deadline","reviews","cta"],
     "기획전":       ["fest_hero","fest_lineup","fest_benefits","fest_cta"],
 }
@@ -281,6 +331,7 @@ SEC_LABELS = {
     "curriculum":"📚 커리큘럼","target":"🎯 수강 대상","reviews":"⭐ 수강평",
     "faq":"❓ FAQ","cta":"📣 수강신청",
     "video":"🎬 영상 미리보기","before_after":"🔄 수강 전/후","method":"🧪 학습법 시각화","package":"📦 구성 안내",
+    "grade_stats":"📊 등급 변화 성과",
     "event_overview":"📅 이벤트 개요","event_benefits":"🎁 이벤트 혜택",
     "event_deadline":"⏰ 마감 안내",
     "fest_hero":"🏆 기획전 히어로","fest_lineup":"👥 강사 라인업",
@@ -1554,7 +1605,7 @@ def sec_curriculum(d, cp, T):
         ["04","파이널","실수 제거와 시간 배분으로 실전을 완성합니다.","3주"],
     ])
  
-    v = random.randint(0, 3)
+    v = random.randint(0, 4)
  
     if v == 1:
         # 수평 스텝퍼
@@ -1645,7 +1696,63 @@ def sec_curriculum(d, cp, T):
             f'<p class="sec-sub" style="text-align:center;margin:0 auto">{s}</p></div>'
             f'{sh}</div></section>'
         )
- 
+ elif v == 4:
+        # R'GORITHM 스타일: 대형 번호 + 색상 블록 교차
+        STEP_COLORS = [
+            ("var(--c1)", "#fff"),
+            ("var(--c2)", "var(--c4)"),
+            ("var(--bg3)", "var(--text)"),
+            ("var(--c3)", "var(--c4)"),
+        ]
+        sh = ""
+        for idx, step in enumerate(steps):
+            no   = str(step[0]); tt = str(step[1]); dc = str(step[2])
+            du   = str(step[3]) if len(step) > 3 else "4주"
+            bg_c, tx_c = STEP_COLORS[idx % len(STEP_COLORS)]
+            is_left = idx % 2 == 0
+            num_block = (
+                f'<div style="background:{bg_c};display:flex;flex-direction:column;'
+                f'align-items:center;justify-content:center;padding:32px;position:relative;overflow:hidden">'
+                f'<div style="position:absolute;font-family:var(--fh);font-size:120px;font-weight:900;'
+                f'color:rgba(0,0,0,.08);line-height:1;top:50%;left:50%;transform:translate(-50%,-50%);'
+                f'pointer-events:none">{idx+1}</div>'
+                f'<div style="font-family:var(--fh);font-size:64px;font-weight:900;'
+                f'color:{tx_c};line-height:1;position:relative;z-index:1">{idx+1}</div>'
+                f'<div style="font-size:11px;font-weight:800;color:{tx_c};opacity:.6;'
+                f'letter-spacing:.12em;margin-top:4px;text-transform:uppercase;position:relative;z-index:1">STEP</div>'
+                f'</div>'
+            )
+            content_block = (
+                f'<div style="background:var(--bg3);padding:32px;border:1px solid var(--bd)">'
+                f'<div style="font-size:10px;font-weight:800;color:var(--c1);letter-spacing:.12em;'
+                f'text-transform:uppercase;margin-bottom:8px">{du}</div>'
+                f'<div style="font-family:var(--fh);font-size:18px;font-weight:700;'
+                f'color:var(--text);margin-bottom:10px">{strip_hanja(tt)}</div>'
+                f'<p style="font-size:13px;line-height:1.85;color:var(--t70);margin:0">'
+                f'{strip_hanja(dc)}</p></div>'
+            )
+            if is_left:
+                sh += (
+                    f'<div class="rv d{min(idx+1,4)}" style="display:grid;grid-template-columns:200px 1fr;'
+                    f'min-height:200px;border-radius:var(--r,4px);overflow:hidden;margin-bottom:12px">'
+                    + num_block + content_block + f'</div>'
+                )
+            else:
+                sh += (
+                    f'<div class="rv d{min(idx+1,4)}" style="display:grid;grid-template-columns:1fr 200px;'
+                    f'min-height:200px;border-radius:var(--r,4px);overflow:hidden;margin-bottom:12px">'
+                    + content_block + num_block + f'</div>'
+                )
+        return (
+            f'<section class="sec" id="curriculum">'
+            f'<div style="max-width:900px;margin:0 auto">'
+            f'<div class="rv" style="text-align:center;margin-bottom:48px">'
+            f'<div class="tag-line" style="justify-content:center">커리큘럼</div>'
+            f'<h2 class="sec-h2 st" style="text-align:center">{t}</h2>'
+            f'<p class="sec-sub" style="text-align:center;margin:0 auto">{s}</p></div>'
+            f'{sh}</div></section>'
+        )
+
     else:
         # 기존 스타일 (왼쪽 타임라인)
         sh = ""
@@ -2297,70 +2404,55 @@ def sec_video(d, cp, T):
     )
 
 
-def sec_before_after(d, cp, T):
-    t   = strip_hanja(cp.get('baTitle', '공부 방식이 이렇게 달라집니다'))
-    sub = strip_hanja(cp.get('baSub', f"{d['purpose_label']} 이후의 변화"))
-    befores = cp.get('baBeforeItems', [
-        f"{d['subject']} 지문이 무슨 말인지 몰라 처음부터 다 읽는다",
-        '시간이 부족해 뒷문제를 찍는 일이 반복된다',
-        '아는 내용인데 시험장에서 실수가 계속 나온다',
-    ])
-    afters = cp.get('baAfterItems', [
-        '구조가 보여서 필요한 부분만 정확히 읽는다',
-        '시간이 10분 이상 남아 검토까지 완료한다',
-        '실전에서 배운 대로 정확히 풀어낸다',
+def sec_grade_stats(d, cp, T):
+    """등급 변화 시각화 — LIM IT 페이지 스타일"""
+    t   = strip_hanja(cp.get("gradeTitle", f"모두를 압도할 확실한 결과로"))
+    sub = strip_hanja(cp.get("gradeSub",   f"실제 수강생들의 {d['subject']} 등급 변화"))
+
+    changes = cp.get("gradeChanges", [
+        {"before": "4", "after": "1"},
+        {"before": "3", "after": "1"},
+        {"before": "4", "after": "2"},
+        {"before": "5", "after": "2"},
+        {"before": "3", "after": "1"},
+        {"before": "6", "after": "3"},
+        {"before": "4", "after": "1"},
+        {"before": "2", "after": "1"},
     ])
 
-    bh = ''.join(
-        f'<div style="display:flex;gap:12px;align-items:flex-start;'
-        f'padding:14px 0;border-bottom:1px solid rgba(255,80,80,.12)">'
-        f'<div style="flex-shrink:0;width:22px;height:22px;border-radius:50%;'
-        f'background:rgba(255,80,80,.2);border:1.5px solid #FF5050;'
-        f'display:flex;align-items:center;justify-content:center;'
-        f'font-size:11px;color:#FF5050;font-weight:900;margin-top:1px">✕</div>'
-        f'<p style="font-size:14px;line-height:1.75;color:rgba(255,255,255,.7);margin:0">'
-        f'{strip_hanja(b)}</p></div>'
-        for b in befores
-    )
-    ah = ''.join(
-        f'<div style="display:flex;gap:12px;align-items:flex-start;'
-        f'padding:14px 0;border-bottom:1px solid var(--bd)">'
-        f'<div style="flex-shrink:0;width:22px;height:22px;border-radius:50%;'
-        f'background:var(--c1);display:flex;align-items:center;justify-content:center;'
-        f'font-size:11px;color:#fff;font-weight:900;margin-top:1px">✓</div>'
-        f'<p style="font-size:14px;line-height:1.75;color:var(--text);margin:0;font-weight:500">'
-        f'{strip_hanja(a)}</p></div>'
-        for a in afters
+    cards_html = "".join(
+        f'<div class="rv d{min(i%4+1,4)}" style="'
+        f'display:flex;align-items:center;justify-content:center;gap:6px;'
+        f'padding:16px 12px;background:var(--bg3);border-radius:var(--r,4px);'
+        f'border:1px solid var(--bd);min-width:0">'
+        f'<div style="text-align:center">'
+        f'<div style="font-family:var(--fh);font-size:clamp(28px,3.5vw,44px);font-weight:900;'
+        f'color:var(--text);line-height:1">{c.get("before","?")}</div>'
+        f'<div style="font-size:9px;font-weight:700;color:var(--t45);letter-spacing:.08em;margin-top:2px">등급</div>'
+        f'</div>'
+        f'<div style="font-size:20px;font-weight:900;color:var(--c1);margin:0 2px">→</div>'
+        f'<div style="text-align:center">'
+        f'<div style="font-family:var(--fh);font-size:clamp(28px,3.5vw,44px);font-weight:900;'
+        f'color:var(--c1);line-height:1">{c.get("after","?")}</div>'
+        f'<div style="font-size:9px;font-weight:700;color:var(--c1);letter-spacing:.08em;margin-top:2px">등급</div>'
+        f'</div>'
+        f'</div>'
+        for i, c in enumerate(changes)
     )
 
     return (
-        f'<section class="sec" id="before-after">'
-        f'<div style="max-width:1000px;margin:0 auto">'
-        f'<div class="rv" style="text-align:center;margin-bottom:40px">'
-        f'<div class="tag-line" style="justify-content:center">수강 전/후</div>'
+        f'<section class="sec alt" id="grade-stats">'
+        f'<div style="max-width:1200px;margin:0 auto">'
+        f'<div class="rv" style="text-align:center;margin-bottom:36px">'
+        f'<div class="tag-line" style="justify-content:center">수강 성과</div>'
         f'<h2 class="sec-h2 st" style="text-align:center">{t}</h2>'
         f'<p class="sec-sub" style="text-align:center;margin:0 auto">{sub}</p>'
         f'</div>'
-        f'<div style="display:grid;grid-template-columns:1fr 48px 1fr;gap:0;align-items:stretch" class="rv d1">'
-        # Before
-        f'<div style="background:#1A0808;border-radius:var(--r,4px) 0 0 var(--r,4px);'
-        f'padding:28px;border:1px solid rgba(255,80,80,.2);border-right:none">'
-        f'<div style="font-size:11px;font-weight:800;color:#FF5050;letter-spacing:.14em;'
-        f'text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:8px">'
-        f'<div style="width:8px;height:8px;border-radius:50%;background:#FF5050"></div>BEFORE</div>'
-        f'{bh}</div>'
-        # 화살표
-        f'<div style="background:var(--c1);display:flex;align-items:center;justify-content:center">'
-        f'<div style="font-size:18px;font-weight:900;color:#fff">→</div>'
+        f'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-width:900px;margin:0 auto">'
+        f'{cards_html}'
         f'</div>'
-        # After
-        f'<div style="background:var(--bg3);border-radius:0 var(--r,4px) var(--r,4px) 0;'
-        f'padding:28px;border:1px solid var(--bd);border-left:none">'
-        f'<div style="font-size:11px;font-weight:800;color:var(--c1);letter-spacing:.14em;'
-        f'text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:8px">'
-        f'<div style="width:8px;height:8px;border-radius:50%;background:var(--c1)"></div>AFTER</div>'
-        f'{ah}</div>'
-        f'</div>'
+        f'<p class="rv d2" style="text-align:center;font-size:11px;color:var(--t45);'
+        f'margin-top:20px">* 실제 수강생 등급 변화 사례 일부를 발췌한 것입니다.</p>'
         f'</div></section>'
     )
 
@@ -2474,6 +2566,7 @@ def build_html(secs: list) -> str:
         "banner":sec_banner,"intro":sec_intro,"why":sec_why,"curriculum":sec_curriculum,
         "target":sec_target,"reviews":sec_reviews,"faq":sec_faq,"cta":sec_cta,
         "video":sec_video,"before_after":sec_before_after,"method":sec_method,"package":sec_package,
+        "grade_stats":sec_grade_stats, 
         "event_overview":sec_event_overview,"event_benefits":sec_event_benefits,
         "event_deadline":sec_event_deadline,"fest_hero":sec_fest_hero,
         "fest_lineup":sec_fest_lineup,"fest_benefits":sec_fest_benefits,
