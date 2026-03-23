@@ -2406,7 +2406,7 @@ def sec_fest_cta(d, cp, T):
     return (f'<section style="padding:clamp(72px,10vw,112px) clamp(28px,6vw,72px);text-align:center;position:relative;overflow:hidden;background:{T["cta"]}"><div style="position:absolute;top:-120px;left:50%;transform:translateX(-50%);width:700px;height:700px;border-radius:50%;background:rgba(255,255,255,.03);pointer-events:none"></div><div style="position:relative;z-index:1"><div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);padding:7px 22px;border-radius:var(--r-btn,4px);font-size:11px;font-weight:800;color:#fff;margin-bottom:26px;border:1px solid rgba(255,255,255,.2)">🏆 {d["subject"]} 기획전 통합 신청</div><h2 style="font-family:var(--fh);font-size:clamp(28px,5vw,60px);font-weight:900;line-height:1.05;letter-spacing:-.04em;color:#fff;margin-bottom:18px">{t}</h2><p style="color:rgba(255,255,255,.6);font-size:15px;line-height:1.85;margin-bottom:44px;max-width:480px;margin-left:auto;margin-right:auto">{s}</p><div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap"><a style="display:inline-flex;align-items:center;gap:8px;background:#fff;color:#0A0A0A;font-weight:800;padding:18px 52px;border-radius:var(--r-btn,4px);font-size:16px;text-decoration:none" href="#">기획전 통합 신청 →</a><a style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);backdrop-filter:blur(8px);color:rgba(255,255,255,.82);font-weight:600;padding:17px 32px;border-radius:var(--r-btn,4px);border:1.5px solid rgba(255,255,255,.3);font-size:14px;text-decoration:none" href="#">강사 개별 신청</a></div></div></section>')
 
 def _sec_event_promo(d: dict, c: dict, T: dict) -> str:
-    """대성마이맥 스타일 이벤트 섹션 (상품+추첨배지+블랙라벨 정보표+입력폼)"""
+    """대성마이맥 스타일 이벤트 섹션 (상품+추첨배지+블랙라벨 정보표+입력폼) (가독성 및 색상 개선 버전)"""
     tag          = strip_hanja(c.get("tag", "이벤트"))
     title        = strip_hanja(c.get("title", "이벤트"))
     desc         = strip_hanja(c.get("desc", ""))
@@ -2415,14 +2415,14 @@ def _sec_event_promo(d: dict, c: dict, T: dict) -> str:
     raffle_count = strip_hanja(str(c.get("raffle_count", "30명")))
     details      = c.get("event_details", [])
     
-    # 1. 상품 이미지 & 원형 뱃지
+    # 1. 상품 이미지 & 원형 뱃지 (뱃지 색상 및 그림자 강조)
     num_only = ''.join(filter(str.isdigit, raffle_count)) if raffle_count else ""
     prize_visual = f'<div style="position:relative; display:inline-block; margin:0 auto;">'
     if raffle_count:
         prize_visual += (
             f'<div style="position:absolute; top:-10px; left:-20px; width:68px; height:68px; '
             f'background:#111; color:#fff; border-radius:50%; display:flex; flex-direction:column; '
-            f'align-items:center; justify-content:center; box-shadow:0 4px 10px rgba(0,0,0,.25); z-index:2">'
+            f'align-items:center; justify-content:center; box-shadow:0 6px 15px rgba(0,0,0,.3); z-index:2">'
             f'<span style="font-family:var(--fh); font-weight:900; font-size:22px; line-height:1">{num_only if num_only else "🎁"}</span>'
             f'<span style="font-size:11px; font-weight:700; margin-top:2px">{"명 추첨" if num_only else "추첨"}</span>'
             f'</div>'
@@ -2431,59 +2431,67 @@ def _sec_event_promo(d: dict, c: dict, T: dict) -> str:
         prize_visual += f'<img src="{prize_img}" alt="{prize_name}" style="height:200px; object-fit:contain; position:relative; z-index:1">'
     else:
         prize_visual += (
-            f'<div style="width:200px; height:200px; border-radius:50%; background:rgba(255,255,255,.1); '
-            f'border:2px dashed var(--bd); display:flex; flex-direction:column; align-items:center; '
-            f'justify-content:center; padding:20px; text-align:center; position:relative; z-index:1; box-shadow:inset 0 0 40px rgba(0,0,0,.05)">'
-            f'<div style="font-size:56px; filter:drop-shadow(0 10px 10px rgba(0,0,0,.1))">🎁</div>'
+            f'<div style="width:200px; height:200px; border-radius:50%; background:#fcfcfc; '
+            f'border:2px dashed #ddd; display:flex; flex-direction:column; align-items:center; '
+            f'justify-content:center; padding:20px; text-align:center; position:relative; z-index:1; box-shadow:inset 0 0 20px rgba(0,0,0,.02)">'
+            f'<div style="font-size:56px; filter:drop-shadow(0 10px 10px rgba(0,0,0,.05))">🎁</div>'
             f'</div>'
         )
     prize_visual += f'</div>'
 
-    # 2. 이벤트 정보 테이블 (블랙 라벨 스타일)
+    # 2. 이벤트 정보 테이블 (블랙 라벨 스타일) (가독성 대폭 개선)
     detail_rows = "".join(
-        f'<div style="display:flex; margin-bottom:4px; box-shadow:0 2px 8px rgba(0,0,0,.04);">'
-        f'<div style="width:110px; background:#111; color:#fff; padding:12px; font-size:12.5px; '
-        f'font-weight:700; display:flex; align-items:center; justify-content:center; letter-spacing:-0.02em;">{strip_hanja(str(row[0]))}</div>'
-        f'<div style="flex:1; background:rgba(255,255,255,.8); color:#111; padding:12px 18px; '
+        f'<div style="display:flex; margin-bottom:4px; box-shadow:0 2px 8px rgba(0,0,0,.08); border-radius:4px; overflow:hidden;">'
+        # 왼쪽 라벨 (진한 차콜, 흰색 글씨)
+        f'<div style="width:110px; background:#1a1a1a; color:#fff; padding:12px; font-size:12.5px; '
+        f'font-weight:700; display:flex; align-items:center; justify-content:center; letter-spacing:-0.02em; border-right:1px solid #333;">'
+        f'{strip_hanja(str(row[0]))}</div>'
+        # 오른쪽 값 (아주 연한 회색 배경, 진한 글씨 - 가독성 확보)
+        f'<div style="flex:1; background:#f5f5f5; color:#222; padding:12px 18px; '
         f'font-size:13.5px; font-weight:600; display:flex; align-items:center;">{strip_hanja(str(row[1]))}</div>'
         f'</div>'
         for row in details if isinstance(row, (list, tuple)) and len(row) >= 2
     )
 
-    # 3. 수강후기/기대평 입력 폼
+    # 3. 수강후기/기대평 입력 폼 (가독성 및 버튼 색상 개선)
     input_form = (
-        f'<div style="background:#fff; padding:20px 24px; margin-top:32px; box-shadow:0 8px 30px rgba(0,0,0,.08); border:1px solid #EAEAEA;">'
+        f'<div style="background:#fff; padding:20px 24px; margin-top:32px; box-shadow:0 8px 30px rgba(0,0,0,.06); border:1px solid #eee; border-radius:4px;">'
         f'<div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">'
         f'<span style="display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; '
-        f'background:#E53935; color:#fff; border-radius:50%; font-size:11px; font-weight:900; line-height:1">!</span>'
-        f'<span style="font-size:11.5px; color:#E53935; font-weight:600; letter-spacing:-0.02em;">'
+        f'background:#D32F2F; color:#fff; border-radius:50%; font-size:11px; font-weight:900; line-height:1">!</span>'
+        f'<span style="font-size:11.5px; color:#D32F2F; font-weight:600; letter-spacing:-0.02em;">'
         f'수강후기/기대평은 3개 이상의 강의 수강 시 작성할 수 있습니다. 단, 2개 이하의 강의로 구성된 강좌는 모든 강의를 수강해야 합니다.</span>'
         f'</div>'
-        f'<div style="display:flex; gap:0; border:1px solid #ccc; border-radius:2px; overflow:hidden;">'
+        f'<div style="display:flex; gap:0; border:1px solid #ddd; border-radius:2px; overflow:hidden;">'
         f'<input type="text" placeholder="{title} 남기고 상품 받자!" '
         f'style="flex:1; padding:16px 20px; border:none; font-size:14px; outline:none; background:#fafafa; color:#333;" readonly>'
-        f'<button style="background:#444; color:#fff; border:none; padding:0 36px; font-weight:800; font-size:14px; cursor:pointer; transition:background 0.2s;" '
-        f'onmouseover="this.style.background=\'#222\'" onmouseout="this.style.background=\'#444\'">작성하기</button>'
+        # 버튼을 완전한 '블랙 라벨' 스타일로 검은색으로 변경
+        f'<button style="background:#111; color:#fff; border:none; padding:0 36px; font-weight:800; font-size:14px; cursor:pointer; transition:background 0.2s;" '
+        f'onmouseover="this.style.background=\'#000\'" onmouseout="this.style.background=\'#111\'">작성하기</button>'
         f'</div>'
         f'</div>'
     )
 
-    prize_name_html = f'<div style="margin-top:20px; font-size:14px; font-weight:800; color:var(--text); text-align:center;">{prize_name}</div>' if prize_name else ""
+    prize_name_html = f'<div style="margin-top:20px; font-size:14px; font-weight:800; color:#333; text-align:center;">{prize_name}</div>' if prize_name else ""
 
-    # 4. 전체 HTML 조립
+    # 4. 전체 HTML 조립 (헤더 색상 개선 및 섹션 배경색 고정)
     return (
-        f'<section class="sec alt" id="custom-section">'
+        # 'sec alt' 클래스 대신 스타일을 직접 지정하여 흰색 배경으로 고정
+        f'<section class="sec" style="background:#fff" id="custom-section">'
         f'<div style="max-width:860px; margin:0 auto">'
         f'<div class="rv" style="text-align:center; margin-bottom:48px">'
-        f'<div style="display:inline-flex; align-items:center; gap:8px; border:1px solid var(--text); color:var(--text); '
+        # 태그 라인 색상 및 배경 개선
+        f'<div style="display:inline-flex; align-items:center; gap:8px; border:1px solid #aaa; color:#666; '
         f'font-size:11px; font-weight:800; padding:6px 20px; border-radius:100px; margin-bottom:20px; '
-        f'letter-spacing:0.1em;">{tag} EVENT</div>'
+        f'letter-spacing:0.1em; background:#fafafa;">{tag} EVENT</div>'
+        # 제목 및 설명 색상 개선
         f'<h2 style="font-family:\'Black Han Sans\', var(--fh); font-size:clamp(32px, 5vw, 48px); font-weight:900; '
-        f'line-height:1.15; letter-spacing:-0.03em; color:var(--text); margin-bottom:16px;">{title}</h2>'
-        f'<p style="font-size:15.5px; line-height:1.85; color:var(--t70); font-weight:500; '
+        f'line-height:1.15; letter-spacing:-0.03em; color:#111; margin-bottom:16px;">{title}</h2>'
+        f'<p style="font-size:15.5px; line-height:1.85; color:#444; font-weight:500; '
         f'max-width:600px; margin:0 auto">{desc}</p>'
         f'</div>'
-        f'<div class="rv d1" style="background:var(--c1); padding:40px; border-radius:var(--r,8px); box-shadow:0 12px 40px rgba(0,0,0,.15);">'
+        # 이벤트 카드 배경색 및 테두리 개선
+        f'<div class="rv d1" style="background:#F4F4F4; padding:40px; border-radius:var(--r,8px); box-shadow:0 12px 40px rgba(0,0,0,.15); border:1px solid #ddd;">'
         f'<div style="display:grid; grid-template-columns:1fr 1.3fr; gap:40px; align-items:center;">'
         f'<div style="text-align:center;">'
         f'{prize_visual}'
