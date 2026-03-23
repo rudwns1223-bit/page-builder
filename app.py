@@ -760,31 +760,27 @@ def _get_instructor_context() -> str:
 def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
     inst_ctx = _get_instructor_context()
     
-    # 💡 bannerTags 속성이 추가되었습니다.
     schemas = {
         "신규 커리큘럼": '{"bannerSub":"10자이내","bannerTitle":"20자이내","brandTagline":"페이지 컨셉을 관통하는 브랜드 문구 1문장","bannerLead":"60-90자 수험생 고민을 찌르는 리드","bannerTags":["키워드1","키워드2","키워드3"],"ctaCopy":"10자이내","ctaTitle":"CTA 제목","ctaSub":"30자이내","ctaBadge":"15자이내","statBadges":[],"introTitle":"20자이내","introDesc":"80-120자 강사만의 차별점","introBio":"강사 학습법 포함 60자이내","introBadges":[],"whyTitle":"20자이내","whySub":"30자이내","whyReasons":[["이모지","12자제목","60자 구체적 설명"],["이모지","12자","60자"],["이모지","12자","60자"]],"curriculumTitle":"20자이내","curriculumSub":"30자이내","curriculumSteps":[["01","8자제목","학생 입장에서 50자 이상 설명","기간"],["02","8자","50자 이상","기간"],["03","8자","50자 이상","기간"],["04","8자","50자 이상","기간"]],"targetTitle":"20자이내","targetItems":["이런 학생을 대상으로 하는지 40자 상황 묘사","항목2 40자","항목3 40자","항목4 40자"],"reviews":[["생생한 인용문 50-70자","이름","변화뱃지"],["50-70자 인용문","이름","뱃지"],["50-70자 인용문","이름","뱃지"]],"faqs":[["구체적 질문15자","명쾌한 답변 50자이상"],["질문","50자 답변"],["질문","50자 답변"]],"videoTitle":"영상 섹션 제목 20자","videoSub":"40자 설명","videoTag":"OFFICIAL TRAILER","baTitle":"수강 전/후 비교 제목","baSub":"30자","baBeforeItems":["수강 전 학생 고민 40자","고민2 40자","고민3 40자"],"baAfterItems":["수강 후 변화 40자","변화2 40자","변화3 40자"],"methodTitle":"학습법 시각화 제목","methodSub":"30자","methodSteps":[{"step":"STEP 01","label":"단계명","desc":"45자이상"},{"step":"STEP 02","label":"단계명","desc":"45자이상"},{"step":"STEP 03","label":"단계명","desc":"45자이상"}],"pkgTitle":"구성 안내 제목","pkgSub":"30자","packages":[{"icon":"📗","name":"구성명","desc":"구성 설명 40자이상","badge":"필수"},{"icon":"📖","name":"구성명","desc":"40자이상","badge":"포함"},{"icon":"🎯","name":"구성명","desc":"40자이상","badge":"포함"},{"icon":"💬","name":"구성명","desc":"40자이상","badge":"특전"}]}',
         "이벤트": '{"bannerSub":"10자","bannerTitle":"20자","brandTagline":"이벤트 분위기를 담은 한 문장","bannerLead":"60-80자 긴박감 있는 리드","bannerTags":["이벤트특징1","이벤트특징2","이벤트특징3"],"ctaCopy":"10자","ctaTitle":"CTA","ctaSub":"30자","ctaBadge":"15자","statBadges":[],"eventTitle":"20자","eventDesc":"50자이상","eventDetails":[["📅","이벤트 기간","날짜"],["🎯","대상","값"],["💰","혜택","값"]],"benefitsTitle":"20자","eventBenefits":[{"icon":"이모지","title":"혜택명","desc":"50자이상","badge":"8자","no":"01"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"02"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"03"}],"deadlineTitle":"20자","deadlineMsg":"70자 긴박감","reviews":[["50-70자 구체적 인용문","이름","뱃지"],["인용문","이름","뱃지"],["인용문","이름","뱃지"]]}',
         "기획전": '{"festHeroTitle":"20자","festHeroCopy":"30자","festHeroSub":"50자이상","brandTagline":"기획전 분위기를 담은 한 문장","festHeroStats":[["수치","라벨"],["수치","라벨"],["수치","라벨"],["수치","라벨"]],"festLineupTitle":"20자","festLineupSub":"40자","festLineup":[{"name":"강사명","tag":"분야8자","tagline":"40자","badge":"8자","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지","emoji":"이모지"}],"festBenefitsTitle":"20자","festBenefits":[{"icon":"이모지","title":"혜택명","desc":"50자이상","badge":"8자","no":"01"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"02"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"03"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"04"}],"festCtaTitle":"CTA제목","festCtaSub":"50자이상"}',
     }
 
-    # 💡 AI가 예시를 앵무새처럼 베끼지 못하게 하는 강력한 룰 추가
     purpose_specific_rule = ""
     if ptype == "이벤트":
         purpose_specific_rule = (
-            "⚠️ [이벤트 페이지 절대 규칙]\n"
-            "1. bannerTitle에 'KISS Logic' 같은 커리큘럼명을 무조건 쓰지 마세요. 사용자가 [페이지 맥락]에 명시한 주제(예: '기대평 이벤트', '모의고사 특강')를 1순위로 제목으로 만드세요.\n"
-            "2. bannerTags는 '빈칸 추론' 같은 과목 키워드가 아니라, 이벤트 관련 키워드(예: '전원증정', '기간한정', '무료제공')로 3개 작성하세요.\n"
+            "⚠️ [!!! 가장 중요한 이벤트 페이지 절대 규칙 !!!]\n"
+            f"1. 제목(bannerTitle)은 반드시 다음 사용자가 입력한 맥락을 바탕으로 작성하세요: '{ctx}'\n"
+            "2. 'KISS Logic'이나 강사의 정규 커리큘럼 명칭을 제목(bannerTitle)에 **절대 포함하지 마세요**.\n"
+            "3. bannerTags는 과목(어법, 빈칸)이 아니라, 이벤트 전용 혜택 단어(예: 기간한정, 전원증정, 모의고사 등)로 3개 작성하세요.\n"
         )
     elif ptype == "기획전":
         purpose_specific_rule = (
             "⚠️ [기획전 페이지 절대 규칙]\n"
-            "1. 사용자가 [페이지 맥락]에 적은 주제를 최우선으로 반영하여 통합적인 제목을 작성하세요.\n"
+            f"1. 제목(bannerTitle)은 반드시 다음 사용자가 입력한 맥락을 바탕으로 작성하세요: '{ctx}'\n"
         )
     else:
-        purpose_specific_rule = (
-            "⚠️ [신규 커리큘럼 절대 규칙]\n"
-            "1. 사용자가 [페이지 맥락]에 명시한 커리큘럼이 있다면 무조건 그것을 bannerTitle로 사용하세요. 맥락이 비어있을 때만 강사 DB의 대표 커리큘럼을 사용하세요."
-        )
+        purpose_specific_rule = "⚠️ [신규 커리큘럼 규칙]\n1. 강사의 대표 강좌명이나 맥락을 기반으로 제목을 작성하세요."
 
     tone_instruction = COPY_TONES.get(st.session_state.copy_tone, "")
     prompt = f"""대한민국 최고 수능 교육 랜딩페이지 카피라이터.
@@ -792,13 +788,13 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
 {FEW_SHOT_EXAMPLES}
 
 ===문구 생성 지침===
-위 예시는 스타일 참고용입니다. 예시를 절대 그대로 쓰지 말고, 사용자의 [페이지 맥락]을 최우선으로 반영하세요!
+위 예시는 스타일 참고용입니다. 절대 베끼지 말고 [페이지 맥락]을 최우선으로 반영하여 창작하세요.
 
 ===강사 정보===
 {inst_ctx}
 
 ===페이지 정보===
-맥락: "{ctx if ctx else '입력된 맥락 없음. 강사 정보 기반으로 창작할 것'}"
+맥락: "{ctx if ctx else '이벤트/기획전 안내'}"
 목적: {ptype} | 대상: {tgt} | 브랜드: {plabel}
 카피 어조: {tone_instruction}
 
@@ -898,7 +894,6 @@ def gen_section(sec_id: str) -> dict:
     inst_ctx = _get_instructor_context()
     ptype = st.session_state.purpose_type
     
-    # 💡 banner 스키마에 bannerTags가 추가되었습니다.
     schemas = {
         "banner": '{"bannerSub":"10자","bannerTitle":"20자","brandTagline":"컨셉을 담은 브랜드 한 문장","bannerLead":"60-90자 수험생이 공감하는 구체적 리드","bannerTags":["키워드1","키워드2","키워드3"],"ctaCopy":"10자","statBadges":[]}',
         "intro":  '{"introTitle":"20자","introDesc":"80-120자 강사 철학과 차별점","introBio":"강사 학습법 포함 60자","introBadges":[]}',
@@ -924,9 +919,7 @@ def gen_section(sec_id: str) -> dict:
     purpose_specific_rule = ""
     if sec_id == "banner":
         if ptype == "이벤트":
-            purpose_specific_rule = "⚠️ [중요] 페이지 목적이 '이벤트'입니다. bannerTitle은 단순 커리큘럼명('KISS Logic' 등) 단독 사용을 절대 금지하며, 반드시 이벤트 제목(예: '기대평 이벤트', '수강료 지원 혜택')으로 작성하세요. bannerTags는 이벤트 성격에 맞는 단어(기간한정, 무료제공 등)를 쓰세요."
-        elif ptype == "기획전":
-            purpose_specific_rule = "⚠️ [중요] 페이지 목적이 '기획전'입니다. bannerTitle은 '수능 [과목] 마스터 기획전' 같은 통합적인 제목으로 작성하세요."
+            purpose_specific_rule = "⚠️ [!!! 절대 규칙 !!!] 제목에 'KISS Logic' 등 강좌명을 절대 쓰지 마세요. 이벤트 성격(예: 3월 학평 특강, 기대평)에 맞는 제목만 출력하세요. bannerTags는 이벤트용 단어(기간한정, 무료제공 등)로 작성하세요."
     
     sec_name = SEC_LABELS.get(sec_id, sec_id)
     schema = schemas.get(sec_id, '{"title":"제목","desc":"설명"}')
@@ -934,7 +927,7 @@ def gen_section(sec_id: str) -> dict:
 
 {FEW_SHOT_EXAMPLES}
 
-위 예시의 어조·밀도·구체성을 참고하되 절대 그대로 쓰지 말 것. 강사와 과목에 맞게 완전히 새로운 문구로 작성.
+위 예시를 절대 베끼지 마세요. 강사와 과목에 맞게 완전히 새로운 문구로 작성.
 
 {inst_ctx}
 과목: {st.session_state.subject} | 브랜드: {st.session_state.purpose_label}
@@ -942,9 +935,8 @@ def gen_section(sec_id: str) -> dict:
 
 {purpose_specific_rule}
 
-규칙: 강사 고유 학습법 직접 사용, 현대적 어조, 한자 금지, 수치 금지, 반드시 순수 한국어로만 작성(외국어 섞기 절대 금지)
-추가 규칙: "교수" 절대 금지(반드시 "선생님" 또는 "강사"), 확인되지 않은 학력·소속·경력 지어내기 금지, 문구는 짧고 밋밋하게 쓰지 말고 수험생 감정을 건드리는 구체적·임팩트 있는 표현으로 작성
-아래 JSON 형식만 반환. 다른 말 절대 금지. 마크다운 금지. 코드블록 금지:
+규칙: 한자 금지, 수치 금지, 반드시 순수 한국어로만 작성. "교수" 절대 금지.
+아래 JSON 형식만 반환. 마크다운 금지:
 {schema}"""
     last_err = None
     for _attempt in range(3):
@@ -2540,7 +2532,70 @@ def sec_fest_cta(d, cp, T):
     t = strip_hanja(cp.get("festCtaTitle",f"지금 바로 {d['subject']} 기획전<br>전체 강사 라인업을 만나세요"))
     s = strip_hanja(cp.get("festCtaSub",f"최고의 강사들과 함께 {d['subject']} 1등급 완성."))
     return (f'<section style="padding:clamp(72px,10vw,112px) clamp(28px,6vw,72px);text-align:center;position:relative;overflow:hidden;background:{T["cta"]}"><div style="position:absolute;top:-120px;left:50%;transform:translateX(-50%);width:700px;height:700px;border-radius:50%;background:rgba(255,255,255,.03);pointer-events:none"></div><div style="position:relative;z-index:1"><div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);padding:7px 22px;border-radius:var(--r-btn,4px);font-size:11px;font-weight:800;color:#fff;margin-bottom:26px;border:1px solid rgba(255,255,255,.2)">🏆 {d["subject"]} 기획전 통합 신청</div><h2 style="font-family:var(--fh);font-size:clamp(28px,5vw,60px);font-weight:900;line-height:1.05;letter-spacing:-.04em;color:#fff;margin-bottom:18px">{t}</h2><p style="color:rgba(255,255,255,.6);font-size:15px;line-height:1.85;margin-bottom:44px;max-width:480px;margin-left:auto;margin-right:auto">{s}</p><div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap"><a style="display:inline-flex;align-items:center;gap:8px;background:#fff;color:#0A0A0A;font-weight:800;padding:18px 52px;border-radius:var(--r-btn,4px);font-size:16px;text-decoration:none" href="#">기획전 통합 신청 →</a><a style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);backdrop-filter:blur(8px);color:rgba(255,255,255,.82);font-weight:600;padding:17px 32px;border-radius:var(--r-btn,4px);border:1.5px solid rgba(255,255,255,.3);font-size:14px;text-decoration:none" href="#">강사 개별 신청</a></div></div></section>')
+def gen_custom_sec(topic: str) -> dict:
+    inst_ctx = _get_instructor_context()
+    EVENT_KWS = ["이벤트", "후기", "수강평", "기대평", "경품", "추첨", "선물", "상품", "이벤", "기념"]
+    is_event = any(kw in topic for kw in EVENT_KWS)
 
+    if is_event:
+        prompt = (
+            f"수능 교육 랜딩페이지 이벤트 섹션 생성.\n\n"
+            f"강사/과목: {inst_ctx}\n"
+            f"이벤트 주제: \"{topic}\"\n"
+            f"브랜드: {st.session_state.purpose_label}\n\n"
+            f"규칙:\n"
+            f"- title: 20자이내 임팩트 있는 이벤트 제목\n"
+            f"- desc: 참여 독려 문장 40자이내\n"
+            f"- prize_name: 실제 상품명 (예: [스타벅스] 아이스 아메리카노, [배스킨라빈스] 파인트)\n"
+            f"- raffle_count: 추첨 인원 (예: \"30명\")\n"
+            f"- event_details: 4행 이벤트 정보 (기간/대상/발표/혜택)\n"
+            f"JSON만 반환:\n"
+            f"{{\"tag\":\"{topic[:6]}\","
+            f"\"title\":\"이벤트 제목 20자\","
+            f"\"desc\":\"설명 40자\","
+            f"\"event_style\":true,"
+            f"\"prize_name\":\"상품명\","
+            f"\"prize_img\":\"\","
+            f"\"raffle_count\":\"30명\","
+            f"\"event_details\":["
+            f"[\"이벤트 기간\",\"2026. 04. 01(수) ~ 04. 30(목)\"],"
+            f"[\"이벤트 대상\",\"강좌 수강생\"],"
+            f"[\"당첨자 발표\",\"2026. 05. 07(목) 홈 공지\"],"
+            f"[\"혜택\",\"상품명\"]]"
+            f"}}"
+        )
+    else:
+        prompt = (
+            f"수능 교육 랜딩페이지의 추가 섹션을 만들어.\n\n"
+            f"===강사/페이지 정보===\n{inst_ctx}\n"
+            f"과목: {st.session_state.subject} | 브랜드: {st.session_state.purpose_label}\n\n"
+            f"===섹션 주제===\n\"{topic}\"\n\n"
+            f"===중요 규칙===\n"
+            f"- 반드시 \"{topic}\" 주제로만 작성. 다른 내용 절대 금지\n"
+            f"- tag: \"{topic[:6]}\" 관련 짧은 레이블\n"
+            f"- title: 20자 이내 제목\n"
+            f"- desc: 60자 이내 설명 문장\n"
+            f"- items 각 desc: 45자 이상 구체적 설명\n"
+            f"- 한자 금지\n\n"
+            f"JSON만 반환:\n"
+            f"{{\"tag\":\"{topic[:6]}\","
+            f"\"title\":\"{topic} 안내\","
+            f"\"desc\":\"{topic}에 대한 60자 내외 설명\","
+            f"\"items\":["
+            f"{{\"icon\":\"이모지\",\"title\":\"15자이내\",\"desc\":\"45자이상 구체적 설명\"}},"
+            f"{{\"icon\":\"이모지\",\"title\":\"15자이내\",\"desc\":\"45자이상\"}}]"
+            f"}}"
+        )
+
+    last_err = None
+    for _attempt in range(3):
+        try:
+            return safe_json(call_ai(prompt, max_tokens=900))
+        except Exception as e:
+            last_err = e
+            time.sleep(1)
+    raise last_err
+    
 def _sec_event_promo(d: dict, c: dict, T: dict) -> str:
     """대성마이맥 스타일 이벤트 섹션 (상품+추첨배지+블랙라벨 정보표+입력폼) (가독성 및 색상 개선 버전)"""
     tag          = strip_hanja(c.get("tag", "이벤트"))
