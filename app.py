@@ -270,7 +270,7 @@ THEMES = {
     "acid": {
         "label":"⚡ 에시드 그린","dark":True,
         "fonts":"https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;700;900&display=swap",
-        "vars":"--c1:#AAFF00;--c2:#CCFF44;--c3:#224400;--c4:#030703;--bg:#030703;--bg2:#060E06;--bg3:#0A1A0A;--text:#F0FFF0;--t70:rgba(240,255,240,.7);--t45:rgba(240,255,240,.45);--bd:rgba(170,255,0,.18);--fh:'Space Grotesk','Noto Sans KR',sans-serif;--fb:'Space Grotesk','Noto Sans KR',sans-serif;--r:0px;--r-btn:0px;",
+        "vars":"--c1:#AAFF00;--c2:#CCFF44;--c3:#224400;--c4:#030703;--bg:#030703;--bg2:#060E06;--bg3:#0A1A0A;--text:#F0FFF0;--t70:rgba(240,255,240,.7);--t45:rgba(240,255,240,.45);--bd:rgba(170,255,0,.18);--on-c1:#030703;--fh:'Space Grotesk','Noto Sans KR',sans-serif;--fb:'Space Grotesk','Noto Sans KR',sans-serif;--r:0px;--r-btn:0px;",
         "extra_css":".st{letter-spacing:.02em} .card{border-color:rgba(170,255,0,.15)!important} .btn-p{color:#030703!important}",
         "cta":"linear-gradient(135deg,#030703,#224400 40%,#AAFF00)","heroStyle":"typographic",
         "particle":"none"},
@@ -305,7 +305,7 @@ THEMES = {
     "amber": {
         "label":"🟠 앰버 글로우","dark":True,
         "fonts":"https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Noto+Serif+KR:wght@300;400;600;900&family=DM+Sans:wght@300;400;500&display=swap",
-        "vars":"--c1:#F59E0B;--c2:#FCD34D;--c3:#7A4A00;--c4:#080400;--bg:#080400;--bg2:#0E0800;--bg3:#160D00;--text:#FFF8E8;--t70:rgba(255,248,232,.7);--t45:rgba(255,248,232,.45);--bd:rgba(245,158,11,.18);--fh:'Playfair Display','Noto Serif KR',serif;--fb:'DM Sans','Noto Serif KR',sans-serif;--r:4px;--r-btn:4px;",
+        "vars":"--c1:#F59E0B;--c2:#FCD34D;--c3:#7A4A00;--c4:#080400;--bg:#080400;--bg2:#0E0800;--bg3:#160D00;--text:#FFF8E8;--t70:rgba(255,248,232,.7);--t45:rgba(255,248,232,.45);--bd:rgba(245,158,11,.18);--on-c1:#0A0A0A;--fh:'Playfair Display','Noto Serif KR',serif;--fb:'DM Sans','Noto Serif KR',sans-serif;--r:4px;--r-btn:4px;",
         "extra_css":".st{font-style:italic}",
         "cta":"linear-gradient(135deg,#080400,#7A4A00 50%,#F59E0B)","heroStyle":"immersive",
         "particle":"gold"},
@@ -926,9 +926,75 @@ def gen_section(sec_id: str) -> dict:
     raise last_err
 
 
-def gen_custom_sec(topic: str) -> dict:
+def gen_custom_sec(topic: str) -> dict:  # noqa: F811 (replaces original)
     inst_ctx = _get_instructor_context()
-    prompt = f"""수능 교육 랜딩페이지의 추가 섹션을 만들어.
+ 
+    EVENT_KWS = ["이벤트", "후기", "수강평", "기대평", "경품", "추첨", "선물", "상품", "이벤", "기념"]
+    is_event = any(kw in topic for kw in EVENT_KWS)
+ 
+    if is_event:
+        prompt = (
+            f"수능 교육 랜딩페이지 이벤트 섹션 생성.\n\n"
+            f"강사/과목: {inst_ctx}\n"
+            f"이벤트 주제: \"{topic}\"\n"
+            f"브랜드: {st.session_state.purpose_label}\n\n"
+            f"규칙:\n"
+            f"- title: 20자이내 임팩트 있는 이벤트 제목 (예: '기대평 남기고 선물 받아가세요!')\n"
+            f"- desc: 참여 독려 문장 40자이내\n"
+            f"- prize_name: 실제 상품명 (예: [스타벅스] 아이스 아메리카노, [배스킨라빈스] 파인트)\n"
+            f"- raffle_count: 추첨 인원 (예: \"30명\")\n"
+            f"- event_details: 4행 이벤트 정보 (기간/대상/발표/혜택)\n"
+            f"- steps: 참여 방법 3단계\n\n"
+            f"JSON만 반환 (마크다운 금지):\n"
+            f"{{\"tag\":\"{topic[:6]}\","
+            f"\"title\":\"이벤트 제목 20자\","
+            f"\"desc\":\"설명 40자\","
+            f"\"event_style\":true,"
+            f"\"prize_name\":\"상품명\","
+            f"\"prize_img\":\"\","
+            f"\"raffle_count\":\"30명\","
+            f"\"event_details\":["
+            f"[\"이벤트 기간\",\"2026. 04. 01(수) ~ 04. 30(목)\"],"
+            f"[\"이벤트 대상\",\"강좌 수강생\"],"
+            f"[\"당첨자 발표\",\"2026. 05. 07(목) 선생님 홈 공지\"],"
+            f"[\"혜택\",\"상품명\"]],"
+            f"\"steps\":["
+            f"{{\"no\":\"STEP 1\",\"desc\":\"1단계 설명\"}},"
+            f"{{\"no\":\"STEP 2\",\"desc\":\"2단계 설명\"}},"
+            f"{{\"no\":\"STEP 3\",\"desc\":\"3단계 설명\"}}]}}"
+        )
+    else:
+        prompt = (
+            f"수능 교육 랜딩페이지의 추가 섹션을 만들어.\n\n"
+            f"===강사/페이지 정보===\n{inst_ctx}\n"
+            f"과목: {st.session_state.subject} | 브랜드: {st.session_state.purpose_label}\n\n"
+            f"===섹션 주제===\n\"{topic}\"\n\n"
+            f"===중요 규칙===\n"
+            f"- 반드시 \"{topic}\" 주제로만 작성. 다른 내용 절대 금지\n"
+            f"- 강사·과목과 연결된 구체적 내용으로 작성\n"
+            f"- tag: \"{topic[:6]}\" 관련 짧은 레이블\n"
+            f"- title: 20자 이내 제목\n"
+            f"- desc: 60자 이내 설명 문장\n"
+            f"- items 각 desc: 45자 이상 구체적 설명\n"
+            f"- 한자 금지\n\n"
+            f"JSON만 반환:\n"
+            f"{{\"tag\":\"{topic[:6]}\","
+            f"\"title\":\"{topic} 안내\","
+            f"\"desc\":\"{topic}에 대한 60자 내외 설명\","
+            f"\"items\":["
+            f"{{\"icon\":\"이모지\",\"title\":\"15자이내\",\"desc\":\"45자이상 구체적 설명\"}},"
+            f"{{\"icon\":\"이모지\",\"title\":\"15자이내\",\"desc\":\"45자이상\"}},"
+            f"{{\"icon\":\"이모지\",\"title\":\"15자이내\",\"desc\":\"45자이상\"}}]}}"
+        )
+ 
+    last_err = None
+    for _attempt in range(3):
+        try:
+            return safe_json(call_ai(prompt, max_tokens=900))
+        except Exception as e:
+            last_err = e
+            time.sleep(1)
+    raise last_err
 
 ===강사/페이지 정보===
 {inst_ctx}
@@ -1796,9 +1862,9 @@ def sec_curriculum(d, cp, T):
                 f'padding:20px 8px;border-radius:var(--r,4px) 0 0 var(--r,4px);'
                 f'border:1px solid {"var(--c1)" if idx%2==0 else "var(--bd)"};border-right:none">'
                 f'<div style="font-family:\'Black Han Sans\',var(--fh);font-size:11px;font-weight:900;'
-                f'color:{"rgba(255,255,255,.5)" if idx%2==0 else "var(--t45)"};letter-spacing:.1em">STEP</div>'
+                f'color:{"var(--on-c1,rgba(255,255,255,.6))" if idx%2==0 else "var(--t45)"};letter-spacing:.1em">STEP</div>'
                 f'<div style="font-family:\'Black Han Sans\',var(--fh);font-size:26px;font-weight:900;'
-                f'color:{"#fff" if idx%2==0 else "var(--c1)"};line-height:1;margin-top:2px">{idx+1:02d}</div>'
+                f'color:{"var(--on-c1,#fff)" if idx%2==0 else "var(--c1)"};line-height:1;margin-top:2px">{idx+1:02d}</div>'
                 f'</div>'
                 # 오른쪽 내용
                 f'<div style="flex:1;padding:22px 28px;background:var(--bg);'
@@ -1823,8 +1889,8 @@ def sec_curriculum(d, cp, T):
             f'<p style="font-size:14px;line-height:1.9;color:var(--t70);margin-bottom:32px">{s}</p>'
             f'<div style="padding:24px 28px;background:var(--c1);border-radius:var(--r,4px)">'
             f'<div style="font-size:9.5px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.55);margin-bottom:10px">TOTAL</div>'
-            f'<div style="font-family:\'Black Han Sans\',var(--fh);font-size:48px;font-weight:900;color:#fff;line-height:1">{len(steps)*4}주</div>'
-            f'<div style="font-size:12px;color:rgba(255,255,255,.65);margin-top:6px;font-weight:600">{len(steps)}단계 완성 과정</div>'
+            f'<div style="font-family:\'Black Han Sans\',var(--fh);font-size:48px;font-weight:900;color:var(--on-c1,#fff);line-height:1">{len(steps)*4}주</div>'
+            f'<div style="font-size:12px;color:var(--on-c1,rgba(255,255,255,.65));opacity:.75;margin-top:6px;font-weight:600">{len(steps)}단계 완성 과정</div>'
             f'</div></div>'
             f'<div>{sh}</div>'
             f'</div></section>'
@@ -2365,6 +2431,193 @@ def sec_fest_cta(d, cp, T):
     s = strip_hanja(cp.get("festCtaSub",f"최고의 강사들과 함께 {d['subject']} 1등급 완성."))
     return (f'<section style="padding:clamp(72px,10vw,112px) clamp(28px,6vw,72px);text-align:center;position:relative;overflow:hidden;background:{T["cta"]}"><div style="position:absolute;top:-120px;left:50%;transform:translateX(-50%);width:700px;height:700px;border-radius:50%;background:rgba(255,255,255,.03);pointer-events:none"></div><div style="position:relative;z-index:1"><div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);padding:7px 22px;border-radius:var(--r-btn,4px);font-size:11px;font-weight:800;color:#fff;margin-bottom:26px;border:1px solid rgba(255,255,255,.2)">🏆 {d["subject"]} 기획전 통합 신청</div><h2 style="font-family:var(--fh);font-size:clamp(28px,5vw,60px);font-weight:900;line-height:1.05;letter-spacing:-.04em;color:#fff;margin-bottom:18px">{t}</h2><p style="color:rgba(255,255,255,.6);font-size:15px;line-height:1.85;margin-bottom:44px;max-width:480px;margin-left:auto;margin-right:auto">{s}</p><div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap"><a style="display:inline-flex;align-items:center;gap:8px;background:#fff;color:#0A0A0A;font-weight:800;padding:18px 52px;border-radius:var(--r-btn,4px);font-size:16px;text-decoration:none" href="#">기획전 통합 신청 →</a><a style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);backdrop-filter:blur(8px);color:rgba(255,255,255,.82);font-weight:600;padding:17px 32px;border-radius:var(--r-btn,4px);border:1.5px solid rgba(255,255,255,.3);font-size:14px;text-decoration:none" href="#">강사 개별 신청</a></div></div></section>')
 
+def _sec_event_promo(d: dict, c: dict, T: dict) -> str:
+    """대성마이맥 스타일 이벤트 섹션 (상품+추첨배지+정보표+참여방법)"""
+    tag          = strip_hanja(c.get("tag", "이벤트"))
+    title        = strip_hanja(c.get("title", "이벤트"))
+    desc         = strip_hanja(c.get("desc", ""))
+    prize_name   = strip_hanja(c.get("prize_name", ""))
+    prize_img    = str(c.get("prize_img", ""))
+    raffle_count = strip_hanja(str(c.get("raffle_count", "30명")))
+    details      = c.get("event_details", [])
+    steps        = c.get("steps", [])
+    on_c1        = "var(--on-c1,#fff)"   # c1 배경 위 텍스트 색
+ 
+    # ── 상품 이미지 ────────────────────────────────────────
+    if prize_img and prize_img.startswith("http"):
+        prize_visual = (
+            f'<img src="{prize_img}" alt="{prize_name}" '
+            f'style="max-height:190px;max-width:200px;'
+            f'object-fit:contain;display:block;margin:0 auto">'
+        )
+    else:
+        prize_visual = (
+            f'<div style="width:180px;height:180px;border-radius:var(--r,4px);'
+            f'background:var(--bg2);border:2px dashed var(--bd);'
+            f'display:flex;flex-direction:column;align-items:center;'
+            f'justify-content:center;padding:20px;text-align:center;gap:10px">'
+            f'<div style="font-size:44px">🎁</div>'
+            f'<div style="font-size:12px;font-weight:700;color:var(--t70);line-height:1.55">'
+            f'{prize_name if prize_name else "상품 이미지"}</div>'
+            f'</div>'
+        )
+ 
+    # ── 이벤트 정보 테이블 ─────────────────────────────────
+    detail_rows = "".join(
+        f'<tr>'
+        f'<td style="padding:13px 20px;font-size:12px;font-weight:800;color:var(--c1);'
+        f'background:var(--bg3);border-right:2px solid var(--c1);'
+        f'border-bottom:1px solid var(--bd);white-space:nowrap;vertical-align:middle">'
+        f'{strip_hanja(str(row[0]))}</td>'
+        f'<td style="padding:13px 20px;font-size:13px;color:var(--text);'
+        f'font-weight:500;border-bottom:1px solid var(--bd)">'
+        f'{strip_hanja(str(row[1]))}</td>'
+        f'</tr>'
+        for row in details
+        if isinstance(row, (list, tuple)) and len(row) >= 2
+    )
+ 
+    # ── 참여 방법 단계 ──────────────────────────────────────
+    steps_html = ""
+    if steps:
+        step_items_html = ""
+        for i, s in enumerate(steps):
+            no_txt   = strip_hanja(str(s.get("no", f"STEP {i+1}"))) if isinstance(s, dict) else f"STEP {i+1}"
+            desc_txt = strip_hanja(str(s.get("desc", ""))) if isinstance(s, dict) else strip_hanja(str(s))
+            is_last  = (i == len(steps) - 1)
+            step_items_html += (
+                f'<div style="flex:1;min-width:130px;text-align:center">'
+                f'<div style="background:var(--c1);border-radius:var(--r-btn,4px);'
+                f'padding:9px 16px;margin-bottom:12px;display:inline-block;width:100%">'
+                f'<span style="font-size:10px;font-weight:900;color:{on_c1};'
+                f'letter-spacing:.12em">{no_txt}</span>'
+                f'</div>'
+                f'<p style="font-size:13px;line-height:1.75;color:var(--text);margin:0">{desc_txt}</p>'
+                f'</div>'
+            )
+            if not is_last:
+                step_items_html += (
+                    f'<div style="display:flex;align-items:flex-start;padding-top:10px;flex-shrink:0">'
+                    f'<span style="font-size:22px;color:var(--c1);line-height:1">→</span>'
+                    f'</div>'
+                )
+ 
+        steps_html = (
+            f'<div class="rv d2" style="margin-top:32px">'
+            f'<div style="font-size:10px;font-weight:800;color:var(--c1);'
+            f'letter-spacing:.16em;text-transform:uppercase;margin-bottom:16px">참여 방법</div>'
+            f'<div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap">'
+            f'{step_items_html}'
+            f'</div></div>'
+        )
+ 
+    # ── 조합 ────────────────────────────────────────────────
+    return (
+        f'<section class="sec alt" id="custom-section">'
+        f'<div style="max-width:860px;margin:0 auto">'
+ 
+        # 헤더
+        f'<div class="rv" style="text-align:center;margin-bottom:32px">'
+        f'<div style="display:inline-flex;align-items:center;gap:8px;'
+        f'background:var(--c1);color:{on_c1};'
+        f'font-size:10px;font-weight:900;padding:5px 20px;border-radius:100px;'
+        f'margin-bottom:16px;letter-spacing:.16em;text-transform:uppercase">{tag}</div>'
+        f'<h2 style="font-family:var(--fh);font-size:clamp(22px,4vw,42px);font-weight:900;'
+        f'line-height:1.1;letter-spacing:-.03em;color:var(--text);margin-bottom:10px;'
+        f'word-break:keep-all">{title}</h2>'
+        f'<p style="font-size:14px;line-height:1.85;color:var(--t70);'
+        f'max-width:540px;margin:0 auto">{desc}</p>'
+        f'</div>'
+ 
+        # 메인 박스 (상품 이미지 + 정보 표)
+        f'<div class="rv d1" style="border:2px solid var(--c1);'
+        f'border-radius:var(--r,4px);overflow:hidden">'
+        f'<div style="display:grid;grid-template-columns:240px 1fr;gap:0">'
+ 
+        # 좌: 상품 + 추첨 배지
+        f'<div style="background:var(--bg3);display:flex;flex-direction:column;'
+        f'align-items:center;justify-content:center;padding:36px 20px;'
+        f'position:relative;border-right:2px solid var(--c1)">'
+        + (
+            f'<div style="position:absolute;top:14px;left:14px;'
+            f'background:var(--c1);color:{on_c1};'
+            f'font-family:var(--fh);font-size:15px;font-weight:900;'
+            f'padding:6px 16px;border-radius:100px;line-height:1.2">'
+            f'추첨 {raffle_count}</div>'
+            if raffle_count else ""
+        )
+        + prize_visual
+        + (
+            f'<div style="margin-top:14px;font-size:11.5px;font-weight:700;'
+            f'color:var(--t70);text-align:center;line-height:1.55">{prize_name}</div>'
+            if prize_name else ""
+        )
+        + f'</div>'
+ 
+        # 우: 이벤트 정보 표
+        f'<div>'
+        f'<table style="width:100%;border-collapse:collapse">'
+        f'{detail_rows}'
+        f'</table>'
+        f'</div>'
+ 
+        f'</div></div>'   # grid + border-box 닫기
+ 
+        + steps_html
+ 
+        + f'</div></section>'
+    )
+ 
+ 
+def sec_custom(d, cp, T):
+    """기타 섹션 — 이벤트 주제 감지 시 이벤트 스타일 자동 전환"""
+    c = cp.get("custom_section_data", {})
+    if not c:
+        return ""
+ 
+    # 이벤트 스타일 분기
+    if c.get("event_style"):
+        return _sec_event_promo(d, c, T)
+ 
+    # ── 기존 제네릭 카드 레이아웃 ──────────────────────────
+    tag   = strip_hanja(c.get("tag", "추가 안내"))
+    title = strip_hanja(c.get("title", "추가 섹션"))
+    items = c.get("items", [])
+    desc  = strip_hanja(c.get("desc", ""))
+ 
+    if items:
+        ih = "".join(
+            f'<div class="card rv d{min(i+1,3)}">'
+            f'<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">'
+            f'<div style="width:40px;height:40px;min-width:40px;border-radius:var(--r,4px);'
+            f'background:var(--c1);display:flex;align-items:center;justify-content:center;'
+            f'font-size:18px">{it.get("icon","✦")}</div>'
+            f'<div style="font-family:var(--fh);font-size:14px;font-weight:700" class="st">'
+            f'{strip_hanja(it.get("title",""))}</div></div>'
+            f'<p style="font-size:12.5px;line-height:1.9;color:var(--t70)">'
+            f'{strip_hanja(it.get("desc",""))}</p>'
+            f'</div>'
+            for i, it in enumerate(items)
+        )
+        cols = f"repeat({min(len(items),3)},1fr)"
+        body = (
+            f'<div style="display:grid;grid-template-columns:{cols};gap:14px" class="rv d1">'
+            f'{ih}</div>'
+        )
+    else:
+        body = (
+            f'<div class="rv d1">'
+            f'<p style="font-size:14px;line-height:1.9;color:var(--t70)">{desc}</p>'
+            f'</div>'
+        )
+ 
+    return (
+        f'<section class="sec" id="custom-section">'
+        f'<div style="max-width:1200px;margin:0 auto">'
+        f'<div class="rv"><div class="tag-line">{tag}</div>'
+        f'<h2 class="sec-h2 st">{title}</h2></div>'
+        f'{body}</div></section>'
+    )
 
 def sec_custom(d, cp, T):
     c = cp.get("custom_section_data", {})
