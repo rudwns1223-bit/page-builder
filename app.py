@@ -1246,6 +1246,7 @@ body.light-mode{
   --bg:#F5F5F0!important;--bg2:#EBEBEB!important;--bg3:#E0E0E0!important;
   --text:#0A0A0A!important;--t70:rgba(10,10,10,.7)!important;--t45:rgba(10,10,10,.45)!important;
   --bd:rgba(10,10,10,.12)!important;
+  --c1:#0A0A0A!important;
   background:var(--bg)!important;color:var(--text)!important}
 body.light-mode .card{background:var(--bg)!important;border-color:var(--bd)!important}
 body.light-mode #site-nav{background:rgba(245,245,240,.92)!important}
