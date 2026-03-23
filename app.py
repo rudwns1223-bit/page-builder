@@ -2468,6 +2468,9 @@ def _sec_event_promo(d: dict, c: dict, T: dict) -> str:
         f'</div>'
     )
 
+    # 에러의 원인이었던 부분! 변수로 안전하게 빼서 처리했습니다.
+    prize_name_html = f'<div style="margin-top:20px; font-size:14px; font-weight:800; color:var(--bg); text-align:center;">{prize_name}</div>' if prize_name else ""
+
     # 4. 전체 HTML 조립
     return (
         f'<section class="sec alt" id="custom-section">'
@@ -2485,7 +2488,7 @@ def _sec_event_promo(d: dict, c: dict, T: dict) -> str:
         f'<div style="display:grid; grid-template-columns:1fr 1.3fr; gap:40px; align-items:center;">'
         f'<div style="text-align:center;">'
         f'{prize_visual}'
-        + (f'<div style="margin-top:20px; font-size:14px; font-weight:800; color:var(--bg); text-align:center;">{prize_name}</div>' if prize_name else "")
+        f'{prize_name_html}'
         f'</div>'
         f'<div>{detail_rows}</div>'
         f'</div>'
