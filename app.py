@@ -996,26 +996,6 @@ def gen_custom_sec(topic: str) -> dict:  # noqa: F811 (replaces original)
             time.sleep(1)
     raise last_err
 
-===강사/페이지 정보===
-{inst_ctx}
-과목: {st.session_state.subject} | 브랜드: {st.session_state.purpose_label}
-
-===섹션 주제===
-"{topic}"
-
-===중요 규칙===
-- 반드시 "{topic}" 주제로만 작성. 다른 내용 절대 금지
-- 강사·과목과 연결된 구체적 내용으로 작성
-- tag: "{topic[:6]}" 과 관련된 짧은 레이블
-- title: "{topic}"를 직접 반영한 20자 이내 제목
-- desc: 이 섹션이 왜 있는지 설명하는 60자 이내 문장
-- items 각 desc: 45자 이상 구체적 설명
-- 한자 금지
-
-JSON만 반환:
-{{"tag":"{topic[:6]}","title":"{topic} 안내","desc":"{topic}에 대한 60자 내외 설명","items":[{{"icon":"이모지","title":"15자이내","desc":"45자이상 구체적 설명"}},{{"icon":"이모지","title":"15자이내","desc":"45자이상"}},{{"icon":"이모지","title":"15자이내","desc":"45자이상"}}]}}"""
-    return safe_json(call_ai(prompt, max_tokens=900))
-
 
 # ── 강사 DB ─────────────────────────────────────────
 INSTRUCTOR_DB = {
