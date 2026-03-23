@@ -995,12 +995,6 @@ def gen_section(sec_id: str) -> dict:
     for attempt in range(3):
         try:
             result = safe_json(call_ai(prompt, max_tokens=1500))
-            if not result.get("extraCSS") or len(result.get("extraCSS","")) < 10:
-                result["extraCSS"] = ".sec{padding:clamp(60px,8vw,100px) clamp(28px,6vw,72px)}.card{border-radius:var(--r,4px)}"
-            name = result.get("name","")
-            if not name or len(name) > 12:
-                result["name"] = mood.split()[0][:4] + " 🎨"
-            result = _ensure_contrast(result)
             return result
         except Exception as e:
             last_err = e
