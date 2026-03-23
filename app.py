@@ -1325,7 +1325,7 @@ def _bg_vars(bg_url, dark):
                 "card_bg":"rgba(255,255,255,.05)" if dark else "var(--bg)",
                 "btn_s":"","top_brd":"var(--bd)","blur":""}
     return {"hero_bg":f"background:var(--bg) url('{bg_url}') center/cover no-repeat",
-            "overlay":'<div style="position:absolute;inset:0;background:rgba(0,0,0,0.65);z-index:1;pointer-events:none"></div>',
+            "overlay":'<div style="position:absolute;inset:0;background:rgba(0,0,0,0.60);z-index:1;pointer-events:none"></div>',
             "tc":"color:#fff","t70c":"color:rgba(255,255,255,.82)","c1c":"#fff",
             "bdc":"rgba(255,255,255,.28)","card_bg":"rgba(0,0,0,.7)",
             "btn_s":"color:#fff;border-color:rgba(255,255,255,.4)",
