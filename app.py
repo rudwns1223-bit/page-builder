@@ -792,7 +792,15 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
 10. ⚠️ "교수" 절대 금지 — 직함은 반드시 "선생님" 또는 "강사"만 사용
 11. ⚠️ 확인되지 않은 정보(학력, 소속, 경력 등) 절대 지어내지 말 것 — 제공된 강사 정보에 있는 내용만 사용
 12. bannerLead·introDesc·ctaSub·whyReasons 설명·curriculumSteps 설명은 반드시 충분히 길고 임팩트 있게 작성 — 짧고 밋밋한 문장 금지. 수험생의 감정을 건드리는 구체적 상황 묘사 필수
-10. brandTagline: 페이지의 컨셉/무드를 담은 독창적 한 문장 (예: 축구장 무드 → "우리의 훈련장은, 어디서도 멈추지 않는다.", 영화관 무드 → "우리의 강의실은, 영화관이 됩니다.", 우주 무드 → "지식의 끝, 우주만큼 멀리 가라.")
+13. bannerTitle 스타일은 매번 달라야 함 — 아래 4가지 패턴 중 랜덤으로 선택:
+    패턴A: 브랜드명만 단독 (예: "KISS Logic")
+    패턴B: 브랜드명 + 짧은 선언 (예: "SYNTAX 1.0, 이제 시작합니다")
+    패턴C: 숫자 강조 (예: "1등급의 루트, R'GORITHM")
+    패턴D: 질문형 (예: "영어, 이대로 괜찮습니까?")
+14. whyReasons 3개의 아이콘·제목은 서로 완전히 다른 관점이어야 함 — 비슷한 내용 반복 금지
+15. reviews 수강평은 서로 다른 상황의 학생을 묘사해야 함 (고3/N수/점수대 다양하게)
+16. curriculumSteps 단계명은 반드시 행동 동사로 시작 (예: "파악하다", "분석하다", "적용하다")
+17. brandTagline: 페이지의 컨셉/무드를 담은 독창적 한 문장 (예: 축구장 무드 → "우리의 훈련장은, 어디서도 멈추지 않는다.", 영화관 무드 → "우리의 강의실은, 영화관이 됩니다.", 우주 무드 → "지식의 끝, 우주만큼 멀리 가라.")
 
 JSON만 반환:
 {schemas.get(ptype, schemas['신규 커리큘럼'])}"""
@@ -1013,6 +1021,24 @@ def _ensure_contrast(ct: dict) -> dict:
             ct["c1"] = "#0A0A0A"
     return ct
 
+def _cta_text_color(T: dict) -> dict:
+    """CTA 그라디언트에서 가장 밝은 색 추출 → 텍스트 색 자동 결정"""
+    cta = T.get("cta", "")
+    hexes = re.findall(r'#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})', cta)
+    max_lum = max((_hex_luminance("#" + h) for h in hexes), default=0)
+    if max_lum > 0.35:  # 밝은 배경 → 검정 텍스트
+        return {
+            "txt": "#0A0A0A", "txt70": "rgba(10,10,10,.8)", "txt35": "rgba(10,10,10,.4)",
+            "badge_bg": "rgba(0,0,0,.1)", "badge_bd": "rgba(0,0,0,.18)",
+            "btn_bg": "#0A0A0A", "btn_col": "#fff",
+            "btn2_bg": "rgba(0,0,0,.08)", "btn2_col": "rgba(0,0,0,.75)", "btn2_bd": "rgba(0,0,0,.2)",
+        }
+    return {  # 어두운 배경 → 흰 텍스트
+        "txt": "#fff", "txt70": "rgba(255,255,255,.65)", "txt35": "rgba(255,255,255,.35)",
+        "badge_bg": "rgba(255,255,255,.15)", "badge_bd": "rgba(255,255,255,.25)",
+        "btn_bg": "#fff", "btn_col": "#0A0A0A",
+        "btn2_bg": "rgba(255,255,255,.1)", "btn2_col": "rgba(255,255,255,.9)", "btn2_bd": "rgba(255,255,255,.35)",
+    }
 
 def get_theme() -> dict:
     if st.session_state.concept == "custom" and st.session_state.custom_theme:
@@ -2112,20 +2138,21 @@ def sec_cta(d, cp, T):
     sub   = strip_hanja(cp.get("ctaSub",   f"{d['name']} 선생님과 함께라면 가능합니다." if d["name"] else f"{d['subject']} 1등급, 지금 시작하세요."))
     cc    = strip_hanja(cp.get("ctaCopy",  "지금 수강신청하기"))
     badge = strip_hanja(cp.get("ctaBadge", f"{d['target']} 전용"))
+    ct    = _cta_text_color(T)  # ← 자동 텍스트 색상
     return (
         f'<section style="padding:clamp(80px,10vw,120px) clamp(28px,6vw,72px);text-align:center;position:relative;overflow:hidden;background:{T["cta"]}">'
         f'<div style="position:absolute;inset:0;background:radial-gradient(ellipse 70% 60% at 50% 0%,rgba(255,255,255,.07),transparent 60%);pointer-events:none"></div>'
         f'<div style="position:absolute;top:-200px;right:-200px;width:600px;height:600px;border-radius:50%;background:rgba(255,255,255,.04);pointer-events:none"></div>'
         f'<div style="position:absolute;bottom:-120px;left:-120px;width:500px;height:500px;border-radius:50%;background:rgba(255,255,255,.03);pointer-events:none"></div>'
         f'<div style="position:relative;z-index:1">'
-        f'<div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.15);backdrop-filter:blur(8px);padding:7px 22px;border-radius:100px;font-size:10px;font-weight:800;color:#fff;margin-bottom:28px;letter-spacing:.16em;text-transform:uppercase;border:1px solid rgba(255,255,255,.25)">{badge}</div>'
-        f'<h2 style="font-family:\'Black Han Sans\',var(--fh);font-size:clamp(32px,5.5vw,64px);font-weight:900;line-height:1.05;letter-spacing:-.02em;color:#fff;margin-bottom:16px">{tt}</h2>'
-        f'<p style="color:rgba(255,255,255,.65);font-size:15px;line-height:1.9;margin-bottom:48px;max-width:460px;margin-left:auto;margin-right:auto">{sub}</p>'
+        f'<div style="display:inline-flex;align-items:center;gap:8px;background:{ct["badge_bg"]};backdrop-filter:blur(8px);padding:7px 22px;border-radius:100px;font-size:10px;font-weight:800;color:{ct["txt"]};margin-bottom:28px;letter-spacing:.16em;text-transform:uppercase;border:1px solid {ct["badge_bd"]}">{badge}</div>'
+        f'<h2 style="font-family:\'Black Han Sans\',var(--fh);font-size:clamp(32px,5.5vw,64px);font-weight:900;line-height:1.05;letter-spacing:-.02em;color:{ct["txt"]};margin-bottom:16px">{tt}</h2>'
+        f'<p style="color:{ct["txt70"]};font-size:15px;line-height:1.9;margin-bottom:48px;max-width:460px;margin-left:auto;margin-right:auto">{sub}</p>'
         f'<div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;align-items:center">'
-        f'<a style="display:inline-flex;align-items:center;gap:10px;background:#fff;color:#0A0A0A;font-weight:900;padding:18px 56px;border-radius:var(--r-btn,4px);font-size:17px;text-decoration:none;letter-spacing:.01em;box-shadow:0 8px 32px rgba(0,0,0,.25);transition:transform .15s" href="#">{cc} →</a>'
-        f'<a style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);backdrop-filter:blur(8px);color:rgba(255,255,255,.9);font-weight:700;padding:17px 36px;border-radius:var(--r-btn,4px);border:1.5px solid rgba(255,255,255,.35);font-size:15px;text-decoration:none" href="#">카카오톡 문의 💬</a>'
+        f'<a style="display:inline-flex;align-items:center;gap:10px;background:{ct["btn_bg"]};color:{ct["btn_col"]};font-weight:900;padding:18px 56px;border-radius:var(--r-btn,4px);font-size:17px;text-decoration:none;letter-spacing:.01em;box-shadow:0 8px 32px rgba(0,0,0,.18);transition:transform .15s" href="#">{cc} →</a>'
+        f'<a style="display:inline-flex;align-items:center;gap:8px;background:{ct["btn2_bg"]};backdrop-filter:blur(8px);color:{ct["btn2_col"]};font-weight:700;padding:17px 36px;border-radius:var(--r-btn,4px);border:1.5px solid {ct["btn2_bd"]};font-size:15px;text-decoration:none" href="#">카카오톡 문의 💬</a>'
         f'</div>'
-        f'<p style="margin-top:28px;font-size:11px;color:rgba(255,255,255,.35);letter-spacing:.08em">지금 신청하는 수험생이 먼저 시작합니다</p>'
+        f'<p style="margin-top:28px;font-size:11px;color:{ct["txt35"]};letter-spacing:.08em">지금 신청하는 수험생이 먼저 시작합니다</p>'
         f'</div></section>'
     )
 
@@ -2466,54 +2493,94 @@ def sec_video(d, cp, T):
 
 
 def sec_grade_stats(d, cp, T):
-    """등급 변화 시각화 — LIM IT 페이지 스타일"""
-    t   = strip_hanja(cp.get("gradeTitle", f"모두를 압도할 확실한 결과로"))
-    sub = strip_hanja(cp.get("gradeSub",   f"실제 수강생들의 {d['subject']} 등급 변화"))
+    """등급 변화 시각화 — 이름·기간·요약 통계 포함"""
+    t   = strip_hanja(cp.get("gradeTitle", "숫자가 증명하는 변화"))
+    sub = strip_hanja(cp.get("gradeSub",   f"{d['subject']} 수강 후 실제로 달라진 수강생들"))
 
     changes = cp.get("gradeChanges", [
-        {"before": "4", "after": "1"},
-        {"before": "3", "after": "1"},
-        {"before": "4", "after": "2"},
-        {"before": "5", "after": "2"},
-        {"before": "3", "after": "1"},
-        {"before": "6", "after": "3"},
-        {"before": "4", "after": "1"},
-        {"before": "2", "after": "1"},
+        {"before":"4","after":"1","name":"고3 김OO","period":"4개월 수강"},
+        {"before":"3","after":"1","name":"N수 이OO","period":"3개월 수강"},
+        {"before":"4","after":"2","name":"고3 박OO","period":"3개월 수강"},
+        {"before":"5","after":"2","name":"N수 최OO","period":"5개월 수강"},
+        {"before":"3","after":"1","name":"고3 정OO","period":"4개월 수강"},
+        {"before":"6","after":"3","name":"N수 한OO","period":"6개월 수강"},
+        {"before":"4","after":"1","name":"고3 윤OO","period":"4개월 수강"},
+        {"before":"2","after":"1","name":"고3 송OO","period":"2개월 수강"},
     ])
 
+    # 요약 통계 계산
+    improvements, ones = [], 0
+    for c in changes:
+        try:
+            diff = int(c.get("before","0")) - int(c.get("after","0"))
+            improvements.append(diff)
+            if c.get("after","") == "1": ones += 1
+        except: pass
+    avg_up = sum(improvements)/len(improvements) if improvements else 0
+
+    # 요약 통계 바
+    summary_html = (
+        f'<div class="rv" style="display:grid;grid-template-columns:repeat(3,1fr);'
+        f'gap:1px;background:var(--bd);border-radius:var(--r,4px);overflow:hidden;margin-bottom:28px">'
+        + "".join(
+            f'<div style="background:var(--bg3);padding:22px 12px;text-align:center">'
+            f'<div style="font-family:var(--fh);font-size:clamp(26px,3vw,38px);font-weight:900;color:var(--c1)">{val}</div>'
+            f'<div style="font-size:11px;color:var(--t70);margin-top:5px;font-weight:700">{label}</div>'
+            f'</div>'
+            for val, label in [
+                (f"{ones}명", "1등급 달성"),
+                (f"평균 {avg_up:.1f}등급", "상승 폭"),
+                (f"{len(changes)}개", "성공 사례"),
+            ]
+        ) + f'</div>'
+    )
+
+    # 카드 그리드
     cards_html = "".join(
-        f'<div class="rv d{min(i%4+1,4)}" style="'
-        f'display:flex;align-items:center;justify-content:center;gap:6px;'
-        f'padding:16px 12px;background:var(--bg3);border-radius:var(--r,4px);'
-        f'border:1px solid var(--bd);min-width:0">'
-        f'<div style="text-align:center">'
-        f'<div style="font-family:var(--fh);font-size:clamp(28px,3.5vw,44px);font-weight:900;'
-        f'color:var(--text);line-height:1">{c.get("before","?")}</div>'
-        f'<div style="font-size:9px;font-weight:700;color:var(--t45);letter-spacing:.08em;margin-top:2px">등급</div>'
+        f'<div class="rv d{min(i%4+1,4)}" style="background:var(--bg3);border-radius:var(--r,4px);'
+        f'border:1px solid var(--bd);overflow:hidden">'
+        # 상단: 이름 + 기간 뱃지
+        f'<div style="padding:9px 12px;border-bottom:1px solid var(--bd);'
+        f'display:flex;justify-content:space-between;align-items:center">'
+        f'<span style="font-size:10px;font-weight:700;color:var(--t70)">{c.get("name",f"수강생 {i+1:02d}")}</span>'
+        f'<span style="font-size:8.5px;background:var(--c1);color:#fff;padding:2px 8px;'
+        f'border-radius:100px;font-weight:800;white-space:nowrap">{c.get("period","수강 완료")}</span>'
         f'</div>'
-        f'<div style="font-size:20px;font-weight:900;color:var(--c1);margin:0 2px">→</div>'
+        # 하단: 등급 변화
+        f'<div style="padding:14px 10px;display:flex;align-items:center;justify-content:center;gap:6px">'
+        f'<div style="text-align:center">'
+        f'<div style="font-family:var(--fh);font-size:clamp(22px,2.8vw,34px);font-weight:900;'
+        f'color:var(--t45);line-height:1;text-decoration:line-through;text-decoration-color:rgba(255,80,80,.6)">{c.get("before","?")}</div>'
+        f'<div style="font-size:8px;font-weight:700;color:var(--t45);margin-top:2px">등급</div>'
+        f'</div>'
+        f'<div style="display:flex;flex-direction:column;align-items:center;gap:1px">'
+        f'<div style="font-size:14px;color:var(--c1)">→</div>'
+        f'<div style="font-size:7.5px;font-weight:800;color:var(--c1);letter-spacing:.04em;white-space:nowrap">'
+        f'+{int(c.get("before","0"))-int(c.get("after","0"))}등급</div>'
+        f'</div>'
         f'<div style="text-align:center">'
         f'<div style="font-family:var(--fh);font-size:clamp(28px,3.5vw,44px);font-weight:900;'
         f'color:var(--c1);line-height:1">{c.get("after","?")}</div>'
-        f'<div style="font-size:9px;font-weight:700;color:var(--c1);letter-spacing:.08em;margin-top:2px">등급</div>'
+        f'<div style="font-size:8px;font-weight:800;color:var(--c1);margin-top:2px">등급</div>'
+        f'</div>'
         f'</div>'
         f'</div>'
         for i, c in enumerate(changes)
+        if c.get("before","").isdigit() and c.get("after","").isdigit()
     )
 
     return (
         f'<section class="sec alt" id="grade-stats">'
-        f'<div style="max-width:1200px;margin:0 auto">'
-        f'<div class="rv" style="text-align:center;margin-bottom:36px">'
+        f'<div style="max-width:1000px;margin:0 auto">'
+        f'<div class="rv" style="text-align:center;margin-bottom:28px">'
         f'<div class="tag-line" style="justify-content:center">수강 성과</div>'
         f'<h2 class="sec-h2 st" style="text-align:center">{t}</h2>'
         f'<p class="sec-sub" style="text-align:center;margin:0 auto">{sub}</p>'
         f'</div>'
-        f'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-width:900px;margin:0 auto">'
-        f'{cards_html}'
-        f'</div>'
-        f'<p class="rv d2" style="text-align:center;font-size:11px;color:var(--t45);'
-        f'margin-top:20px">* 실제 수강생 등급 변화 사례 일부를 발췌한 것입니다.</p>'
+        f'{summary_html}'
+        f'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">{cards_html}</div>'
+        f'<p class="rv d2" style="text-align:center;font-size:10.5px;color:var(--t45);margin-top:14px">'
+        f'* 실제 수강생의 성적 변화 사례를 정리한 것입니다. 개인차가 있을 수 있습니다.</p>'
         f'</div></section>'
     )
 
