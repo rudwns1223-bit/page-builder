@@ -2457,7 +2457,7 @@ def _sec_event_promo(d: dict, c: dict, T: dict) -> str:
         f'<span style="display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; '
         f'background:#E53935; color:#fff; border-radius:50%; font-size:11px; font-weight:900; line-height:1">!</span>'
         f'<span style="font-size:11.5px; color:#E53935; font-weight:600; letter-spacing:-0.02em;">'
-        f'수강후기는 3개 이상의 강의 수강 시 작성할 수 있습니다. 단, 2개 이하의 강의로 구성된 강좌는 모든 강의를 수강해야 합니다.</span>'
+        f'수강후기/기대평은 3개 이상의 강의 수강 시 작성할 수 있습니다. 단, 2개 이하의 강의로 구성된 강좌는 모든 강의를 수강해야 합니다.</span>'
         f'</div>'
         f'<div style="display:flex; gap:0; border:1px solid #ccc; border-radius:2px; overflow:hidden;">'
         f'<input type="text" placeholder="{title} 남기고 상품 받자!" '
@@ -2468,8 +2468,7 @@ def _sec_event_promo(d: dict, c: dict, T: dict) -> str:
         f'</div>'
     )
 
-    # 에러의 원인이었던 부분! 변수로 안전하게 빼서 처리했습니다.
-    prize_name_html = f'<div style="margin-top:20px; font-size:14px; font-weight:800; color:var(--bg); text-align:center;">{prize_name}</div>' if prize_name else ""
+    prize_name_html = f'<div style="margin-top:20px; font-size:14px; font-weight:800; color:var(--text); text-align:center;">{prize_name}</div>' if prize_name else ""
 
     # 4. 전체 HTML 조립
     return (
@@ -2496,17 +2495,20 @@ def _sec_event_promo(d: dict, c: dict, T: dict) -> str:
         f'<div class="rv d2">{input_form}</div>'
         f'</div></section>'
     )
- 
- 
-def sec_custom(d, cp, T):
-    """기타 섹션 — 이벤트 주제 감지 시 이벤트 스타일 자동 전환"""
-    c = cp.get("custom_section_data", {})
-    if not c:
-        return ""
 
-    if c.get("event_style"):
+
+def sec_custom(d, cp, T):
+    """기타 섹션 — 메인 분기 처리"""
+    c = cp.get("custom_section_data", {})
+    if not c: return ""
+    
+    # 안전장치: AI가 event_style을 안 주더라도, 상품명이나 이벤트 표가 있으면 무조건 이벤트 폼으로 렌더링
+    is_event = c.get("event_style") or "event_details" in c or "prize_name" in c or "raffle_count" in c
+    
+    if is_event:
         return _sec_event_promo(d, c, T)
 
+    # 이벤트가 아닌 일반 섹션 (이전의 카드/텍스트 레이아웃)
     tag   = strip_hanja(c.get("tag", "추가 안내"))
     title = strip_hanja(c.get("title", "추가 섹션"))
     items = c.get("items", [])
@@ -2538,21 +2540,6 @@ def sec_custom(d, cp, T):
         f'<h2 class="sec-h2 st">{title}</h2></div>'
         f'{body}</div></section>'
     )
-
-def sec_custom(d, cp, T):
-    c = cp.get("custom_section_data", {})
-    if not c: return ""
-    tag   = strip_hanja(c.get("tag","추가 안내"))
-    title = strip_hanja(c.get("title","추가 섹션"))
-    items = c.get("items",[])
-    desc  = strip_hanja(c.get("desc",""))
-    if items:
-        ih = "".join(f'<div class="card rv d{min(i+1,3)}"><div style="display:flex;align-items:center;gap:12px;margin-bottom:12px"><div style="width:40px;height:40px;min-width:40px;border-radius:var(--r,4px);background:var(--c1);display:flex;align-items:center;justify-content:center;font-size:18px">{it.get("icon","✦")}</div><div style="font-family:var(--fh);font-size:14px;font-weight:700" class="st">{strip_hanja(it.get("title",""))}</div></div><p style="font-size:12.5px;line-height:1.9;color:var(--t70)">{strip_hanja(it.get("desc",""))}</p></div>' for i,it in enumerate(items))
-        cols = f"repeat({min(len(items),3)},1fr)"
-        body = f'<div style="display:grid;grid-template-columns:{cols};gap:14px" class="rv d1">{ih}</div>'
-    else:
-        body = f'<div class="rv d1"><p style="font-size:14px;line-height:1.9;color:var(--t70)">{desc}</p></div>'
-    return f'<section class="sec" id="custom-section"><div style="max-width:1200px;margin:0 auto"><div class="rv"><div class="tag-line">{tag}</div><h2 class="sec-h2 st">{title}</h2></div>{body}</div></section>'
 
 
 # ══════════════════════════════════════════════════════
