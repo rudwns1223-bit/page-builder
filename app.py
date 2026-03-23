@@ -1088,7 +1088,7 @@ def _ensure_contrast(ct: dict) -> dict:
     return ct
 
 def _cta_text_color(T: dict) -> dict:
-    """CTA 그라디언트에서 가장 밝은 색 추출 → 텍스트 색 자동 결정"""
+    """CTA 그라디언트에서 가장 밝은 색 추출 -> 텍스트 색 자동 결정"""
     cta = T.get("cta", "")
     hexes = re.findall(r'#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})', cta)
     max_lum = max((_hex_luminance("#" + h) for h in hexes), default=0)
