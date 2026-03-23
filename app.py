@@ -677,14 +677,14 @@ MOOD_COLOR_HINTS = {
 def gen_concept(seed: dict) -> dict:
     mood = seed.get("mood","")
     ptype = st.session_state.get("purpose_type", "신규 커리큘럼")
-    ptype_hint = PURPOSE_THEME_HINTS.get(ptype, "")   # ← 추가
-    # 무드 키워드 → 색상 힌트 찾기
+    ptype_hint = PURPOSE_THEME_HINTS.get(ptype, "")
     color_hint = ""
     for kw, hint in MOOD_COLOR_HINTS.items():
         if kw.lower() in mood.lower():
             color_hint = f"\n\n⚠️ 색상 필수 지침: {hint}"
             break
-    lg = {"brutal":"sharp 0px radius, heavy uppercase, raw contrast, offset shadows",
+            
+    lg = {"brutal":"sharp 0px radius, heavy uppercase, raw contrast",
           "editorial":"serif italic, generous whitespace, asymmetric grid",
           "minimal":"extreme whitespace, thin weights, single accent",
           "magazine":"mixed type scales, editorial grid, ruled lines",
@@ -697,13 +697,13 @@ def gen_concept(seed: dict) -> dict:
           "display":"Bebas Neue or Black Han Sans",
           "mono":"Space Grotesk or IBM Plex Mono",
           "auto":"choose boldly based on mood"}.get(seed.get("font","auto"),"choose boldly")
-    prompt = f"""한국 교육 랜딩페이지 RADICAL 디자이너. 아래 무드를 완벽하게 반영한 파격적 디자인 생성.
+          
+    prompt = f"""한국 교육 랜딩페이지 디자인 생성.
 
 무드: "{mood}"
-레이아웃 타입: {seed.get("layout","auto")} — {lg}
-폰트 방향: {fg}
+레이아웃: {seed.get("layout","auto")} ({lg})
+폰트: {fg}
 파티클: {seed.get("particle","none")}
-⚠️ 페이지 목적 필수: {ptype_hint}
 {color_hint}
 
 디자인 규칙:
@@ -715,6 +715,7 @@ def gen_concept(seed: dict) -> dict:
 - heroStyle: "typographic"(배경색+거대타이포), "cinematic"(다크포토+영화), "billboard"(초대형텍스트), "editorial_bold"(에디토리얼), "split"(2컬럼), "immersive"(풀스크린포토) 중 무드에 맞는 것
 - 어두운 테마는 c4와 bg가 완전 다른 색이어야 함 (c4=가장어두운 bg=약간밝은)
 - extraCSS 내부 따옴표는 반드시 작은따옴표(') 사용
+- extraCSS 필드는 최대한 짧게 작성하세요 (토큰 초과 방지).
 
 JSON만 반환 (한 줄, extraCSS 필드 제외):
 {{"name":"2-4글자+이모지","dark":true,"heroStyle":"typographic","c1":"#hex","c2":"#hex","c3":"#hex","c4":"#hex","bg":"#hex","bg2":"#hex","bg3":"#hex","textHex":"#hex","textRgb":"r,g,b","bdAlpha":"rgba(r,g,b,.15)","displayFont":"Google Font name","bodyFont":"Noto Sans KR","fontWeights":"400;700;900","displayFontWeights":"400;700","borderRadiusPx":0,"btnBorderRadiusPx":2,"particle":"{seed.get('particle','none')}","ctaGradient":"linear-gradient(135deg,#hex,#hex)"}}"""
@@ -939,13 +940,21 @@ def gen_section(sec_id: str) -> dict:
 아래 JSON 형식만 반환. 마크다운 금지:
 {schema}"""
     last_err = None
-    for _attempt in range(3):
+    for attempt in range(3):
         try:
-            return safe_json(call_ai(prompt, max_tokens=900))
+            result = safe_json(call_ai(prompt, max_tokens=1500))
+            if not result.get("extraCSS") or len(result.get("extraCSS","")) < 10:
+                result["extraCSS"] = ".sec{padding:clamp(60px,8vw,100px) clamp(28px,6vw,72px)}.card{border-radius:var(--r,4px)}"
+            name = result.get("name","")
+            if not name or len(name) > 12:
+                result["name"] = mood.split()[0][:4] + " 🎨"
+            result = _ensure_contrast(result)
+            return result
         except Exception as e:
             last_err = e
             time.sleep(1)
-    raise last_err
+            
+    raise last_err or Exception("AI 모델 응답 끊김 - 다시 시도해주세요.")
 
 # ── 강사 DB ─────────────────────────────────────────
 INSTRUCTOR_DB = {
@@ -1275,12 +1284,18 @@ def sec_banner(d, cp, T):
     sub   = strip_hanja(cp.get("bannerSub", d["subject"]+" 완성"))
     title = strip_hanja(cp.get("bannerTitle", d["purpose_label"]))
     lead  = strip_hanja(cp.get("bannerLead", f"{d['target']}을 위한 커리큘럼"))
-    tagline = strip_hanja(cp.get("brandTagline", ""))  # 컨셉 브랜드 문구
+    tagline = strip_hanja(cp.get("brandTagline", ""))
     cta   = strip_hanja(cp.get("ctaCopy", "수강신청하기"))
     stats = cp.get("statBadges", [])
     
-    # 💡 고정 키워드 제거! AI가 맥락에 맞게 생성한 'bannerTags'를 가져옵니다. (없으면 기본값)
-    kws   = cp.get("bannerTags", SUBJ_KW.get(d["subject"], ["개념","기출","실전","파이널"]))
+    # 💡 고집스러운 빈칸추론 고정 키워드 완전 삭제!
+    raw_tags = cp.get("bannerTags", [])
+    if not raw_tags:  # AI가 태그를 못 만들었을 때의 안전장치
+        if d.get("purpose_type") == "이벤트":
+            raw_tags = ["기간 한정", "특별 혜택", "이벤트"]
+        else:
+            raw_tags = ["수능 대비", "핵심 요약", "성적 향상"]
+    kws = [strip_hanja(str(k)) for k in raw_tags][:4]
     
     bg_url= cp.get("bg_photo_url", "")
     hs    = T.get("heroStyle", "typographic")
@@ -1291,7 +1306,7 @@ def sec_banner(d, cp, T):
     sh = "".join(f'<div><div style="font-family:var(--fh);font-size:clamp(20px,3vw,30px);font-weight:900;color:{s["c1c"]}">{sv}</div><div style="font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.5);margin-top:2px">{sl}</div></div>' for sv,sl in stats) if stats else ""
     inst = f'<div style="display:inline-flex;align-items:center;gap:8px;margin-top:20px;padding:6px 16px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:var(--r-btn,4px)"><span style="font-size:11px;color:rgba(255,255,255,.75);font-weight:600">{d["name"]} 선생님</span></div>' if d["name"] and bg_url else ""
 
-    # ── 레이아웃 1: TYPOGRAPHIC (기본) ────────────
+    # ── 레이아웃 1: TYPOGRAPHIC ────────────
     if hs == "typographic":
         deco_word = title[:3] if title else sub[:3]
         text_col = "#fff" if (dark or bg_url) else "var(--text)"
@@ -1305,16 +1320,15 @@ def sec_banner(d, cp, T):
             + f'<div style="position:relative;z-index:2;padding:clamp(60px,8vw,100px) clamp(40px,7vw,100px);max-width:min(1000px,100%)">'
             + f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:28px"><div style="width:36px;height:3px;background:{accent_col}"></div><span style="font-size:9.5px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:{accent_col}">{sub}</span></div>'
             + f'<h1 style="font-family:\'Black Han Sans\',var(--fh);font-size:clamp(52px,8vw,140px);font-weight:900;line-height:.88;letter-spacing:-.03em;word-break:keep-all;overflow-wrap:break-word;color:{text_col};margin-bottom:20px" class="st">{title}</h1>'
-            + (f'<div style="font-size:clamp(15px,1.7vw,20px);font-style:italic;font-weight:300;color:{accent_col};margin-bottom:18px;letter-spacing:-.01em;line-height:1.5;opacity:.9">{tagline}</div>' if tagline else "")
-            + f'<div style="width:100%;height:1px;background:linear-gradient(to right,{accent_col},transparent);margin-bottom:24px;opacity:.4"></div>'
+            + (f'<div style="font-size:clamp(15px,1.7vw,20px);font-style:italic;font-weight:300;color:{accent_col};margin-bottom:18px;line-height:1.5;opacity:.9">{tagline}</div>' if tagline else "")
             + f'<p style="font-size:clamp(14px,1.6vw,17px);line-height:1.9;color:{t70_col};max-width:520px;padding-left:18px;border-left:3px solid {accent_col};margin-bottom:28px">{lead}</p>'
             + f'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:28px">{kh}</div>'
             + inst
             + f'<div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:24px">'
-            + f'<a class="btn-p" href="#" style="font-size:15px;padding:16px 40px">{cta} →</a>'
-            + f'<a href="#" style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);{s["blur"] if bg_url else "backdrop-filter:blur(8px)"};color:{text_col};font-weight:600;padding:15px 28px;border-radius:var(--r-btn,4px);border:1.5px solid {"rgba(255,255,255,.3)" if (dark or bg_url) else "var(--bd)"};font-size:14px;text-decoration:none">강의 미리보기 ↗</a>'
+            + f'<a class="btn-p" href="#cta" style="font-size:15px;padding:16px 40px">{cta} →</a>'
+            + f'</div>'
             + (f'<div style="display:flex;gap:36px;margin-top:40px;padding-top:24px;border-top:1px solid {s["top_brd"]}">{sh}</div>' if sh else "")
-            + '</div></div></section>'
+            + '</div></section>'
         )
 
     # ── 레이아웃 2: CINEMATIC ──────────────────────
@@ -1323,31 +1337,22 @@ def sec_banner(d, cp, T):
             f'<section id="hero" style="position:relative;min-height:100vh;overflow:hidden;{s["hero_bg"]};display:flex;flex-direction:column;justify-content:flex-end">'
             + s["overlay"]
             + f'<div style="position:absolute;inset:0;background:linear-gradient(160deg,transparent 30%,rgba(0,0,0,.85) 100%);z-index:1;pointer-events:none"></div>'
-            + f'<div style="position:absolute;top:0;left:0;right:0;height:6px;background:var(--c1);z-index:3"></div>'
-            + f'<div style="position:absolute;bottom:0;left:0;right:0;height:6px;background:var(--c1);z-index:3"></div>'
             + f'<div style="position:relative;z-index:2;padding:80px clamp(40px,7vw,100px) 80px;display:grid;grid-template-columns:1fr 340px;gap:60px;align-items:flex-end">'
             + f'<div>'
             + f'<div style="display:inline-flex;align-items:center;gap:10px;margin-bottom:24px;padding:5px 18px;border:1.5px solid var(--c1);border-radius:var(--r-btn,2px)">'
-            + f'<div style="width:8px;height:8px;background:var(--c1);border-radius:50%;animation:pulse-accent 1.5s ease-in-out infinite"></div>'
             + f'<span style="font-size:10px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--c1)">{sub}</span></div>'
-            + f'<h1 style="font-family:var(--fh);font-size:clamp(40px,6.5vw,96px);font-weight:900;line-height:.92;letter-spacing:-.04em;word-break:keep-all;overflow-wrap:break-word;color:#fff;margin-bottom:16px" class="st">{title}</h1>'
-            + (f'<div style="font-size:clamp(14px,1.6vw,19px);font-style:italic;font-weight:300;color:var(--c1);margin-bottom:18px;line-height:1.5;opacity:.9">{tagline}</div>' if tagline else "")
+            + f'<h1 style="font-family:var(--fh);font-size:clamp(40px,6.5vw,96px);font-weight:900;line-height:.92;letter-spacing:-.04em;color:#fff;margin-bottom:16px" class="st">{title}</h1>'
             + f'<p style="font-size:15px;line-height:2;color:rgba(255,255,255,.72);max-width:480px;border-left:3px solid var(--c1);padding-left:20px;margin-bottom:32px">{lead}</p>'
             + f'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:28px">{kh}</div>'
-            + f'<div style="display:flex;gap:12px">'
-            + f'<a class="btn-p" href="#" style="font-size:15px;padding:16px 44px;letter-spacing:.04em">{cta} →</a>'
-            + f'<a href="#" style="display:inline-flex;align-items:center;gap:8px;color:rgba(255,255,255,.7);font-weight:600;padding:15px 24px;border-radius:var(--r-btn,2px);border:1.5px solid rgba(255,255,255,.25);font-size:14px;text-decoration:none">미리보기</a>'
-            + f'</div>'
-            + (f'<div style="display:flex;gap:40px;margin-top:44px;padding-top:22px;border-top:1px solid rgba(255,255,255,.15)">{sh}</div>' if sh else "")
+            + f'<a class="btn-p" href="#cta" style="font-size:15px;padding:16px 44px">{cta} →</a>'
             + f'</div>'
             + f'<div style="padding:28px;background:rgba(0,0,0,.7);{s["blur"]};border:1px solid rgba(255,255,255,.12);border-radius:var(--r,4px)">'
-            + f'<div style="font-family:var(--fh);font-size:11px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--c1);margin-bottom:16px">강의 정보</div>'
-            + "".join(f'<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.1)"><span style="font-size:11px;color:rgba(255,255,255,.5)">{l}</span><span style="font-size:12px;font-weight:700;color:#fff">{v}</span></div>' for l,v in [["강의 대상",d["target"]],["과목",d["subject"]],["브랜드",d["purpose_label"][:14]]])
-            + f'<a class="btn-p" href="#" style="width:100%;justify-content:center;margin-top:18px;display:flex;font-size:13px">{cta} →</a>'
+            + f'<div style="font-family:var(--fh);font-size:11px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--c1);margin-bottom:16px">INFO</div>'
+            + "".join(f'<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.1)"><span style="font-size:11px;color:rgba(255,255,255,.5)">{l}</span><span style="font-size:12px;font-weight:700;color:#fff">{v}</span></div>' for l,v in [["대상",d["target"]],["과목",d["subject"]]])
             + f'</div></div></section>'
         )
 
-    # ── 레이아웃 3: BILLBOARD (초대형 타이포만) ─────
+    # ── 레이아웃 3: BILLBOARD ─────
     elif hs == "billboard":
         bg_col = "var(--bg)"
         title_parts = title.split()
@@ -1355,73 +1360,20 @@ def sec_banner(d, cp, T):
         line2 = " ".join(title_parts[1:]) if len(title_parts) > 1 else ""
         return (
             f'<section id="hero" style="min-height:100vh;background:{bg_col};position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:center;padding:80px clamp(40px,7vw,100px)">'
-            + f'<div style="position:absolute;top:0;left:0;right:0;bottom:0;background:repeating-linear-gradient(0deg,transparent,transparent 79px,var(--bd) 79px,var(--bd) 80px);z-index:0;opacity:.3;pointer-events:none"></div>'
             + f'<div style="position:relative;z-index:1">'
-            + f'<div style="display:flex;align-items:center;gap:12px;margin-bottom:32px"><div style="width:48px;height:4px;background:var(--c1)"></div><span style="font-size:9.5px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:var(--c1)">{sub}</span></div>'
-            + f'<div style="font-family:var(--fh);font-size:clamp(56px,9vw,140px);font-weight:900;line-height:.88;letter-spacing:-.05em;word-break:keep-all;overflow-wrap:break-word;color:var(--text);margin-bottom:4px" class="st">{line1}</div>'
-            + (f'<div style="font-family:var(--fh);font-size:clamp(56px,9vw,140px);font-weight:900;line-height:.88;letter-spacing:-.05em;word-break:keep-all;overflow-wrap:break-word;color:transparent;-webkit-text-stroke:2px var(--c1);">{line2}</div>' if line2 else "")
+            + f'<div style="display:flex;align-items:center;gap:12px;margin-bottom:32px"><div style="width:48px;height:4px;background:var(--c1)"></div><span style="font-size:9.5px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--c1)">{sub}</span></div>'
+            + f'<div style="font-family:var(--fh);font-size:clamp(56px,9vw,140px);font-weight:900;line-height:.88;letter-spacing:-.05em;color:var(--text);margin-bottom:4px" class="st">{line1}</div>'
+            + (f'<div style="font-family:var(--fh);font-size:clamp(56px,9vw,140px);font-weight:900;line-height:.88;letter-spacing:-.05em;color:transparent;-webkit-text-stroke:2px var(--c1);">{line2}</div>' if line2 else "")
             + f'<div style="display:flex;align-items:center;gap:32px;margin-top:40px;padding-top:32px;border-top:2px solid var(--c1)">'
             + f'<p style="font-size:14px;line-height:1.9;color:var(--t70);max-width:380px">{lead}</p>'
-            + (f'<div style="font-size:clamp(13px,1.5vw,18px);font-style:italic;font-weight:300;color:var(--c1);margin-top:12px;line-height:1.5">{tagline}</div>' if tagline else "")
             + f'<div style="display:flex;flex-direction:column;gap:10px;flex-shrink:0">'
-            + f'<a class="btn-p" href="#" style="font-size:15px;padding:16px 44px">{cta} →</a>'
+            + f'<a class="btn-p" href="#cta" style="font-size:15px;padding:16px 44px">{cta} →</a>'
             + f'<div style="display:flex;gap:5px;flex-wrap:wrap">{kh}</div></div>'
-            + f'</div>'
-            + (f'<div style="display:flex;gap:36px;margin-top:40px;padding-top:24px;border-top:1px solid var(--bd)">{sh}</div>' if sh else "")
-            + f'</div></section>'
-        )
-
-    # ── 레이아웃 4: EDITORIAL_BOLD ────────────────
-    elif hs == "editorial_bold":
-        text_col   = "#fff" if (dark or bg_url) else "var(--text)"
-        t70_col    = "rgba(255,255,255,.75)" if (dark or bg_url) else "var(--t70)"
-        accent_c   = s["c1c"] if bg_url else "var(--c1)"
-        bd_c       = s["bdc"] if bg_url else "var(--bd)"
-        return (
-            f'<section id="hero" style="position:relative;min-height:100vh;overflow:hidden;{s["hero_bg"]};display:grid;grid-template-rows:auto 1fr auto">'
-            + s["overlay"]
-            + f'<div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.2) 0%,rgba(0,0,0,.75) 100%);z-index:1;pointer-events:none"></div>'
-            + f'<div style="position:relative;z-index:2;padding:28px clamp(40px,6vw,88px);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid {bd_c}">'
-            + f'<div style="font-family:var(--fh);font-size:15px;font-weight:900;color:{text_col};letter-spacing:.06em">{d["subject"].upper()} · {d["name"] if d["name"] else "강사"}</div>'
-            + f'<div style="display:flex;gap:5px">{kh}</div>'
-            + f'</div>'
-            + f'<div style="position:relative;z-index:2;padding:clamp(48px,6vw,80px) clamp(40px,6vw,88px);display:flex;flex-direction:column;justify-content:center">'
-            + f'<div style="display:inline-flex;align-items:center;gap:8px;margin-bottom:20px"><span style="font-size:10px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:{accent_c}">{sub}</span></div>'
-            + f'<h1 style="font-family:\'Black Han Sans\',var(--fh);font-size:clamp(40px,6vw,96px);font-weight:900;line-height:.9;letter-spacing:-.03em;word-break:keep-all;overflow-wrap:break-word;color:{text_col};max-width:800px;margin-bottom:16px" class="st">{title}</h1>'
-            + (f'<div style="font-size:clamp(14px,1.5vw,18px);font-style:italic;font-weight:300;color:{accent_c};margin-bottom:20px;line-height:1.5;opacity:.9">{tagline}</div>' if tagline else "")
-            + f'<div style="display:flex;gap:40px;align-items:flex-start;flex-wrap:wrap">'
-            + f'<p style="font-size:clamp(13px,1.4vw,16px);line-height:1.95;color:{t70_col};max-width:420px;padding-left:20px;border-left:3px solid {accent_c}">{lead}</p>'
-            + f'<div style="display:flex;flex-direction:column;gap:12px;flex-shrink:0">'
-            + f'<a class="btn-p" href="#" style="font-size:15px;padding:16px 44px">{cta} →</a>'
-            + f'<a href="#" style="display:inline-flex;align-items:center;justify-content:center;gap:7px;color:{text_col};font-weight:600;padding:14px 24px;border-radius:var(--r-btn,4px);border:1.5px solid {bd_c};font-size:13px;text-decoration:none">강의 미리보기</a>'
-            + f'</div></div></div>'
-            + (f'<div style="position:relative;z-index:2;padding:24px clamp(40px,6vw,88px);border-top:1px solid {bd_c};display:flex;gap:48px">{sh}</div>' if sh else "<div></div>")
-            + f'</section>'
-        )
-
-    # ── 레이아웃 5: SPLIT_BOLD ────────────────────
-    elif hs == "split_bold":
-        return (
-            f'<section id="hero" style="position:relative;min-height:100vh;overflow:hidden;{s["hero_bg"]};display:grid;grid-template-columns:1fr 1fr">'
-            + s["overlay"]
-            + f'<div style="position:relative;z-index:2;display:flex;flex-direction:column;justify-content:center;padding:clamp(60px,7vw,100px) clamp(32px,5vw,64px)">'
-            + f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:24px"><div style="width:40px;height:3px;background:{s["c1c"] if bg_url else "var(--c1)"}"></div><span style="font-size:9.5px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:{s["c1c"] if bg_url else "var(--c1)"}">{sub}</span></div>'
-            + f'<h1 style="font-family:var(--fh);font-size:clamp(38px,5.5vw,72px);font-weight:900;line-height:.88;letter-spacing:-.04em;{"color:#fff" if (dark or bg_url) else "color:var(--text)"};margin-bottom:20px" class="st">{title}</h1>'
-            + f'<p style="font-size:14px;line-height:2;{"color:rgba(255,255,255,.72)" if (dark or bg_url) else "color:var(--t70)"};max-width:380px;margin-bottom:28px">{lead}</p>'
-            + f'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:24px">{kh}</div>'
-            + f'<a class="btn-p" href="#" style="align-self:flex-start;font-size:14px;padding:14px 36px">{cta} →</a>'
-            + f'</div>'
-            + f'<div style="position:relative;z-index:2;background:var(--c1);display:flex;align-items:center;justify-content:center;padding:48px 36px">'
-            + f'<div style="width:100%;max-width:320px">'
-            + f'<div style="font-size:11px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:rgba(0,0,0,.5);margin-bottom:20px">{d["purpose_label"]}</div>'
-            + f'<div style="font-family:var(--fh);font-size:clamp(32px,3.5vw,48px);font-weight:900;color:#fff;line-height:1.05;margin-bottom:20px">{title}</div>'
-            + "".join(f'<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.2)"><span style="font-size:11px;color:rgba(255,255,255,.6)">{l}</span><span style="font-size:12px;font-weight:700;color:#fff">{v}</span></div>' for l,v in [["대상",d["target"]],["과목",d["subject"]]])
-            + f'<a style="display:flex;align-items:center;justify-content:center;gap:8px;background:#fff;color:var(--c1);font-weight:800;font-size:14px;padding:14px;border-radius:var(--r-btn,4px);margin-top:20px;text-decoration:none">{cta} →</a>'
             + f'</div></div></section>'
         )
 
-    # ── 레이아웃 6: IMMERSIVE / 기본 SPLIT ────────
-    else:  # immersive or split
+    # ── 기타 통합 (에디토리얼, 스플릿 등) ────────
+    else:
         return (
             f'<section id="hero" style="position:relative;min-height:100vh;overflow:hidden;{s["hero_bg"]};display:flex;flex-direction:column;justify-content:flex-end">'
             + s["overlay"]
@@ -1429,15 +1381,10 @@ def sec_banner(d, cp, T):
             + f'<div style="position:relative;z-index:2;padding:clamp(48px,6vw,80px) clamp(36px,6vw,88px);max-width:900px">'
             + f'<div style="display:inline-flex;align-items:center;gap:9px;background:rgba(255,255,255,.12);{s["blur"]};padding:6px 18px;border-radius:100px;margin-bottom:22px;border:1px solid rgba(255,255,255,.2)">'
             + f'<span style="font-size:10px;font-weight:800;color:#fff;letter-spacing:.14em;text-transform:uppercase">{sub}</span></div>'
-            + f'<h1 style="font-family:var(--fh);font-size:clamp(36px,5vw,80px);font-weight:900;line-height:.95;letter-spacing:-.04em;word-break:keep-all;overflow-wrap:break-word;color:#fff;margin-bottom:20px" class="st">{title}</h1>'
+            + f'<h1 style="font-family:var(--fh);font-size:clamp(36px,5vw,80px);font-weight:900;line-height:.95;letter-spacing:-.04em;color:#fff;margin-bottom:20px" class="st">{title}</h1>'
             + f'<p style="font-size:clamp(13px,1.5vw,16px);line-height:1.9;color:rgba(255,255,255,.78);max-width:500px;margin-bottom:28px;padding-left:18px;border-left:3px solid #fff">{lead}</p>'
             + f'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:28px">{kh}</div>'
-            + inst
-            + f'<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:22px">'
-            + f'<a class="btn-p" href="#" style="font-size:15px;padding:16px 44px">{cta} →</a>'
-            + f'<a href="#" style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);{s["blur"]};color:#fff;font-weight:600;padding:15px 28px;border-radius:100px;border:1.5px solid rgba(255,255,255,.3);font-size:14px;text-decoration:none">강의 미리보기 ↗</a>'
-            + f'</div>'
-            + (f'<div style="display:flex;gap:36px;margin-top:44px;padding-top:24px;border-top:1px solid rgba(255,255,255,.18)">{sh}</div>' if sh else "")
+            + f'<a class="btn-p" href="#cta" style="font-size:15px;padding:16px 44px">{cta} →</a>'
             + f'</div></section>'
         )
 
@@ -2327,31 +2274,28 @@ def sec_cta(d, cp, T):
 
 def sec_event_overview(d, cp, T):
     t = strip_hanja(cp.get("eventTitle", d["purpose_label"]))
-    desc = strip_hanja(cp.get("eventDesc","이 이벤트는 기간 한정으로 진행됩니다."))
-    details = cp.get("eventDetails",[["📅","이벤트 기간","2026. 4. 1 — 4. 30"],["🎯","대상","고3·N수"],["💰","혜택","최대 30% 할인"]])
-    dh = "".join(f'<div class="card rv d{i+1}" style="text-align:center;padding:32px 20px"><div style="font-size:36px;margin-bottom:14px">{ic}</div><div style="font-size:10px;font-weight:800;color:var(--c1);letter-spacing:.14em;text-transform:uppercase;margin-bottom:10px">{lb}</div><div style="font-family:var(--fh);font-size:19px;font-weight:700">{vl}</div></div>' for i,(ic,lb,vl) in enumerate(details))
-    return (f'<section class="sec" id="event-overview"><div style="max-width:1200px;margin:0 auto"><div class="rv"><div class="tag-line">이벤트 개요</div><h2 class="sec-h2 st">{t}</h2><p class="sec-sub">{desc}</p></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">{dh}</div></div></section>')
-
+    desc = strip_hanja(cp.get("eventDesc", "기간 한정 이벤트입니다."))
+    details = cp.get("eventDetails", [["📅","기간","진행중"],["🎯","대상","수험생"],["💰","혜택","확인"]])
+    
+    dh = ""
+    for i, row in enumerate(details):
+        ic = str(row[0]) if len(row)>0 else "✦"
+        lb = str(row[1]) if len(row)>1 else "정보"
+        vl = str(row[2]) if len(row)>2 else "-"
+        dh += f'<div class="card rv d{i+1}" style="text-align:center;padding:32px 20px"><div style="font-size:36px;margin-bottom:14px">{ic}</div><div style="font-size:10px;font-weight:800;color:var(--c1);letter-spacing:.14em;text-transform:uppercase;margin-bottom:10px">{lb}</div><div style="font-family:var(--fh);font-size:19px;font-weight:700">{vl}</div></div>'
+        
+    return f'<section class="sec" id="event-overview"><div style="max-width:1200px;margin:0 auto"><div class="rv"><div class="tag-line">이벤트 개요</div><h2 class="sec-h2 st">{t}</h2><p class="sec-sub">{desc}</p></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">{dh}</div></div></section>'
 
 def sec_event_benefits(d, cp, T):
-    t = strip_hanja(cp.get("benefitsTitle","이벤트 특별 혜택"))
-    raw_b = cp.get("eventBenefits",[])
-    defaults = [
-        {"icon":"🎁","title":"수강료 특가","desc":"이벤트 기간 특별 할인 혜택을 제공합니다.","badge":"할인","no":"01"},
-        {"icon":"📚","title":"교재 무료 제공","desc":"핵심 교재 및 학습 자료를 무료로 드립니다.","badge":"무료","no":"02"},
-        {"icon":"🔥","title":"라이브 특강","desc":"매주 라이브 특강으로 실전 감각을 기릅니다.","badge":"매주","no":"03"},
-    ]
-    benefits = raw_b if isinstance(raw_b, list) and raw_b else defaults
-    def _safe_b(b, i):
-        if isinstance(b, dict):
-            icon  = b.get("icon","✦")
-            no    = b.get("no", f"{i+1:02d}")
-            badge = strip_hanja(str(b.get("badge","혜택")))
-            title = strip_hanja(str(b.get("title","")))
-            desc  = strip_hanja(str(b.get("desc","")))
-        else:
-            icon, no, badge, title, desc = "✦", f"{i+1:02d}", "혜택", strip_hanja(str(b)), ""
-        return (
+    t = strip_hanja(cp.get("benefitsTitle", "이벤트 특별 혜택"))
+    benefits = cp.get("eventBenefits", [{"icon":"🎁","title":"할인","desc":"혜택제공","badge":"혜택","no":"01"}])
+    
+    bh = ""
+    for i, b in enumerate(benefits):
+        if not isinstance(b, dict): continue
+        icon, no = b.get("icon","✦"), b.get("no",f"{i+1:02d}")
+        badge, title, desc = strip_hanja(b.get("badge","혜택")), strip_hanja(b.get("title","")), strip_hanja(b.get("desc",""))
+        bh += (
             f'<div class="card rv d{min(i+1,4)}" style="display:grid;grid-template-columns:64px 1fr;gap:20px;align-items:flex-start;padding:24px">'
             f'<div style="width:64px;height:64px;border-radius:var(--r,4px);background:linear-gradient(135deg,var(--c1),var(--c2));display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0">{icon}</div>'
             f'<div><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
@@ -2361,62 +2305,19 @@ def sec_event_benefits(d, cp, T):
             f'<p style="font-size:12.5px;line-height:1.85;color:var(--t70)">{desc}</p>'
             f'</div></div>'
         )
-    bh = "".join(_safe_b(b, i) for i, b in enumerate(benefits))
     return f'<section class="sec alt" id="event-benefits"><div style="max-width:1200px;margin:0 auto"><div class="rv"><div class="tag-line">이벤트 혜택</div><h2 class="sec-h2 st">{t}</h2></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">{bh}</div></div></section>'
-
 
 def sec_event_deadline(d, cp, T):
     t   = strip_hanja(cp.get("deadlineTitle","마감 안내"))
-    msg = strip_hanja(cp.get("deadlineMsg","이벤트는 기간 한정으로 운영됩니다."))
+    msg = strip_hanja(cp.get("deadlineMsg","기간 한정 운영됩니다."))
     cc  = strip_hanja(cp.get("ctaCopy","이벤트 신청하기"))
-    # JS 카운트다운 타이머 (72시간 후 기준)
-    timer_html = (
-        '<div id="cdtimer" style="display:flex;gap:16px;justify-content:center;margin:28px 0 36px">'
-        + "".join(
-            f'<div style="text-align:center;background:rgba(255,255,255,.12);border-radius:var(--r,4px);padding:14px 20px;min-width:72px">'
-            f'<div id="cd_{unit}" style="font-family:var(--fh);font-size:36px;font-weight:900;color:#fff;line-height:1">00</div>'
-            f'<div style="font-size:9px;font-weight:800;color:rgba(255,255,255,.5);letter-spacing:.14em;margin-top:4px">{label}</div>'
-            f'</div>'
-            for unit, label in [("d","DAYS"),("h","HOURS"),("m","MIN"),("s","SEC")]
-        )
-        + '</div>'
-        + '<script>(function(){'
-        + 'var end=new Date(Date.now()+72*60*60*1000);'
-        + 'function upd(){'
-        +   'var now=new Date(),diff=Math.max(0,end-now);'
-        +   'var dd=Math.floor(diff/864e5),hh=Math.floor((diff%864e5)/36e5),'
-        +       'mm=Math.floor((diff%36e5)/6e4),ss=Math.floor((diff%6e4)/1e3);'
-        +   '[["cd_d",dd],["cd_h",hh],["cd_m",mm],["cd_s",ss]].forEach(function(x){'
-        +     'var el=document.getElementById(x[0]);if(el)el.textContent=String(x[1]).padStart(2,"0");'
-        +   '});'
-        + '}'
-        + 'upd();setInterval(upd,1000);'
-        + '})();</script>'
-    )
     return (
-        f'<section id="event-deadline" style="padding:clamp(80px,10vw,120px) clamp(28px,6vw,72px);'
-        f'text-align:center;position:relative;overflow:hidden;background:{T["cta"]}">'
-        f'<div style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 50% 100%,rgba(0,0,0,.4),transparent 70%);pointer-events:none"></div>'
-        f'<div style="position:absolute;top:0;left:0;right:0;height:4px;background:rgba(255,255,255,.3)"></div>'
+        f'<section id="event-deadline" style="padding:clamp(80px,10vw,120px) clamp(28px,6vw,72px);text-align:center;position:relative;overflow:hidden;background:{T["cta"]}">'
         f'<div class="rv" style="max-width:680px;margin:0 auto;position:relative;z-index:1">'
-        f'<div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.15);'
-        f'backdrop-filter:blur(8px);padding:7px 22px;border-radius:100px;font-size:11px;font-weight:800;'
-        f'color:#fff;margin-bottom:24px;border:1px solid rgba(255,255,255,.25)">⏰ 마감 임박</div>'
-        f'<h2 style="font-family:\'Black Han Sans\',var(--fh);font-size:clamp(28px,5vw,56px);'
-        f'font-weight:900;line-height:1.05;color:#fff;margin-bottom:16px">{t}</h2>'
-        f'<p style="color:rgba(255,255,255,.7);font-size:15px;line-height:1.9;max-width:460px;margin:0 auto 32px">{msg}</p>'
-        f'{timer_html}'
-        f'<div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">'
-        f'<a style="display:inline-flex;align-items:center;gap:10px;background:#fff;color:#0A0A0A;'
-        f'font-weight:900;padding:18px 52px;border-radius:var(--r-btn,4px);font-size:17px;'
-        f'text-decoration:none;box-shadow:0 8px 32px rgba(0,0,0,.25)" href="#">{cc} →</a>'
-        f'<a style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);'
-        f'backdrop-filter:blur(8px);color:rgba(255,255,255,.9);font-weight:700;padding:17px 32px;'
-        f'border-radius:var(--r-btn,4px);border:1.5px solid rgba(255,255,255,.3);font-size:15px;'
-        f'text-decoration:none" href="#">카카오톡 문의 💬</a>'
-        f'</div>'
-        f'<p style="margin-top:24px;font-size:11px;color:rgba(255,255,255,.35);letter-spacing:.06em">'
-        f'마감 후 혜택은 제공되지 않습니다</p>'
+        f'<div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.15);backdrop-filter:blur(8px);padding:7px 22px;border-radius:100px;font-size:11px;font-weight:800;color:#fff;margin-bottom:24px;border:1px solid rgba(255,255,255,.25)">⏰ 마감 임박</div>'
+        f'<h2 style="font-family:\'Black Han Sans\',var(--fh);font-size:clamp(28px,5vw,56px);font-weight:900;color:#fff;margin-bottom:16px">{t}</h2>'
+        f'<p style="color:rgba(255,255,255,.7);font-size:15px;line-height:1.9;margin:0 auto 32px">{msg}</p>'
+        f'<a style="display:inline-flex;align-items:center;background:#fff;color:#0A0A0A;font-weight:900;padding:18px 52px;border-radius:var(--r-btn,4px);font-size:17px;text-decoration:none" href="#cta">{cc} →</a>'
         f'</div></section>'
     )
 
