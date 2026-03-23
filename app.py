@@ -926,12 +926,11 @@ def gen_section(sec_id: str) -> dict:
     raise last_err
 
 
-def gen_custom_sec(topic: str) -> dict:  # noqa: F811 (replaces original)
+def gen_custom_sec(topic: str) -> dict:
     inst_ctx = _get_instructor_context()
- 
     EVENT_KWS = ["이벤트", "후기", "수강평", "기대평", "경품", "추첨", "선물", "상품", "이벤", "기념"]
     is_event = any(kw in topic for kw in EVENT_KWS)
- 
+
     if is_event:
         prompt = (
             f"수능 교육 랜딩페이지 이벤트 섹션 생성.\n\n"
@@ -939,13 +938,12 @@ def gen_custom_sec(topic: str) -> dict:  # noqa: F811 (replaces original)
             f"이벤트 주제: \"{topic}\"\n"
             f"브랜드: {st.session_state.purpose_label}\n\n"
             f"규칙:\n"
-            f"- title: 20자이내 임팩트 있는 이벤트 제목 (예: '기대평 남기고 선물 받아가세요!')\n"
+            f"- title: 20자이내 임팩트 있는 이벤트 제목\n"
             f"- desc: 참여 독려 문장 40자이내\n"
             f"- prize_name: 실제 상품명 (예: [스타벅스] 아이스 아메리카노, [배스킨라빈스] 파인트)\n"
             f"- raffle_count: 추첨 인원 (예: \"30명\")\n"
             f"- event_details: 4행 이벤트 정보 (기간/대상/발표/혜택)\n"
-            f"- steps: 참여 방법 3단계\n\n"
-            f"JSON만 반환 (마크다운 금지):\n"
+            f"JSON만 반환:\n"
             f"{{\"tag\":\"{topic[:6]}\","
             f"\"title\":\"이벤트 제목 20자\","
             f"\"desc\":\"설명 40자\","
@@ -956,12 +954,9 @@ def gen_custom_sec(topic: str) -> dict:  # noqa: F811 (replaces original)
             f"\"event_details\":["
             f"[\"이벤트 기간\",\"2026. 04. 01(수) ~ 04. 30(목)\"],"
             f"[\"이벤트 대상\",\"강좌 수강생\"],"
-            f"[\"당첨자 발표\",\"2026. 05. 07(목) 선생님 홈 공지\"],"
-            f"[\"혜택\",\"상품명\"]],"
-            f"\"steps\":["
-            f"{{\"no\":\"STEP 1\",\"desc\":\"1단계 설명\"}},"
-            f"{{\"no\":\"STEP 2\",\"desc\":\"2단계 설명\"}},"
-            f"{{\"no\":\"STEP 3\",\"desc\":\"3단계 설명\"}}]}}"
+            f"[\"당첨자 발표\",\"2026. 05. 07(목) 홈 공지\"],"
+            f"[\"혜택\",\"상품명\"]]"
+            f"}}"
         )
     else:
         prompt = (
@@ -971,7 +966,6 @@ def gen_custom_sec(topic: str) -> dict:  # noqa: F811 (replaces original)
             f"===섹션 주제===\n\"{topic}\"\n\n"
             f"===중요 규칙===\n"
             f"- 반드시 \"{topic}\" 주제로만 작성. 다른 내용 절대 금지\n"
-            f"- 강사·과목과 연결된 구체적 내용으로 작성\n"
             f"- tag: \"{topic[:6]}\" 관련 짧은 레이블\n"
             f"- title: 20자 이내 제목\n"
             f"- desc: 60자 이내 설명 문장\n"
@@ -983,10 +977,10 @@ def gen_custom_sec(topic: str) -> dict:  # noqa: F811 (replaces original)
             f"\"desc\":\"{topic}에 대한 60자 내외 설명\","
             f"\"items\":["
             f"{{\"icon\":\"이모지\",\"title\":\"15자이내\",\"desc\":\"45자이상 구체적 설명\"}},"
-            f"{{\"icon\":\"이모지\",\"title\":\"15자이내\",\"desc\":\"45자이상\"}},"
-            f"{{\"icon\":\"이모지\",\"title\":\"15자이내\",\"desc\":\"45자이상\"}}]}}"
+            f"{{\"icon\":\"이모지\",\"title\":\"15자이내\",\"desc\":\"45자이상\"}}]"
+            f"}}"
         )
- 
+
     last_err = None
     for _attempt in range(3):
         try:
@@ -995,7 +989,6 @@ def gen_custom_sec(topic: str) -> dict:  # noqa: F811 (replaces original)
             last_err = e
             time.sleep(1)
     raise last_err
-
 
 # ── 강사 DB ─────────────────────────────────────────
 INSTRUCTOR_DB = {
@@ -2422,10 +2415,8 @@ def _sec_event_promo(d: dict, c: dict, T: dict) -> str:
     raffle_count = strip_hanja(str(c.get("raffle_count", "30명")))
     details      = c.get("event_details", [])
     
-    # ── 1. 상품 이미지 & 원형 뱃지 ──
-    # 당첨 인원 숫자만 추출 (예: "30명" -> "30")
+    # 1. 상품 이미지 & 원형 뱃지
     num_only = ''.join(filter(str.isdigit, raffle_count)) if raffle_count else ""
-    
     prize_visual = f'<div style="position:relative; display:inline-block; margin:0 auto;">'
     if raffle_count:
         prize_visual += (
@@ -2448,7 +2439,7 @@ def _sec_event_promo(d: dict, c: dict, T: dict) -> str:
         )
     prize_visual += f'</div>'
 
-    # ── 2. 이벤트 정보 테이블 (블랙 라벨 스타일) ──
+    # 2. 이벤트 정보 테이블 (블랙 라벨 스타일)
     detail_rows = "".join(
         f'<div style="display:flex; margin-bottom:4px; box-shadow:0 2px 8px rgba(0,0,0,.04);">'
         f'<div style="width:110px; background:#111; color:#fff; padding:12px; font-size:12.5px; '
@@ -2459,7 +2450,7 @@ def _sec_event_promo(d: dict, c: dict, T: dict) -> str:
         for row in details if isinstance(row, (list, tuple)) and len(row) >= 2
     )
 
-    # ── 3. 수강후기/기대평 입력 폼 (하단 흰색 박스) ──
+    # 3. 수강후기/기대평 입력 폼
     input_form = (
         f'<div style="background:#fff; padding:20px 24px; margin-top:32px; box-shadow:0 8px 30px rgba(0,0,0,.08); border:1px solid #EAEAEA;">'
         f'<div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">'
@@ -2477,12 +2468,10 @@ def _sec_event_promo(d: dict, c: dict, T: dict) -> str:
         f'</div>'
     )
 
-    # ── 4. 전체 HTML 조립 ──
+    # 4. 전체 HTML 조립
     return (
         f'<section class="sec alt" id="custom-section">'
         f'<div style="max-width:860px; margin:0 auto">'
-        
-        # 헤더 영역
         f'<div class="rv" style="text-align:center; margin-bottom:48px">'
         f'<div style="display:inline-flex; align-items:center; gap:8px; border:1px solid var(--text); color:var(--text); '
         f'font-size:11px; font-weight:800; padding:6px 20px; border-radius:100px; margin-bottom:20px; '
@@ -2492,26 +2481,16 @@ def _sec_event_promo(d: dict, c: dict, T: dict) -> str:
         f'<p style="font-size:15.5px; line-height:1.85; color:var(--t70); font-weight:500; '
         f'max-width:600px; margin:0 auto">{desc}</p>'
         f'</div>'
-        
-        # 메인 이벤트 박스 (상품 + 테이블)
         f'<div class="rv d1" style="background:var(--c1); padding:40px; border-radius:var(--r,8px); box-shadow:0 12px 40px rgba(0,0,0,.15);">'
         f'<div style="display:grid; grid-template-columns:1fr 1.3fr; gap:40px; align-items:center;">'
-        
-        # 좌측: 상품 이미지 영역
         f'<div style="text-align:center;">'
         f'{prize_visual}'
         + (f'<div style="margin-top:20px; font-size:14px; font-weight:800; color:var(--bg); text-align:center;">{prize_name}</div>' if prize_name else "")
-        + f'</div>'
-        
-        # 우측: 정보 테이블
+        f'</div>'
         f'<div>{detail_rows}</div>'
-        
         f'</div>'
         f'</div>'
-        
-        # 하단 입력 폼
         f'<div class="rv d2">{input_form}</div>'
-        
         f'</div></section>'
     )
  
@@ -2521,17 +2500,15 @@ def sec_custom(d, cp, T):
     c = cp.get("custom_section_data", {})
     if not c:
         return ""
- 
-    # 이벤트 스타일 분기
+
     if c.get("event_style"):
         return _sec_event_promo(d, c, T)
- 
-    # ── 기존 제네릭 카드 레이아웃 ──────────────────────────
+
     tag   = strip_hanja(c.get("tag", "추가 안내"))
     title = strip_hanja(c.get("title", "추가 섹션"))
     items = c.get("items", [])
     desc  = strip_hanja(c.get("desc", ""))
- 
+
     if items:
         ih = "".join(
             f'<div class="card rv d{min(i+1,3)}">'
@@ -2547,17 +2524,10 @@ def sec_custom(d, cp, T):
             for i, it in enumerate(items)
         )
         cols = f"repeat({min(len(items),3)},1fr)"
-        body = (
-            f'<div style="display:grid;grid-template-columns:{cols};gap:14px" class="rv d1">'
-            f'{ih}</div>'
-        )
+        body = f'<div style="display:grid;grid-template-columns:{cols};gap:14px" class="rv d1">{ih}</div>'
     else:
-        body = (
-            f'<div class="rv d1">'
-            f'<p style="font-size:14px;line-height:1.9;color:var(--t70)">{desc}</p>'
-            f'</div>'
-        )
- 
+        body = f'<div class="rv d1"><p style="font-size:14px;line-height:1.9;color:var(--t70)">{desc}</p></div>'
+
     return (
         f'<section class="sec" id="custom-section">'
         f'<div style="max-width:1200px;margin:0 auto">'
