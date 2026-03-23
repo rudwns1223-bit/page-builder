@@ -657,9 +657,8 @@ def build_bg_url(mood: str) -> str:
     pix = fetch_pixabay_url(query)
     if pix:
         return pix
-    # picsum fallback — mood 전체 해시로 다양성 보장
-    seed = abs(hash(mood)) % 9999
-    return f"https://picsum.photos/seed/{seed}/1920/1080"
+    # 사진을 못 찾았을 경우 엉뚱한 사진 대신 배경색을 쓰도록 빈 값 반환
+    return ""
 
 
 # ══════════════════════════════════════════════════════
@@ -1326,7 +1325,7 @@ def _bg_vars(bg_url, dark):
                 "card_bg":"rgba(255,255,255,.05)" if dark else "var(--bg)",
                 "btn_s":"","top_brd":"var(--bd)","blur":""}
     return {"hero_bg":f"background:var(--bg) url('{bg_url}') center/cover no-repeat",
-            "overlay":'<div style="position:absolute;inset:0;background:rgba(0,0,0,0.62);z-index:1;pointer-events:none"></div>',
+            "overlay":'<div style="position:absolute;inset:0;background:rgba(0,0,0,0.78);z-index:1;pointer-events:none"></div>',
             "tc":"color:#fff","t70c":"color:rgba(255,255,255,.82)","c1c":"#fff",
             "bdc":"rgba(255,255,255,.28)","card_bg":"rgba(0,0,0,.7)",
             "btn_s":"color:#fff;border-color:rgba(255,255,255,.4)",
