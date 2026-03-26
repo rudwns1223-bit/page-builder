@@ -340,6 +340,44 @@ SEC_LABELS = {
     "custom_section":"✏️ 기타 섹션",
 }
 RANDOM_SEEDS = [
+    # ── K-컬처·팝아트 ──
+    {"mood": "K팝 콘서트 무대 홀로그램 팬들 형광봉 핑크 블루", "layout": "billboard", "font": "display", "particle": "stars"},
+    {"mood": "웹툰 스타일 만화 그라디언트 벡터 컬러풀 팝", "layout": "brutal", "font": "display", "particle": "none"},
+    {"mood": "뉴트로 1990년대 한국 오락실 픽셀 레트로 네온", "layout": "brutal", "font": "mono", "particle": "none"},
+    {"mood": "한국 드라마 세트장 감성 조명 인물 드라마틱", "layout": "editorial", "font": "serif", "particle": "none"},
+ 
+    # ── 프리미엄 학습 공간 ──
+    {"mood": "조용한 독서실 새벽 3시 스탠드 불빛 연필 소리", "layout": "minimal", "font": "serif", "particle": "none"},
+    {"mood": "명문대 캠퍼스 가을 은행잎 도서관 클래식", "layout": "editorial", "font": "serif", "particle": "leaves"},
+    {"mood": "하버드 법대 강의실 오크 목재 책상 가죽 빈티지", "layout": "editorial", "font": "serif", "particle": "none"},
+    {"mood": "스탠퍼드 컴퓨터 사이언스 화이트 미니멀 실리콘밸리", "layout": "minimal", "font": "sans", "particle": "none"},
+ 
+    # ── 추상·그래픽 ──
+    {"mood": "라우터 데이터 흐름 파란 빛 네트워크 선 추상", "layout": "immersive", "font": "mono", "particle": "stars"},
+    {"mood": "DNA 이중나선 생명과학 초록 파랑 추상 미래", "layout": "immersive", "font": "sans", "particle": "none"},
+    {"mood": "수학 공식 칠판 분필 흰색 심플 클래식", "layout": "minimal", "font": "mono", "particle": "none"},
+    {"mood": "뇌 신경망 시냅스 빛 연결 파란 보라 추상", "layout": "immersive", "font": "sans", "particle": "stars"},
+    {"mood": "무한 우주 거울 반사 황금 프랙탈 만다라", "layout": "editorial", "font": "serif", "particle": "gold"},
+ 
+    # ── 계절·시간대 극적 장면 ──
+    {"mood": "장마 빗소리 창문 물방울 흘러내림 회색 고요", "layout": "minimal", "font": "serif", "particle": "none"},
+    {"mood": "봄 새벽 안개 속 은행나무 한 그루 여백", "layout": "minimal", "font": "serif", "particle": "none"},
+    {"mood": "가을 한강 노을 다리 실루엣 오렌지 서울", "layout": "editorial", "font": "serif", "particle": "gold"},
+    {"mood": "한여름 밤 열섬 서울 옥상 선풍기 반짝이는 별", "layout": "immersive", "font": "sans", "particle": "stars"},
+    {"mood": "폭설 내리는 수능 시험장 앞 수험생 떨리는 아침", "layout": "minimal", "font": "serif", "particle": "snow"},
+ 
+    # ── 극한 대비 미학 ──
+    {"mood": "피어나는 꽃 vs 콘크리트 벽 충돌 생명력 도시", "layout": "brutal", "font": "display", "particle": "petals"},
+    {"mood": "어둠 속 단 하나의 촛불 손 따뜻함 집중", "layout": "minimal", "font": "serif", "particle": "embers"},
+    {"mood": "낡은 교과서 위 형광펜 밑줄 클로즈업 노스탤지어", "layout": "minimal", "font": "serif", "particle": "none"},
+    {"mood": "CMYK 원색 팝아트 할리우드 빈티지 포스터", "layout": "billboard", "font": "display", "particle": "none"},
+ 
+    # ── 동아시아 미학 ──
+    {"mood": "교토 대나무 숲 초록 새벽 빛 고요 선", "layout": "minimal", "font": "serif", "particle": "leaves"},
+    {"mood": "홍콩 야시장 홍등 빨간 연기 소란 따뜻함", "layout": "brutal", "font": "display", "particle": "embers"},
+    {"mood": "서울 경복궁 달밤 전통 기와 파란 하늘 고요", "layout": "editorial", "font": "serif", "particle": "none"},
+    {"mood": "상하이 와이탄 야경 황포강 반사 골드 모더니즘", "layout": "editorial", "font": "serif", "particle": "gold"},
+
     # ── 스포츠 ──────────────────────────────────────
     {"mood":"관중이 가득찬 야구장 밤 전광판 붉은빛 함성","layout":"brutal","font":"display","particle":"none"},
     {"mood":"축구 경기장 잔디 조명 초록 밤 전광판 함성","layout":"brutal","font":"display","particle":"none"},
@@ -812,6 +850,7 @@ def _get_instructor_context() -> str:
 
 def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
     inst_ctx = _get_instructor_context()
+    variation_hint = get_copy_variation()
     
     schemas = {
         "신규 커리큘럼": '{"bannerSub":"10자이내","bannerTitle":"20자이내","brandTagline":"페이지 컨셉을 관통하는 브랜드 문구 1문장","bannerLead":"60-90자 수험생 고민을 찌르는 리드","bannerTags":["키워드1","키워드2","키워드3"],"ctaCopy":"10자이내","ctaTitle":"CTA 제목","ctaSub":"30자이내","ctaBadge":"15자이내","statBadges":[],"introTitle":"20자이내","introDesc":"80-120자 강사만의 차별점","introBio":"강사 학습법 포함 60자이내","introBadges":[],"whyTitle":"20자이내","whySub":"30자이내","whyReasons":[["이모지","12자제목","60자 구체적 설명"],["이모지","12자","60자"],["이모지","12자","60자"]],"curriculumTitle":"20자이내","curriculumSub":"30자이내","curriculumSteps":[["01","8자제목","학생 입장에서 50자 이상 설명","기간"],["02","8자","50자 이상","기간"],["03","8자","50자 이상","기간"],["04","8자","50자 이상","기간"]],"targetTitle":"20자이내","targetItems":["이런 학생을 대상으로 하는지 40자 상황 묘사","항목2 40자","항목3 40자","항목4 40자"],"reviews":[["생생한 인용문 50-70자","이름","변화뱃지"],["50-70자 인용문","이름","뱃지"],["50-70자 인용문","이름","뱃지"]],"faqs":[["구체적 질문15자","명쾌한 답변 50자이상"],["질문","50자 답변"],["질문","50자 답변"]],"videoTitle":"영상 섹션 제목 20자","videoSub":"40자 설명","videoTag":"OFFICIAL TRAILER","baTitle":"수강 전/후 비교 제목","baSub":"30자","baBeforeItems":["수강 전 학생 고민 40자","고민2 40자","고민3 40자"],"baAfterItems":["수강 후 변화 40자","변화2 40자","변화3 40자"],"methodTitle":"학습법 시각화 제목","methodSub":"30자","methodSteps":[{"step":"STEP 01","label":"단계명","desc":"45자이상"},{"step":"STEP 02","label":"단계명","desc":"45자이상"},{"step":"STEP 03","label":"단계명","desc":"45자이상"}],"pkgTitle":"구성 안내 제목","pkgSub":"30자","packages":[{"icon":"📗","name":"구성명","desc":"구성 설명 40자이상","badge":"필수"},{"icon":"📖","name":"구성명","desc":"40자이상","badge":"포함"},{"icon":"🎯","name":"구성명","desc":"40자이상","badge":"포함"},{"icon":"💬","name":"구성명","desc":"40자이상","badge":"특전"}]}',
@@ -842,6 +881,7 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
 
 ===문구 생성 지침===
 위 예시는 스타일 참고용입니다. 절대 베끼지 말고 [페이지 맥락]을 최우선으로 반영하여 창작하세요.
+{variation_hint}
 
 ===강사 정보===
 {inst_ctx}
@@ -934,6 +974,72 @@ SEC_LAYOUT_VARIANTS = {
     ],
 }
 import random as _random
+
+# 문구 패턴 변주 시드 — 매 호출마다 랜덤으로 하나를 선택해서 프롬프트에 삽입
+COPY_VARIATION_SEEDS = [
+    {
+        "style": "대비형",
+        "bannerTitle_hint": "수험생이 지금 하고 있는 '잘못된 공부법'을 제목에 직접 언급하고 뒤집어라",
+        "lead_hint": "지금 하는 공부 방식의 문제점을 먼저 짚고 → 해결책으로 이 강의를 제시",
+        "why_hint": "각 이유를 '기존 방법 문제점 → 이 강의의 해결' 대비 구조로 작성",
+        "cta_hint": "지금 당장 바꾸지 않으면 생기는 손해를 한 문장으로",
+    },
+    {
+        "style": "감성공감형",
+        "bannerTitle_hint": "수험생이 새벽에 혼자 공부하다 느끼는 외로움·막막함을 제목에 담아라",
+        "lead_hint": "수험생의 현재 감정 상태를 정확히 묘사한 뒤 → 선생님이 그 옆에 있겠다는 약속",
+        "why_hint": "각 이유를 선배의 경험담처럼 서술 — '저도 그 느낌 알아요'로 시작",
+        "cta_hint": "시작이 두려운 수험생에게 첫 발자국을 내딛게 하는 따뜻한 문장",
+    },
+    {
+        "style": "데이터·증거형",
+        "bannerTitle_hint": "구체적 학습법 키워드(R'gorithm·KISS·인셉션 등)를 전면에 내세워라",
+        "lead_hint": "이 강의가 다른 강의와 다른 '방법론적 근거'를 1~2문장으로 제시",
+        "why_hint": "각 이유를 기출 데이터·출제 원리 등 검증 가능한 근거로 뒷받침",
+        "cta_hint": "선택의 기준을 '느낌'이 아닌 '방법론'으로 제시하는 문장",
+    },
+    {
+        "style": "긴박감·시간압박형",
+        "bannerTitle_hint": "수능까지 남은 기간의 긴박함을 제목에 직접 숫자 또는 시간으로 표현",
+        "lead_hint": "지금 당장 시작하지 않으면 수능에서 손해 보는 이유를 구체적으로",
+        "why_hint": "각 이유를 '지금 이 시기에 반드시 해야 하는 이유'로 작성",
+        "cta_hint": "오늘 신청하는 것이 내일 신청하는 것보다 유리한 이유",
+    },
+    {
+        "style": "브랜드·프리미엄형",
+        "bannerTitle_hint": "강사의 시그니처 커리큘럼명을 제목의 절반 이상을 차지하게 크게 배치",
+        "lead_hint": "이 강의를 선택한 것이 수험생 인생에서 중요한 결정임을 고급스럽게 표현",
+        "why_hint": "각 이유를 강사의 철학·방법론의 독창성 관점에서 작성",
+        "cta_hint": "선택받은 소수만이 이 커리큘럼을 경험한다는 프리미엄 문장",
+    },
+    {
+        "style": "Before/After 스토리형",
+        "bannerTitle_hint": "수강 전 학생의 상황(막막함·실패·좌절)이 달라지는 전환점으로서의 제목",
+        "lead_hint": "구체적인 수강생의 변화 스토리를 2~3문장으로 미리 암시",
+        "why_hint": "각 이유를 '수강 전에는 이랬는데 → 수강 후에는 이렇게 달라졌다'로",
+        "cta_hint": "이 강의가 학생의 수험생활에서 '전환점'이 된다는 선언",
+    },
+    {
+        "style": "도발·직설형",
+        "bannerTitle_hint": "수험생이 지금 하고 있는 비효율적인 공부를 직접 저격하는 제목",
+        "lead_hint": "듣기 불편하지만 사실인 이야기를 단도직입적으로. 쉼표 없이 짧은 문장들",
+        "why_hint": "각 이유를 수험생의 반박을 미리 예상하고 정면 반박하는 구조로",
+        "cta_hint": "더 이상 망설이는 것 자체가 손해라는 직설적 선언",
+    },
+]
+ 
+def get_copy_variation() -> str:
+    """매 호출마다 다른 문구 변주 지시를 반환"""
+    v = _rand.choice(COPY_VARIATION_SEEDS)
+    return (
+        f"\n\n===이번 생성의 문구 스타일 지침 [{v['style']}]===\n"
+        f"- bannerTitle 방향: {v['bannerTitle_hint']}\n"
+        f"- bannerLead/introDesc 방향: {v['lead_hint']}\n"
+        f"- whyReasons 방향: {v['why_hint']}\n"
+        f"- ctaSub/ctaTitle 방향: {v['cta_hint']}\n"
+        f"※ 위 스타일을 반드시 반영해 기존 예시와 완전히 다른 문구를 생성하라."
+    )
+    
 def _pick_layout_variant(sec_id: str) -> str:
     """섹션 ID에 맞는 랜덤 레이아웃 변형 설명을 반환"""
     variants = SEC_LAYOUT_VARIANTS.get(sec_id, [])
@@ -1004,30 +1110,158 @@ def gen_section(sec_id: str) -> dict:
 
 # ── 강사 DB ─────────────────────────────────────────
 INSTRUCTOR_DB = {
-    "이명학": {"found":True,"subject":"영어","platform":"대성마이맥",
-        "bio":"대성마이맥 영어 강사. R'gorithm·Syntax·Read N' Logic 시리즈.",
-        "slogan":"영어, 논리로 끝낸다","signatureMethods":["R'gorithm","Syntax"],
-        "teachingStyle":"구문 분석과 독해 논리 체계적 연결","desc":"R'gorithm으로 지문 구조를 논리적으로 파악"},
-    "션티": {"found":True,"subject":"영어","platform":"대성마이맥",
-        "bio":"대성마이맥 영어 강사. KISS 시리즈(KISSAVE·KISSCHEMA·KISS Logic).",
-        "slogan":"KISS — Keep It Simple, Suneung","signatureMethods":["KISS Logic","KISSAVE","KISSCHEMA"],
-        "teachingStyle":"수능 영어 핵심 원리를 KISS로 단순화 반복 훈련","desc":"KISS 시리즈로 처음부터 끝까지 수능 영어 완성"},
-    "이미지": {"found":True,"subject":"수학","platform":"대성마이맥",
-        "bio":"대성마이맥 수학 강사. 세젤쉬·미친개념·미친기분 시리즈.",
-        "slogan":"수학, 미치도록 쉽게","signatureMethods":["세젤쉬","미친개념","미친기분"],
-        "teachingStyle":"복잡한 개념을 직관적으로 쉽게","desc":"세젤쉬·미친개념으로 수학 입문자도 따라오게 만드는 강사"},
-    "김범준": {"found":True,"subject":"수학","platform":"대성마이맥",
-        "bio":"대성마이맥 수학. Starting Block·KICE Anatomy·The Hurdling.",
-        "slogan":"수능 수학의 뼈대를 세워라","signatureMethods":["KICE Anatomy","Starting Block","The Hurdling"],
-        "teachingStyle":"수능 기출 해부로 출제 원리 파악","desc":"KICE Anatomy로 수능 수학 기출 원리 완전 이해"},
-    "김승리": {"found":True,"subject":"국어","platform":"대성마이맥",
-        "bio":"대성마이맥 국어. All Of KICE·VIC-FLIX 시리즈.",
-        "slogan":"국어, 승리로 끝낸다","signatureMethods":["All Of KICE","VIC-FLIX"],
-        "teachingStyle":"수능 국어 출제 원리 파악 후 실전 능력 강화","desc":"All Of KICE로 국어 원리부터 실전까지 완성"},
-    "유대종": {"found":True,"subject":"국어","platform":"대성마이맥",
-        "bio":"대성마이맥 국어. 인셉션 시리즈·파노라마·O.V.S.",
-        "slogan":"국어의 인셉션을 시작하라","signatureMethods":["인셉션","O.V.S","파노라마"],
-        "teachingStyle":"인셉션 방식으로 국어 깊이 이해","desc":"인셉션 시리즈로 국어 원리 차근차근 이해"},
+    # ━━ 영어 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    "이명학": {
+        "found": True, "subject": "영어", "platform": "대성마이맥",
+        "bio": "대성마이맥 영어 강사. R'gorithm·Syntax·Read N' Logic 시리즈로 독해 논리 체계화.",
+        "slogan": "영어, 논리로 끝낸다",
+        "signatureMethods": ["R'gorithm", "Syntax", "Read N' Logic"],
+        "teachingStyle": "구문 분석과 독해 논리를 체계적으로 연결하는 수업",
+        "desc": "R'gorithm으로 지문 구조를 논리적으로 파악하고 어떤 지문도 흔들리지 않는 독해력을 만든다",
+        "curriculum_series": ["R'gorithm 기본", "SYNTAX", "Read N' Logic"],
+        "target_grade": "고3·N수",
+        "strength": "독해 논리 구조화",
+    },
+    "션티": {
+        "found": True, "subject": "영어", "platform": "대성마이맥",
+        "bio": "대성마이맥 영어. KISS 시리즈(KISSAVE·KISSCHEMA·KISS Logic) 수능 영어 단순화 전문.",
+        "slogan": "KISS — Keep It Simple, Suneung",
+        "signatureMethods": ["KISS Logic", "KISSAVE", "KISSCHEMA"],
+        "teachingStyle": "수능 영어 핵심 원리를 KISS 원칙으로 단순화·반복 훈련",
+        "desc": "KISS 시리즈로 처음부터 끝까지 수능 영어 완성. 복잡한 것을 단순하게 만드는 것이 진짜 실력",
+        "curriculum_series": ["KISS Logic", "KISSAVE", "KISSCHEMA"],
+        "target_grade": "고3·N수",
+        "strength": "핵심 단순화",
+    },
+    "조정식": {
+        "found": True, "subject": "영어", "platform": "메가스터디",
+        "bio": "메가스터디 영어 강사. 수능 영어 1등급 로드맵 설계 전문.",
+        "slogan": "1등급, 설계부터 다르다",
+        "signatureMethods": ["1등급 로드맵", "독해 기본기"],
+        "teachingStyle": "수능 영어 구조를 단계적으로 쌓아올리는 체계적 설계",
+        "desc": "기초부터 1등급까지 끊어짐 없는 커리큘럼 설계",
+        "curriculum_series": ["영어 기본기", "독해 완성"],
+        "target_grade": "고1·2·3",
+        "strength": "체계적 로드맵",
+    },
+    "김기훈": {
+        "found": True, "subject": "영어", "platform": "EBSi",
+        "bio": "EBSi 영어 대표 강사. EBS 연계 교재 완벽 분석 특화.",
+        "slogan": "EBS가 답이다",
+        "signatureMethods": ["EBS 완벽 연계", "기출 분석"],
+        "teachingStyle": "EBS 연계율을 최대한 활용한 실전 전략 수업",
+        "desc": "EBS 교재를 완벽하게 소화해 연계 70%를 확실한 점수로 전환",
+        "curriculum_series": ["EBS 완성", "수능특강 분석"],
+        "target_grade": "고3",
+        "strength": "EBS 연계 극대화",
+    },
+ 
+    # ━━ 수학 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    "이미지": {
+        "found": True, "subject": "수학", "platform": "대성마이맥",
+        "bio": "대성마이맥 수학. 세젤쉬·미친개념·미친기분 시리즈.",
+        "slogan": "수학, 미치도록 쉽게",
+        "signatureMethods": ["세젤쉬", "미친개념", "미친기분"],
+        "teachingStyle": "복잡한 개념을 직관적으로 쉽게 전달",
+        "desc": "세젤쉬·미친개념으로 수학 입문자도 따라오게 만드는 강사",
+        "curriculum_series": ["세젤쉬", "미친개념", "미친기분"],
+        "target_grade": "고1·2·3",
+        "strength": "개념 직관화",
+    },
+    "김범준": {
+        "found": True, "subject": "수학", "platform": "대성마이맥",
+        "bio": "대성마이맥 수학. Starting Block·KICE Anatomy·The Hurdling.",
+        "slogan": "수능 수학의 뼈대를 세워라",
+        "signatureMethods": ["KICE Anatomy", "Starting Block", "The Hurdling"],
+        "teachingStyle": "수능 기출 해부로 출제 원리 파악",
+        "desc": "KICE Anatomy로 수능 수학 기출 원리 완전 이해",
+        "curriculum_series": ["Starting Block", "KICE Anatomy", "The Hurdling"],
+        "target_grade": "고3·N수",
+        "strength": "기출 원리 해부",
+    },
+    "현우진": {
+        "found": True, "subject": "수학", "platform": "메가스터디",
+        "bio": "메가스터디 수학. 뉴런 시리즈. 수학 1등급 양성 전문.",
+        "slogan": "수학은 뉴런이 답이다",
+        "signatureMethods": ["뉴런", "수학적 사고"],
+        "teachingStyle": "수학적 사고력을 기르는 개념 중심 수업",
+        "desc": "뉴런 시리즈로 수학 전 영역을 하나의 흐름으로 연결",
+        "curriculum_series": ["뉴런 수1", "뉴런 수2", "뉴런 미적분"],
+        "target_grade": "고3·N수",
+        "strength": "수학적 사고력",
+    },
+    "정승제": {
+        "found": True, "subject": "수학", "platform": "이투스",
+        "bio": "이투스 수학. 정승제 수학의 정석 시리즈. 개념 기초 특화.",
+        "slogan": "수학, 기초가 전부다",
+        "signatureMethods": ["개념 완성", "수학의 정석"],
+        "teachingStyle": "수학 개념의 본질을 파악하는 기초 완성 수업",
+        "desc": "수학 기초가 부족한 학생도 1등급을 만들어내는 개념 완성 커리큘럼",
+        "curriculum_series": ["수1 완성", "수2 완성", "확통·미적분"],
+        "target_grade": "고1·2·3",
+        "strength": "기초 개념 완성",
+    },
+ 
+    # ━━ 국어 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    "김승리": {
+        "found": True, "subject": "국어", "platform": "대성마이맥",
+        "bio": "대성마이맥 국어. All Of KICE·VIC-FLIX 시리즈.",
+        "slogan": "국어, 승리로 끝낸다",
+        "signatureMethods": ["All Of KICE", "VIC-FLIX"],
+        "teachingStyle": "수능 국어 출제 원리 파악 후 실전 능력 강화",
+        "desc": "All Of KICE로 국어 원리부터 실전까지 완성",
+        "curriculum_series": ["All Of KICE", "VIC-FLIX"],
+        "target_grade": "고3·N수",
+        "strength": "출제 원리 분석",
+    },
+    "유대종": {
+        "found": True, "subject": "국어", "platform": "대성마이맥",
+        "bio": "대성마이맥 국어. 인셉션 시리즈·파노라마·O.V.S.",
+        "slogan": "국어의 인셉션을 시작하라",
+        "signatureMethods": ["인셉션", "O.V.S", "파노라마"],
+        "teachingStyle": "인셉션 방식으로 국어 깊이 이해",
+        "desc": "인셉션 시리즈로 국어 원리 차근차근 이해",
+        "curriculum_series": ["인셉션 기본", "파노라마", "O.V.S"],
+        "target_grade": "고2·3·N수",
+        "strength": "국어 원리 심화",
+    },
+    "최인호": {
+        "found": True, "subject": "국어", "platform": "메가스터디",
+        "bio": "메가스터디 국어. 비문학 독해 전문 강사.",
+        "slogan": "비문학, 읽으면 보인다",
+        "signatureMethods": ["비문학 독해법", "지문 구조 분석"],
+        "teachingStyle": "비문학 지문을 구조적으로 읽는 훈련 중심 수업",
+        "desc": "어떤 비문학 지문도 5분 안에 구조를 파악하는 독해 훈련",
+        "curriculum_series": ["비문학 완성", "독해 기초"],
+        "target_grade": "고3·N수",
+        "strength": "비문학 특화",
+    },
+ 
+    # ━━ 사회탐구 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    "윤성훈": {
+        "found": True, "subject": "사회", "platform": "대성마이맥",
+        "bio": "대성마이맥 생활과 윤리·윤리와 사상 전문 강사.",
+        "slogan": "윤리, 외우지 말고 이해해라",
+        "signatureMethods": ["개념 구조화", "기출 선지 분석"],
+        "teachingStyle": "윤리 개념을 구조화해 선지 판단력을 기르는 수업",
+        "desc": "생활과 윤리를 외우는 과목이 아닌 이해하는 과목으로 바꾸는 강의",
+        "curriculum_series": ["생활과 윤리 완성"],
+        "target_grade": "고3·N수",
+        "strength": "윤리 개념 구조화",
+    },
+
+    # ━━ 과학탐구 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    "장풍": {
+        "found": True, "subject": "과학", "platform": "대성마이맥",
+        "bio": "대성마이맥 물리학1 전문 강사. 역학·전자기학 특화.",
+        "slogan": "물리, 원리를 알면 계산이 보인다",
+        "signatureMethods": ["물리 원리 시각화", "역학 완성"],
+        "teachingStyle": "물리 원리를 시각화해 어떤 문제도 풀어내는 수업",
+        "desc": "물리학1의 역학과 전자기학을 원리부터 실전까지 완성",
+        "curriculum_series": ["물리학1 완성"],
+        "target_grade": "고3·N수",
+        "strength": "물리 원리 시각화",
+    },
 }
 
 def search_instructor(name: str, subj: str) -> dict:
