@@ -1048,7 +1048,7 @@ COPY_VARIATION_SEEDS = [
  
 def get_copy_variation() -> str:
     """매 호출마다 다른 문구 변주 지시를 반환"""
-    v = _rand.choice(COPY_VARIATION_SEEDS)
+    v = _random.choice(COPY_VARIATION_SEEDS)
     return (
         f"\n\n===이번 생성의 문구 스타일 지침 [{v['style']}]===\n"
         f"- bannerTitle 방향: {v['bannerTitle_hint']}\n"
@@ -3488,7 +3488,7 @@ with st.sidebar:
         else:
             with st.spinner(f"{nm} 선생님 정보 검색 중..."):
                 try:
-                    p = search_instructor(nm, sb)
+                    p = search_instructor_improved(nm, sb)
                     st.session_state.inst_profile = p
                     if p.get("found"):
                         st.success(f"✓ {nm} 선생님 정보 검색 완료!")
