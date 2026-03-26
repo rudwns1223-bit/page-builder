@@ -312,6 +312,24 @@ THEMES = {
         "particle":"gold"},
 }
 
+THEME_PREVIEW_COLORS = {
+    "acid":       ["#030703", "#AAFF00", "#CCFF44"],
+    "cinematic":  ["#050005", "#FF1744", "#FF5252"],
+    "stadium":    ["#020008", "#FF2244", "#FF6688"],
+    "inception":  ["#010C06", "#2DB87C", "#4ECFA0"],
+    "amber":      ["#080400", "#F59E0B", "#FCD34D"],
+    "brutal":     ["#F5F5F0", "#1A1A1A", "#444444"],
+    "violet_pop": ["#FAFAFF", "#7C3AED", "#9F67FF"],
+    "floral":     ["#FFFAF8", "#E8386D", "#F472A8"],
+    "cosmos":     ["#030712", "#7C3AED", "#06B6D4"],
+    "fire":       ["#0D0705", "#FF4500", "#FF8C00"],
+    "luxury":     ["#0C0B09", "#C8975A", "#D4AF72"],
+    "ocean":      ["#F0F9FF", "#0EA5E9", "#38BDF8"],
+    "sakura":     ["#FBF6F4", "#B5304A", "#E89BB5"],
+    "winter":     ["#F8FAFF", "#1E40AF", "#3B82F6"],
+    "eco":        ["#F0FDF4", "#059669", "#34D399"],
+}
+
 PURPOSE_SECTIONS = {
     "신규 커리큘럼": ["banner","intro","video","grade_stats","before_after","method","why","curriculum","target","package","reviews","faq","cta"],
     "이벤트":       ["banner","event_overview","event_benefits","event_deadline","reviews","cta"],
@@ -1264,17 +1282,57 @@ INSTRUCTOR_DB = {
     },
 }
 
-def search_instructor(name: str, subj: str) -> dict:
-    if name in INSTRUCTOR_DB: return INSTRUCTOR_DB[name]
+def search_instructor_improved(name: str, subj: str) -> dict:
+    """강사 DB 먼저 확인, 없으면 AI로 검색 (더 구체적인 질문)"""
+    # 1단계: 정확 매칭
+    if name in INSTRUCTOR_DB:
+        return INSTRUCTOR_DB[name]
+    
+    # 2단계: 부분 매칭 (이름 일부 포함)
     for db_name, info in INSTRUCTOR_DB.items():
-        if name in db_name or db_name in name: return info
-    prompt = f"""한국 수능 강사 "{name}" ({subj}). 확실히 아는 정보만. 모르면 빈 문자열. 지어내지 말 것. 한자 금지.
-JSON만: {{"found":true,"bio":"1문장","slogan":"","signatureMethods":[],"teachingStyle":"1문장","desc":"1문장"}}"""
+        if name in db_name or db_name in name:
+            return info
+    
+    # 3단계: AI 검색 (더 구체적인 프롬프트)
+    prompt = (
+        f'한국 수능 강사 "{name}" ({subj} 전문)에 대해 확실히 아는 정보만 알려줘.\n'
+        f'모르는 정보는 빈 문자열로 남겨. 지어내거나 추측하지 말 것.\n'
+        f'한자 금지. "교수" 직함 금지 — "강사" 또는 "선생님"만 사용.\n'
+        f'JSON만 반환:\n'
+        f'{{"found":true,"bio":"플랫폼+대표시리즈 포함 1~2문장","slogan":"강사 고유 슬로건 또는 빈문자열",'
+        f'"signatureMethods":["고유 학습법1","고유 학습법2"],"teachingStyle":"수업 특징 1문장",'
+        f'"desc":"학생이 이 강사를 선택해야 하는 차별점 1문장",'
+        f'"curriculum_series":["대표 강좌명1","대표 강좌명2"],'
+        f'"strength":"핵심 강점 키워드 (예: 독해 논리화, EBS 연계 특화)"}}'
+    )
     try:
-        return safe_json(call_ai(prompt, max_tokens=300))
+        return safe_json(call_ai(prompt, max_tokens=400))
     except Exception:
-        return {"found":True,"bio":f"{subj} 강사","slogan":"","signatureMethods":[],"teachingStyle":"","desc":""}
-
+        return {
+            "found": True, "bio": f"{subj} 강사", "slogan": "",
+            "signatureMethods": [], "teachingStyle": "", "desc": "",
+            "curriculum_series": [], "strength": "",
+        }
+        
+def validate_copy(cp: dict) -> list:
+    """생성된 문구에서 너무 짧은 항목을 반환"""
+    warnings = []
+    checks = [
+        ("bannerTitle", 5,  "배너 제목"),
+        ("bannerLead",  30, "배너 리드 문구"),
+        ("introDesc",   40, "강사 소개 본문"),
+        ("ctaSub",      15, "CTA 서브 문구"),
+    ]
+    for key, min_len, label in checks:
+        val = cp.get(key, "")
+        if isinstance(val, str) and len(val) < min_len:
+            warnings.append(f"⚠️ {label}이 너무 짧습니다 ({len(val)}자 / 최소 {min_len}자)")
+    steps = cp.get("curriculumSteps", [])
+    for i, step in enumerate(steps):
+        if isinstance(step, (list, tuple)) and len(step) >= 3:
+            if len(str(step[2])) < 25:
+                warnings.append(f"⚠️ 커리큘럼 STEP {i+1} 설명이 너무 짧습니다")
+    return warnings
 # ══════════════════════════════════════════════════════
 # 테마 리졸버
 # ══════════════════════════════════════════════════════
@@ -3351,7 +3409,14 @@ with st.sidebar:
         t = THEMES[k]
         with cols_n[i % 2]:
             is_on = st.session_state.concept == k
-            if st.button(t["label"], key=f"th_{k}",
+            colors = THEME_PREVIEW_COLORS.get(k, [])
+            dot = "".join(
+                f'<span style="display:inline-block;width:8px;height:8px;'
+                f'border-radius:50%;background:{c};margin-right:2px"></span>'
+                for c in colors[:2]
+            ) if colors else ""
+            btn_label = t["label"]
+            if st.button(btn_label, key=f"th_{k}",
                          type="primary" if is_on else "secondary",
                          use_container_width=True):
                 st.session_state.concept = k
@@ -3392,6 +3457,20 @@ with st.sidebar:
     st.caption(COPY_TONES[st.session_state.copy_tone])
     st.divider()
     st.markdown('<div class="sec-hdr">👤 강사 정보</div>', unsafe_allow_html=True)
+    known_names = ["직접 입력"] + list(INSTRUCTOR_DB.keys())
+    quick_sel = st.selectbox(
+        "알려진 강사 빠른 선택",
+        known_names,
+        index=0,
+        label_visibility="collapsed",
+        key="quick_instructor"
+    )
+    if quick_sel != "직접 입력" and quick_sel != st.session_state.instructor_name:
+        st.session_state.instructor_name = quick_sel
+        info = INSTRUCTOR_DB[quick_sel]
+        st.session_state.subject = info["subject"]
+        st.session_state.inst_profile = info
+        st.rerun()
     nm = st.text_input("강사명", value=st.session_state.instructor_name,
                        placeholder="강사명", label_visibility="collapsed")
     st.session_state.instructor_name = nm
@@ -3554,6 +3633,9 @@ with L:
                 hist.insert(0, snapshot)
                 st.session_state.history = hist[:5]
                 st.success(f"✓ 전체 {len(active)}개 섹션 문구 생성 완료!")
+                warns = validate_copy(st.session_state.custom_copy)
+                for w in warns:
+                    st.warning(w)
                 st.rerun() # <--- 화면을 즉시 새로고침하는 마법의 주문!
 
             except Exception as e:
