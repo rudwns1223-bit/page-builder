@@ -3690,6 +3690,21 @@ def sec_instructor_philosophy(d, cp, T):
 # ══════════════════════════════════════════════════════
 # HTML 빌더
 # ══════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════
+# 섹션 사이 사선 구분선 헬퍼
+# ══════════════════════════════════════════════════════
+def _with_divider(html: str, idx: int, dark: bool) -> str:
+    if idx == 0:
+        return html
+    direction = "polygon(0 0,100% 4%,100% 100%,0 100%)" if idx % 2 == 0 else "polygon(0 4%,100% 0,100% 100%,0 100%)"
+    fill = "var(--bg2)" if dark else "var(--bg)"
+    divider = (
+        f'<div style="height:48px;background:{fill};'
+        f'clip-path:{direction};margin-top:-24px;position:relative;z-index:3"></div>'
+    )
+    return divider + html
+
+
 def build_html(secs: list) -> str:
     T  = get_theme()
     cp = dict(st.session_state.custom_copy or {})
@@ -3810,7 +3825,6 @@ for i, s in enumerate(secs):
     if s in mp:
         sec_html = mp[s](d, cp, T)
         sections_html.append(_with_divider(sec_html, i, T["dark"]))
-
 body = nav_html + "\n".join(sections_html)
     ttl  = cp.get("bannerTitle", cp.get("festHeroTitle", d["purpose_label"]))
     particle_js = _particle_js(T.get("particle","none"))
