@@ -1203,9 +1203,9 @@ def gen_course_copy(course_info: str) -> dict:
 
 규칙:
 - courseTitle: 강좌명 또는 강좌를 가장 잘 표현하는 제목 (20자 이내)
-- courseSub: 이 강좌가 필요한 이유 한 문장 (30자 이내)  
+- courseSub: 이 강좌가 필요한 이유 한 문장 (30자 이내)
 - courseDesc: 강좌의 핵심 특징 설명 (60-100자, 구체적으로)
-- coursePoints: 강좌 핵심 포인트 3개 [{"icon":"이모지","title":"10자","desc":"30자"}]
+- coursePoints: 강좌 핵심 포인트 3개 [{{"icon":"이모지","title":"10자","desc":"30자"}}]
 - courseDuration: 강좌 기간 (입력 정보에 있으면 사용, 없으면 빈 문자열)
 - courseLevel: 수준 (입력 정보에 있으면 사용, 없으면 빈 문자열)
 - courseTag: 강좌 특징 키워드 3개 ["키워드1","키워드2","키워드3"]
@@ -1214,13 +1214,10 @@ JSON만 반환:
 {{"courseTitle":"20자","courseSub":"30자","courseDesc":"60-100자 설명",
 "coursePoints":[{{"icon":"이모지","title":"10자","desc":"30자"}},{{"icon":"이모지","title":"10자","desc":"30자"}},{{"icon":"이모지","title":"10자","desc":"30자"}}],
 "courseDuration":"","courseLevel":"","courseTag":["키워드1","키워드2","키워드3"]}}"""
-    
+
     return safe_json(call_ai(prompt, max_tokens=1000))
 
 
-# ═══════════════════════════════════════════════════════
-# 교재 소개 AI 생성
-# ═══════════════════════════════════════════════════════
 def gen_textbook_copy(textbook_info: str) -> dict:
     """사용자가 입력한 교재 정보 → AI 문구 생성"""
     inst_ctx = _get_instructor_context()
@@ -1240,8 +1237,8 @@ def gen_textbook_copy(textbook_info: str) -> dict:
 - tbSub: 이 교재가 특별한 이유 한 문장 (30자 이내)
 - tbDesc: 교재 소개 (60-100자)
 - tbBooks: 교재 구성 목록. 권수가 있으면 그대로 사용.
-  [{"name":"권명","desc":"이 권의 역할 20자","badge":"필수/추천/심화"}]
-- tbFeatures: 교재 특징 3가지 [{"icon":"이모지","feature":"특징 20자"}]
+  [{{"name":"권명","desc":"이 권의 역할 20자","badge":"필수/추천/심화"}}]
+- tbFeatures: 교재 특징 3가지 [{{"icon":"이모지","feature":"특징 20자"}}]
 - tbBuyTitle: 구매 유도 제목 (20자)
 - tbBuyDesc: 구매 유도 설명 (40자)
 
@@ -1250,7 +1247,7 @@ JSON만 반환:
 "tbBooks":[{{"name":"권명","desc":"역할 20자","badge":"필수"}}],
 "tbFeatures":[{{"icon":"이모지","feature":"특징 20자"}},{{"icon":"이모지","feature":"20자"}},{{"icon":"이모지","feature":"20자"}}],
 "tbBuyTitle":"구매 제목","tbBuyDesc":"40자"}}"""
-    
+
     return safe_json(call_ai(prompt, max_tokens=1200))
 
 
