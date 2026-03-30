@@ -32,6 +32,10 @@ _D = {
     "pixabay_key": "", "bg_cache": {}, "preview_key": 0,
     "copy_tone": "🔥 강렬·도발",
     "history": [],
+    "course_info": "",      # ← 추가: 강좌 정보 입력
+    "textbook_info": "",    # ← 추가: 교재 정보 입력
+    "course_copy": None,    # ← 추가: 강좌 생성 문구 캐시
+    "textbook_copy": None,  # ← 추가: 교재 생성 문구 캐시
 }
 for _k, _v in _D.items():
     if _k not in st.session_state:
@@ -373,7 +377,7 @@ THEME_PREVIEW_COLORS = {
 }
 
 PURPOSE_SECTIONS = {
-    "신규 커리큘럼": ["banner","intro","video","grade_stats","before_after","method","why","curriculum","target","package","reviews","faq","cta"],
+    "신규 커리큘럼": ["banner","intro","video","grade_stats","before_after","instructor_philosophy","method","why","curriculum","course_intro","textbook_sale","target","package","reviews","faq","cta"],
     "이벤트":       ["banner","event_overview","event_benefits","event_deadline","reviews","cta"],
     "기획전":       ["fest_hero","fest_lineup","fest_benefits","fest_cta"],
 }
@@ -398,6 +402,10 @@ SEC_LABELS = {
     "fest_hero":"🏆 기획전 히어로","fest_lineup":"👥 강사 라인업",
     "fest_benefits":"🎁 기획전 혜택","fest_cta":"📣 기획전 CTA",
     "custom_section":"✏️ 기타 섹션",
+    "course_intro": "📖 강좌 소개",        # ← 추가
+    "textbook_sale": "📦 교재 소개·판매",   # ← 추가
+    "instructor_philosophy": "💭 강사 철학", # ← 추가
+    "season_roadmap": "🗓 시즌 로드맵",     # ← 추가
 }
 RANDOM_SEEDS = [
     # ── K-컬처·팝아트 ──
@@ -1176,7 +1184,74 @@ def _pick_layout_variant(sec_id: str) -> str:
 def gen_section(sec_id: str) -> dict:
     inst_ctx = _get_instructor_context()
     ptype = st.session_state.purpose_type
+# ═══════════════════════════════════════════════════════
+# 강좌 소개 AI 생성
+# ═══════════════════════════════════════════════════════
+def gen_course_copy(course_info: str) -> dict:
+    """사용자가 입력한 강좌 정보 → AI 문구 생성"""
+    inst_ctx = _get_instructor_context()
+    prompt = f"""수능 교육 랜딩페이지 강좌 소개 섹션 카피라이터.
+
+강사/과목 정보:
+{inst_ctx}
+
+사용자가 입력한 강좌 정보:
+"{course_info}"
+
+위 정보를 바탕으로 강좌 소개 섹션 문구를 생성하라.
+입력된 정보에 있는 내용만 사용하고 지어내지 말 것.
+
+규칙:
+- courseTitle: 강좌명 또는 강좌를 가장 잘 표현하는 제목 (20자 이내)
+- courseSub: 이 강좌가 필요한 이유 한 문장 (30자 이내)  
+- courseDesc: 강좌의 핵심 특징 설명 (60-100자, 구체적으로)
+- coursePoints: 강좌 핵심 포인트 3개 [{"icon":"이모지","title":"10자","desc":"30자"}]
+- courseDuration: 강좌 기간 (입력 정보에 있으면 사용, 없으면 빈 문자열)
+- courseLevel: 수준 (입력 정보에 있으면 사용, 없으면 빈 문자열)
+- courseTag: 강좌 특징 키워드 3개 ["키워드1","키워드2","키워드3"]
+
+JSON만 반환:
+{{"courseTitle":"20자","courseSub":"30자","courseDesc":"60-100자 설명",
+"coursePoints":[{{"icon":"이모지","title":"10자","desc":"30자"}},{{"icon":"이모지","title":"10자","desc":"30자"}},{{"icon":"이모지","title":"10자","desc":"30자"}}],
+"courseDuration":"","courseLevel":"","courseTag":["키워드1","키워드2","키워드3"]}}"""
     
+    return safe_json(call_ai(prompt, max_tokens=1000))
+
+
+# ═══════════════════════════════════════════════════════
+# 교재 소개 AI 생성
+# ═══════════════════════════════════════════════════════
+def gen_textbook_copy(textbook_info: str) -> dict:
+    """사용자가 입력한 교재 정보 → AI 문구 생성"""
+    inst_ctx = _get_instructor_context()
+    prompt = f"""수능 교육 랜딩페이지 교재 소개·판매 섹션 카피라이터.
+
+강사/과목 정보:
+{inst_ctx}
+
+사용자가 입력한 교재 정보:
+"{textbook_info}"
+
+위 정보를 바탕으로 교재 소개 섹션 문구를 생성하라.
+입력된 정보에만 기반하고 없는 내용은 지어내지 말 것.
+
+규칙:
+- tbTitle: 교재명 또는 시리즈명 (20자 이내)
+- tbSub: 이 교재가 특별한 이유 한 문장 (30자 이내)
+- tbDesc: 교재 소개 (60-100자)
+- tbBooks: 교재 구성 목록. 권수가 있으면 그대로 사용.
+  [{"name":"권명","desc":"이 권의 역할 20자","badge":"필수/추천/심화"}]
+- tbFeatures: 교재 특징 3가지 [{"icon":"이모지","feature":"특징 20자"}]
+- tbBuyTitle: 구매 유도 제목 (20자)
+- tbBuyDesc: 구매 유도 설명 (40자)
+
+JSON만 반환:
+{{"tbTitle":"교재명","tbSub":"30자","tbDesc":"60-100자",
+"tbBooks":[{{"name":"권명","desc":"역할 20자","badge":"필수"}}],
+"tbFeatures":[{{"icon":"이모지","feature":"특징 20자"}},{{"icon":"이모지","feature":"20자"}},{{"icon":"이모지","feature":"20자"}}],
+"tbBuyTitle":"구매 제목","tbBuyDesc":"40자"}}"""
+    
+    return safe_json(call_ai(prompt, max_tokens=1200))
     schemas = {
         "banner": '{"bannerSub":"10자","bannerTitle":"20자","brandTagline":"컨셉을 담은 브랜드 한 문장","bannerLead":"60-90자 수험생이 공감하는 구체적 리드","bannerTags":["키워드1","키워드2","키워드3"],"ctaCopy":"10자","statBadges":[]}',
         "intro":  '{"introTitle":"20자","introDesc":"80-120자 강사 철학과 차별점","introBio":"강사 학습법 포함 60자","introBadges":[]}',
@@ -1920,13 +1995,50 @@ def sec_why(d, cp, T):
         elif isinstance(it, dict):
             safe_r.append((it.get('icon','✦'), it.get('title',''), it.get('desc','')))
 
-    v = random.randint(0, 4)
+    v = random.randint(0, 3)
     rh = ""
 
     if v == 1:
-        for i,(ic,tt,dc) in enumerate(safe_r):
-            rh += f'<div class="card rv d{min(i+1,4)}" style="padding:32px 24px;text-align:center"><div style="font-size:44px;margin-bottom:10px">{ic}</div><div style="font-family:var(--fh);font-size:52px;font-weight:900;color:var(--c1);opacity:.2;line-height:1;margin-bottom:10px">{i+1:02d}</div><div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:10px">{strip_hanja(tt)}</div><p style="font-size:13px;line-height:1.85;color:var(--t70);margin:0">{strip_hanja(dc)}</p></div>'
-        return f'<section class="sec" id="why"><div style="max-width:1200px;margin:0 auto"><div class="rv" style="text-align:center;margin-bottom:40px"><div class="tag-line" style="justify-content:center">수강 이유</div><h2 class="sec-h2 st" style="text-align:center">{t}</h2><p class="sec-sub" style="text-align:center;margin:0 auto">{s}</p></div><div style="display:grid;grid-template-columns:repeat({min(len(safe_r),3)},1fr);gap:16px">{rh}</div></div></section>'
+        # ★ 개선: 좌우 분할 강조형 — 아이콘 크게, 설명 충분히
+        for i, (ic, tt, dc) in enumerate(safe_r):
+            left_bg = "var(--c1)" if i % 2 == 0 else "var(--bg3)"
+            left_tc = "rgba(255,255,255,.85)" if i % 2 == 0 else "var(--t70)"
+            left_nc = "#fff" if i % 2 == 0 else "var(--c1)"
+            rh += (
+                f'<div class="rv d{min(i+1,4)}" style="display:grid;'
+                f'grid-template-columns:180px 1fr;margin-bottom:12px;'
+                f'border-radius:var(--r,4px);overflow:hidden;min-height:140px">'
+                # 왼쪽: 아이콘 블록
+                f'<div style="background:{left_bg};display:flex;flex-direction:column;'
+                f'align-items:center;justify-content:center;padding:32px 20px;'
+                f'position:relative;overflow:hidden">'
+                f'<div style="position:absolute;font-family:var(--fh);font-size:80px;'
+                f'font-weight:900;color:rgba(0,0,0,.1);line-height:1;'
+                f'bottom:-10px;right:-5px;pointer-events:none">{i+1:02d}</div>'
+                f'<div style="font-size:44px;margin-bottom:10px;'
+                f'filter:drop-shadow(0 4px 8px rgba(0,0,0,.2))">{ic}</div>'
+                f'<div style="font-size:13px;font-weight:800;color:{left_nc};'
+                f'text-align:center;line-height:1.3">{strip_hanja(tt)}</div>'
+                f'</div>'
+                # 오른쪽: 설명 블록
+                f'<div style="background:var(--bg3);padding:28px 32px;'
+                f'display:flex;flex-direction:column;justify-content:center;'
+                f'border:1px solid var(--bd);border-left:none">'
+                f'<div style="width:28px;height:3px;background:var(--c1);'
+                f'margin-bottom:12px"></div>'
+                f'<p style="font-size:14px;line-height:1.9;color:var(--t70);'
+                f'margin:0;font-weight:500">{strip_hanja(dc)}</p>'
+                f'</div></div>'
+            )
+        return (
+            f'<section class="sec alt" id="why">'
+            f'<div style="max-width:900px;margin:0 auto">'
+            f'<div class="rv" style="margin-bottom:36px">'
+            f'<div class="tag-line">수강 이유</div>'
+            f'<h2 class="sec-h2 st">{t}</h2>'
+            f'<p class="sec-sub">{s}</p></div>'
+            f'{rh}</div></section>'
+        )
 
     elif v == 2:
         for i,(ic,tt,dc) in enumerate(safe_r):
@@ -3237,6 +3349,258 @@ def sec_package(d, cp, T):
         f'</div></section>'
     )
 
+# ═══════════════════════════════════════════════════════
+# 강좌 소개 섹션 렌더러
+# ═══════════════════════════════════════════════════════
+def sec_course_intro(d, cp, T):
+    """강좌 소개 섹션 — 사용자 입력 기반"""
+    c = cp.get("course_copy") or st.session_state.get("course_copy") or {}
+    if not c:
+        return (
+            f'<section class="sec alt" id="course-intro">'
+            f'<div style="max-width:900px;margin:0 auto;text-align:center;padding:40px 0">'
+            f'<p style="color:var(--t45);font-size:14px">사이드바 → 강좌 정보 입력 후 "강좌 소개 생성" 버튼을 눌러주세요</p>'
+            f'</div></section>'
+        )
+
+    title   = strip_hanja(c.get("courseTitle", "강좌 소개"))
+    sub     = strip_hanja(c.get("courseSub", ""))
+    desc    = strip_hanja(c.get("courseDesc", ""))
+    points  = c.get("coursePoints", [])
+    dur     = strip_hanja(c.get("courseDuration", ""))
+    level   = strip_hanja(c.get("courseLevel", ""))
+    tags    = [strip_hanja(t) for t in c.get("courseTag", [])]
+
+    # 포인트 카드
+    ph = ""
+    for pt in points:
+        if not isinstance(pt, dict): continue
+        ph += (
+            f'<div class="card rv d1" style="text-align:center;padding:28px 20px">'
+            f'<div style="font-size:36px;margin-bottom:12px">{pt.get("icon","✦")}</div>'
+            f'<div style="font-family:var(--fh);font-size:15px;font-weight:800;'
+            f'color:var(--text);margin-bottom:8px">{strip_hanja(pt.get("title",""))}</div>'
+            f'<p style="font-size:12.5px;line-height:1.8;color:var(--t70);margin:0">'
+            f'{strip_hanja(pt.get("desc",""))}</p>'
+            f'</div>'
+        )
+
+    # 메타 뱃지
+    meta = ""
+    if dur:
+        meta += f'<div style="display:inline-flex;align-items:center;gap:6px;background:var(--bg3);padding:6px 16px;border-radius:var(--r-btn,4px);font-size:11px;font-weight:700;color:var(--text);margin-right:8px;border:1px solid var(--bd)">⏱ {dur}</div>'
+    if level:
+        meta += f'<div style="display:inline-flex;align-items:center;gap:6px;background:var(--c1);padding:6px 16px;border-radius:var(--r-btn,4px);font-size:11px;font-weight:700;color:#fff;margin-right:8px">{level}</div>'
+
+    # 태그
+    tag_html = "".join(
+        f'<span style="font-size:10px;font-weight:800;padding:4px 12px;'
+        f'border:1px solid var(--c1);border-radius:var(--r-btn,4px);'
+        f'color:var(--c1);margin:2px">{tg}</span>' for tg in tags[:3]
+    )
+
+    return (
+        f'<section class="sec" id="course-intro">'
+        f'<div style="max-width:1100px;margin:0 auto">'
+        # 헤더
+        f'<div class="rv" style="display:grid;grid-template-columns:1fr auto;'
+        f'align-items:flex-end;gap:24px;padding-bottom:28px;'
+        f'border-bottom:3px solid var(--c1);margin-bottom:44px">'
+        f'<div>'
+        f'<div class="tag-line">강좌 소개</div>'
+        f'<h2 style="font-family:\'Black Han Sans\',var(--fh);'
+        f'font-size:clamp(28px,4vw,52px);font-weight:900;'
+        f'color:var(--text);line-height:1.05;margin-bottom:10px">{title}</h2>'
+        f'<p style="font-size:15px;color:var(--t70);margin-bottom:16px">{sub}</p>'
+        f'{meta}'
+        f'</div>'
+        f'<div style="text-align:right">'
+        f'<div style="display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end">{tag_html}</div>'
+        f'</div></div>'
+        # 설명 + 포인트
+        f'<div style="display:grid;grid-template-columns:1fr 1.6fr;gap:48px;align-items:start">'
+        f'<div class="rv d1">'
+        f'<p style="font-size:15px;line-height:2;color:var(--t70)">{desc}</p>'
+        f'<div style="margin-top:24px;padding:20px 24px;'
+        f'background:var(--c1);border-radius:var(--r,4px)">'
+        f'<div style="font-size:10px;font-weight:800;letter-spacing:.14em;'
+        f'text-transform:uppercase;color:rgba(255,255,255,.6);margin-bottom:8px">이 강좌 하나면</div>'
+        f'<div style="font-family:var(--fh);font-size:20px;font-weight:900;'
+        f'color:#fff;line-height:1.3">{d["subject"]} 완성</div>'
+        f'</div></div>'
+        f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px" class="rv d2">'
+        f'{ph}</div>'
+        f'</div>'
+        f'</div></section>'
+    )
+
+
+# ═══════════════════════════════════════════════════════
+# 교재 소개·판매 섹션 렌더러
+# ═══════════════════════════════════════════════════════
+def sec_textbook_sale(d, cp, T):
+    """교재 소개·판매 섹션 — 참고 이미지(현우진 수분감) 스타일"""
+    c = cp.get("textbook_copy") or st.session_state.get("textbook_copy") or {}
+    if not c:
+        return (
+            f'<section class="sec alt" id="textbook-sale">'
+            f'<div style="max-width:900px;margin:0 auto;text-align:center;padding:40px 0">'
+            f'<p style="color:var(--t45);font-size:14px">사이드바 → 교재 정보 입력 후 "교재 소개 생성" 버튼을 눌러주세요</p>'
+            f'</div></section>'
+        )
+
+    title    = strip_hanja(c.get("tbTitle", "교재 소개"))
+    sub      = strip_hanja(c.get("tbSub", ""))
+    desc     = strip_hanja(c.get("tbDesc", ""))
+    books    = c.get("tbBooks", [])
+    features = c.get("tbFeatures", [])
+    buy_title = strip_hanja(c.get("tbBuyTitle", "지금 바로 구매하기"))
+    buy_desc  = strip_hanja(c.get("tbBuyDesc", ""))
+
+    # 교재 권별 카드
+    BADGE_COLORS = {
+        "필수": ("var(--c1)", "#fff"),
+        "추천": ("var(--bg3)", "var(--c1)"),
+        "심화": ("var(--bg2)", "var(--t70)"),
+    }
+    book_html = ""
+    for i, bk in enumerate(books[:6]):
+        if not isinstance(bk, dict): continue
+        bname = strip_hanja(bk.get("name",""))
+        bdesc = strip_hanja(bk.get("desc",""))
+        badge = strip_hanja(bk.get("badge","필수"))
+        bg_c, tx_c = BADGE_COLORS.get(badge, ("var(--bg3)", "var(--text)"))
+        BOOK_EMOJIS = ["📗","📘","📙","📕","📓","📔"]
+        book_html += (
+            f'<div class="rv d{min(i+1,4)}" style="border:1px solid var(--bd);'
+            f'border-radius:var(--r,4px);overflow:hidden;background:var(--bg)">'
+            # 상단 컬러 바
+            f'<div style="height:4px;background:var(--c1)"></div>'
+            f'<div style="padding:24px 20px">'
+            # 교재 아이콘 + 배지
+            f'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'
+            f'<div style="font-size:40px">{BOOK_EMOJIS[i % len(BOOK_EMOJIS)]}</div>'
+            f'<span style="font-size:10px;font-weight:800;background:{bg_c};'
+            f'color:{tx_c};padding:4px 14px;border-radius:var(--r-btn,100px);'
+            f'border:1px solid var(--bd)">{badge}</span>'
+            f'</div>'
+            f'<div style="font-family:var(--fh);font-size:16px;font-weight:900;'
+            f'color:var(--text);margin-bottom:8px">{bname}</div>'
+            f'<p style="font-size:12px;line-height:1.75;color:var(--t70);margin:0">{bdesc}</p>'
+            f'</div></div>'
+        )
+
+    # 특징 리스트
+    feat_html = ""
+    for ft in features:
+        if not isinstance(ft, dict): continue
+        feat_html += (
+            f'<div style="display:flex;align-items:center;gap:12px;'
+            f'padding:12px 0;border-bottom:1px solid var(--bd)">'
+            f'<div style="font-size:22px;flex-shrink:0">{ft.get("icon","✦")}</div>'
+            f'<span style="font-size:14px;font-weight:600;color:var(--text)">'
+            f'{strip_hanja(ft.get("feature",""))}</span>'
+            f'</div>'
+        )
+
+    cols = min(len(books), 3) if books else 3
+
+    return (
+        f'<section class="sec alt" id="textbook-sale">'
+        f'<div style="max-width:1100px;margin:0 auto">'
+        # 섹션 헤더
+        f'<div class="rv" style="margin-bottom:40px">'
+        f'<div class="tag-line">교재 소개</div>'
+        f'<h2 style="font-family:\'Black Han Sans\',var(--fh);'
+        f'font-size:clamp(26px,4vw,48px);font-weight:900;'
+        f'color:var(--text);margin-bottom:10px">{title}</h2>'
+        f'<p style="font-size:15px;color:var(--t70)">{sub}</p>'
+        f'</div>'
+        # 교재 카드 그리드
+        f'<div style="display:grid;grid-template-columns:repeat({cols},1fr);'
+        f'gap:14px;margin-bottom:40px">{book_html}</div>'
+        # 하단: 특징 + 구매 CTA
+        f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;'
+        f'padding:32px;background:var(--bg);border-radius:var(--r,4px);'
+        f'border:1px solid var(--bd)">'
+        # 왼쪽: 교재 특징
+        f'<div class="rv d1">'
+        f'<div style="font-size:10px;font-weight:800;letter-spacing:.14em;'
+        f'text-transform:uppercase;color:var(--c1);margin-bottom:16px">교재 특징</div>'
+        f'{feat_html}'
+        f'</div>'
+        # 오른쪽: 구매 CTA
+        f'<div class="rv d2" style="display:flex;flex-direction:column;'
+        f'justify-content:center;align-items:flex-start;'
+        f'padding:24px;background:var(--bg3);border-radius:var(--r,4px)">'
+        f'<div style="font-family:\'Black Han Sans\',var(--fh);'
+        f'font-size:clamp(18px,2.5vw,28px);font-weight:900;'
+        f'color:var(--text);margin-bottom:10px;line-height:1.2">{buy_title}</div>'
+        f'<p style="font-size:13px;color:var(--t70);margin-bottom:24px">{buy_desc}</p>'
+        f'<a class="btn-p" href="#" style="font-size:14px;padding:14px 36px">교재 구매하기 →</a>'
+        f'</div>'
+        f'</div>'
+        f'</div></section>'
+    )
+
+
+# ═══════════════════════════════════════════════════════
+# 강사 철학 섹션 렌더러 (보너스)
+# ═══════════════════════════════════════════════════════
+def sec_instructor_philosophy(d, cp, T):
+    """강사 철학 — 서사형 풀와이드 섹션"""
+    ip = st.session_state.get("inst_profile") or {}
+    slogan = strip_hanja(ip.get("slogan",""))
+    desc   = strip_hanja(ip.get("desc",""))
+    style  = strip_hanja(ip.get("teachingStyle",""))
+    methods = [strip_hanja(m) for m in (ip.get("signatureMethods") or []) if m and m != "없음"]
+    name   = d.get("name","")
+
+    if not slogan and not desc:
+        return ""  # 강사 정보 없으면 숨김
+
+    method_flow = " → ".join(methods[:3]) if methods else f"{d['subject']} 완성"
+
+    return (
+        f'<section class="sec" id="instructor-philosophy" '
+        f'style="background:var(--bg);overflow:hidden;position:relative">'
+        # 배경 데코
+        f'<div style="position:absolute;top:-100px;right:-100px;width:500px;height:500px;'
+        f'border-radius:50%;background:var(--c1);opacity:.03;pointer-events:none"></div>'
+        f'<div style="max-width:900px;margin:0 auto;position:relative;z-index:1">'
+        # 큰 따옴표 + 슬로건
+        f'<div class="rv" style="text-align:center;margin-bottom:48px">'
+        f'<div style="font-size:80px;line-height:1;color:var(--c1);opacity:.2;'
+        f'font-family:var(--fh);margin-bottom:-20px">"</div>'
+        f'<p style="font-size:clamp(20px,3vw,32px);font-weight:800;line-height:1.5;'
+        f'color:var(--text);font-style:italic;margin-bottom:20px">{slogan}</p>'
+        f'<div style="display:flex;align-items:center;justify-content:center;gap:10px">'
+        f'<div style="width:40px;height:2px;background:var(--c1)"></div>'
+        f'<span style="font-size:12px;font-weight:700;color:var(--c1);'
+        f'letter-spacing:.12em">{name} 선생님</span>'
+        f'<div style="width:40px;height:2px;background:var(--c1)"></div>'
+        f'</div></div>'
+        # 철학 상세
+        f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px" class="rv d1">'
+        f'<div style="padding:28px;border:1px solid var(--bd);border-radius:var(--r,4px)'
+        f';border-left:4px solid var(--c1)">'
+        f'<div style="font-size:10px;font-weight:800;color:var(--c1);'
+        f'letter-spacing:.14em;text-transform:uppercase;margin-bottom:12px">강의 철학</div>'
+        f'<p style="font-size:14px;line-height:1.9;color:var(--t70)">{desc}</p>'
+        f'</div>'
+        f'<div style="padding:28px;border:1px solid var(--bd);border-radius:var(--r,4px)">'
+        f'<div style="font-size:10px;font-weight:800;color:var(--c1);'
+        f'letter-spacing:.14em;text-transform:uppercase;margin-bottom:12px">학습 방법론</div>'
+        f'<p style="font-size:14px;line-height:1.9;color:var(--t70)">{style}</p>'
+        f'<div style="margin-top:16px;padding:12px 16px;background:var(--bg3);'
+        f'border-radius:var(--r,4px)">'
+        f'<div style="font-size:11px;font-weight:800;color:var(--c1);margin-bottom:6px">핵심 공식</div>'
+        f'<div style="font-family:var(--fh);font-size:15px;font-weight:900;'
+        f'color:var(--text)">{method_flow}</div>'
+        f'</div></div>'
+        f'</div>'
+        f'</div></section>'
+    )
 
 # ══════════════════════════════════════════════════════
 # HTML 빌더
@@ -3268,6 +3632,9 @@ def build_html(secs: list) -> str:
         "event_deadline":sec_event_deadline,"fest_hero":sec_fest_hero,
         "fest_lineup":sec_fest_lineup,"fest_benefits":sec_fest_benefits,
         "fest_cta":sec_fest_cta,"custom_section":sec_custom,
+        "course_intro": sec_course_intro,             # ← 추가
+        "textbook_sale": sec_textbook_sale,           # ← 추가
+        "instructor_philosophy": sec_instructor_philosophy,  # ← 추가
     }
     # 네비게이션 섹션 레이블 맵
     NAV_LABELS = {
@@ -3277,6 +3644,9 @@ def build_html(secs: list) -> str:
         "video":"미리보기","before_after":"수강 전/후","method":"학습법","package":"구성",
         "event_overview":"이벤트","event_benefits":"혜택","event_deadline":"마감",
         "fest_hero":"기획전","fest_lineup":"라인업","fest_benefits":"혜택","fest_cta":"신청",
+        "course_intro": "강좌소개",          # ← 추가
+        "textbook_sale": "교재",             # ← 추가
+        "instructor_philosophy": "강사철학",  # ← 추가
     }
     nav_items = [s for s in secs if s in NAV_LABELS and s != "banner"]
     nav_id_map = {
@@ -3417,8 +3787,83 @@ div[data-testid="stMetric"] div{color:#E0E8F8!important;font-weight:700!importan
 # SIDEBAR
 # ══════════════════════════════════════════════════════
 with st.sidebar:
-    st.markdown("### 🎓 강사 페이지 빌더 Pro")
-    st.caption("수능 강사 랜딩페이지 AI 생성기 v7")
+    # ─── 강좌·교재 정보 입력 ──────────────────────────
+    st.markdown('<div class="sec-hdr">📖 강좌·교재 정보 입력</div>',
+                unsafe_allow_html=True)
+    st.caption("직접 입력하면 AI가 소개 문구를 만들어 드립니다")
+
+    # 강좌 정보
+    course_in = st.text_area(
+        "강좌 정보",
+        value=st.session_state.course_info,
+        height=100,
+        placeholder=(
+            "예시:\n"
+            "강좌명: 2027 뉴런 수학1\n"
+            "수강 기간: 6개월\n"
+            "수준: 고3·N수 중상위권\n"
+            "특징: 개념-문제 괴리 해결, 총 120강"
+        ),
+        label_visibility="collapsed"
+    )
+    st.session_state.course_info = course_in
+
+    if st.button("✦ 강좌 소개 AI 생성", use_container_width=True,
+                 key="gen_course"):
+        if not course_in.strip():
+            st.warning("강좌 정보를 입력해주세요")
+        elif not st.session_state.api_key:
+            st.warning("API 키가 필요합니다")
+        else:
+            with st.spinner("강좌 소개 생성 중..."):
+                try:
+                    r = gen_course_copy(course_in)
+                    st.session_state.course_copy = r
+                    if st.session_state.custom_copy is None:
+                        st.session_state.custom_copy = {}
+                    st.session_state.custom_copy["course_copy"] = r
+                    st.success("✓ 강좌 소개 생성 완료!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"실패: {e}")
+
+    st.markdown("---")
+
+    # 교재 정보
+    textbook_in = st.text_area(
+        "교재 정보",
+        value=st.session_state.textbook_info,
+        height=120,
+        placeholder=(
+            "예시:\n"
+            "교재명: 수분감 시리즈\n"
+            "구성: 수분감 기본편, 수분감 심화편\n"
+            "특징: EBS 연계 분석, 핵심 유형만 수록\n"
+            "가격: 각 28,000원"
+        ),
+        label_visibility="collapsed"
+    )
+    st.session_state.textbook_info = textbook_in
+
+    if st.button("✦ 교재 소개 AI 생성", use_container_width=True,
+                 key="gen_textbook"):
+        if not textbook_in.strip():
+            st.warning("교재 정보를 입력해주세요")
+        elif not st.session_state.api_key:
+            st.warning("API 키가 필요합니다")
+        else:
+            with st.spinner("교재 소개 생성 중..."):
+                try:
+                    r = gen_textbook_copy(textbook_in)
+                    st.session_state.textbook_copy = r
+                    if st.session_state.custom_copy is None:
+                        st.session_state.custom_copy = {}
+                    st.session_state.custom_copy["textbook_copy"] = r
+                    st.success("✓ 교재 소개 생성 완료!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"실패: {e}")
+
     st.divider()
 
     # GROQ API Key
