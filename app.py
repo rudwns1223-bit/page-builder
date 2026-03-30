@@ -3808,8 +3808,7 @@ def build_html(secs: list) -> str:
         f'}})();'
         f'</script>'
     )
-    def _with_divider(html: str, idx: int, dark: bool) -> str:
-    """섹션 사이 사선 SVG 구분선 삽입 (짝수/홀수 번갈아)"""
+    
     if idx == 0:
         return html
     direction = "polygon(0 0,100% 4%,100% 100%,0 100%)" if idx % 2 == 0 else "polygon(0 4%,100% 0,100% 100%,0 100%)"
@@ -3821,11 +3820,11 @@ def build_html(secs: list) -> str:
     return divider + html
 
 sections_html = []
-for i, s in enumerate(secs):
-    if s in mp:
-        sec_html = mp[s](d, cp, T)
-        sections_html.append(_with_divider(sec_html, i, T["dark"]))
-body = nav_html + "\n".join(sections_html)
+    for i, s in enumerate(secs):
+        if s in mp:
+            sec_html = mp[s](d, cp, T)
+            sections_html.append(_with_divider(sec_html, i, T["dark"]))
+    body = nav_html + "\n".join(sections_html)
     ttl  = cp.get("bannerTitle", cp.get("festHeroTitle", d["purpose_label"]))
     particle_js = _particle_js(T.get("particle","none"))
     concept_key = st.session_state.concept if st.session_state.concept != "custom" else "custom"
