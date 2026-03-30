@@ -1252,6 +1252,15 @@ JSON만 반환:
 "tbBuyTitle":"구매 제목","tbBuyDesc":"40자"}}"""
     
     return safe_json(call_ai(prompt, max_tokens=1200))
+
+
+# ═══════════════════════════════════════════════════════
+# 섹션별 문구 재생성
+# ═══════════════════════════════════════════════════════
+def gen_section(sec_id: str) -> dict:
+    inst_ctx = _get_instructor_context()
+    ptype = st.session_state.purpose_type
+
     schemas = {
         "banner": '{"bannerSub":"10자","bannerTitle":"20자","brandTagline":"컨셉을 담은 브랜드 한 문장","bannerLead":"60-90자 수험생이 공감하는 구체적 리드","bannerTags":["키워드1","키워드2","키워드3"],"ctaCopy":"10자","statBadges":[]}',
         "intro":  '{"introTitle":"20자","introDesc":"80-120자 강사 철학과 차별점","introBio":"강사 학습법 포함 60자","introBadges":[]}',
@@ -1273,25 +1282,25 @@ JSON만 반환:
         "method":        '{"methodTitle":"학습법 제목 20자","methodSub":"30자","methodSteps":[{"step":"STEP 01","label":"단계명","desc":"이 단계에서 무엇을 어떻게 하는지 40자이상"},{"step":"STEP 02","label":"단계명","desc":"40자이상"},{"step":"STEP 03","label":"단계명","desc":"40자이상"}]}',
         "package":       '{"pkgTitle":"구성 안내 제목 20자","pkgSub":"30자","packages":[{"icon":"📗","name":"구성명","desc":"구성 설명 40자이상","badge":"필수"},{"icon":"📖","name":"구성명","desc":"40자이상","badge":"포함"},{"icon":"🎯","name":"구성명","desc":"40자이상","badge":"포함"},{"icon":"💬","name":"구성명","desc":"40자이상","badge":"특전"}]}',
     }
-    
+
     purpose_specific_rule = ""
     if sec_id == "banner":
         if ptype == "이벤트":
             purpose_specific_rule = "⚠️ [!!! 절대 규칙 !!!] 제목에 'KISS Logic' 등 강좌명을 절대 쓰지 마세요. 이벤트 성격(예: 3월 학평 특강, 기대평)에 맞는 제목만 출력하세요. bannerTags는 이벤트용 단어(기간한정, 무료제공 등)로 작성하세요."
-    
+
     sec_name = SEC_LABELS.get(sec_id, sec_id)
     schema = schemas.get(sec_id, '{"title":"제목","desc":"설명"}')
-    # 세션에 저장된 테마 선언문 가져오기 (없으면 기본값)
+
     theme_decl = st.session_state.get("_theme_declaration", {})
     declaration = theme_decl.get("declaration", "")
     core_keyword = theme_decl.get("core_keyword", "")
-    
+
     declaration_hint = f"""
 # ★ 이 섹션도 반드시 아래 방향으로 작성하세요:
 {declaration}
 # 핵심 키워드 [{core_keyword}]가 자연스럽게 녹아있어야 합니다.
 """ if declaration else ""
-    
+
     prompt = f"""수능 교육 카피라이터. "{sec_name}" 섹션만 새롭게 생성.
 {declaration_hint}
 
@@ -1308,6 +1317,7 @@ JSON만 반환:
 규칙: 한자 금지, 수치 금지, 반드시 순수 한국어로만 작성. "교수" 절대 금지. 강사의 특정 강좌명(KISS Logic 등)을 맥락 없이 억지로 넣지 말 것.
 아래 JSON 형식만 반환. 마크다운 금지:
 {schema}"""
+
     last_err = None
     for attempt in range(3):
         try:
@@ -1316,7 +1326,7 @@ JSON만 반환:
         except Exception as e:
             last_err = e
             time.sleep(1)
-            
+
     raise last_err or Exception("AI 모델 응답 끊김 - 다시 시도해주세요.")
 
 # ── 강사 DB ─────────────────────────────────────────
@@ -3762,6 +3772,9 @@ div[data-testid="stMetric"] div{color:#E0E8F8!important;font-weight:700!importan
 [data-testid="stSidebar"] input,[data-testid="stSidebar"] textarea,
 [data-testid="stSidebar"] select{background:#090D1C!important;border:1px solid #1A2038!important;
   color:#C0CDE8!important;border-radius:6px!important;font-size:12px!important;}
+[data-testid="stSidebar"] input::placeholder,
+[data-testid="stSidebar"] textarea::placeholder{
+ color:rgba(160,180,220,0.55)!important;}
 .stMainBlockContainer{background:#0A0C14;color:#E0E8F8;}
 .stMainBlockContainer p,.stMainBlockContainer span,
 .stMainBlockContainer label,.stMainBlockContainer div{color:#B8C8E0;}
