@@ -87,6 +87,48 @@ GROQ_MODELS = [
 
 # ── 문구 스타일 예시 (Few-shot) ──────────────────────
 FEW_SHOT_EXAMPLES = """
+=== ❌ 절대 쓰지 말 것 — AI 클리셰 목록 ===
+아래 표현은 진부하고 AI스럽게 들립니다. 이것이 떠오르면 반드시 뒤집어서 다시 쓰세요.
+
+❌ "체계적인 학습 시스템"
+✅ 대신: "3월에 뭐부터 해야 할지 감이 잡히지 않는다면, 이 강의가 길을 만들어 드립니다"
+
+❌ "최고의 강사진이 함께합니다"  
+✅ 대신: "[강사명]만의 방식으로 지문이 처음으로 '읽히는' 경험을 하게 됩니다"
+
+❌ "합리적인 가격으로 성적을 올리세요"
+✅ 대신: "6월 모평 전, 딱 한 번의 선택이 남았습니다"
+
+❌ "체계적이고 효율적인 커리큘럼"
+✅ 대신: "개념 → 기출 → 실전. 이 순서대로 하면 6월이 다릅니다"
+
+❌ "실력 향상을 도와드립니다"
+✅ 대신: "지금 이 강의를 듣는 학생은 수능장에서 '아, 이거다' 하는 순간이 옵니다"
+
+❌ "많은 수험생들이 선택했습니다"
+✅ 대신: "같은 지문, 같은 시간. 근데 왜 어떤 학생만 답이 보일까요?"
+
+=== 페이지 맥락별 문구 방향 예시 ===
+[6월 모평 대비 페이지라면]
+- 배너: "6월이 판가름 난다. 지금이 마지막 기회다."
+- 소개: "6월 모평 직전, 이 수업이 필요한 이유가 있습니다."
+- 수강이유: "모평 2주 전에 할 수 있는 것과 없는 것이 있습니다."
+- 커리큘럼: "모평까지 남은 시간에 맞게 설계된 4단계"
+- CTA: "6월 모평 전 마지막 기회, 지금 신청하세요"
+
+[3월 개강 커리큘럼이라면]
+- 배너: "3월 첫 선택이 수능 결과를 만든다"
+- 소개: "아직 늦지 않았습니다. 3월부터 시작하면 됩니다."
+- 수강이유: "수능까지 9개월, 지금 방향을 잡으면 다릅니다"
+- CTA: "오늘이 가장 빠른 시작입니다"
+
+[파이널/수능 직전이라면]
+- 배너: "D-30. 이제 더 추가할 게 아니라 버릴 때입니다"
+- 소개: "수능 직전, 딱 필요한 것만 담았습니다"
+- CTA: "수능 전 마지막 강의, 지금이 마지막입니다"
+
+""" + """
+
 === 레퍼런스 스타일 핵심 규칙 ===
 - bannerTitle은 반드시 강사의 고유 커리큘럼 브랜드명 사용 (LIM IT, SYNTAX, R'GORITHM, CIRCLE 같은 방식)
   예) 커리큘럼명이 "KISS Logic"이면 bannerTitle = "KISS Logic"
@@ -865,10 +907,68 @@ def _get_instructor_context() -> str:
     if ip.get("desc"):       parts.append(f"차별점: {ip['desc']}")
     return "\n".join(parts)
 
+# ═══════════════════════════════════════════════════════
+# [추가] 페이지 테마 선언문 생성 — 모든 섹션의 방향을 통일
+# ═══════════════════════════════════════════════════════
+def gen_theme_declaration(ctx: str, ptype: str) -> dict:
+    """
+    문구 생성 전에 '이 페이지의 모든 섹션이 따를 방향'을 먼저 정합니다.
+    예: "6월 모평 D-30" → 모든 섹션이 '긴박감과 지금의 중요성'을 담게 됩니다.
+    """
+    prompt = f"""수능 교육 랜딩페이지 카피 디렉터.
+    
+페이지 맥락: "{ctx}"
+페이지 목적: {ptype}
 
+이 페이지의 '테마 선언문'을 만들어라.
+테마 선언문 = 배너부터 CTA까지 모든 섹션이 공유할 핵심 감정/시기/메시지 방향.
+
+규칙:
+- 맥락에서 핵심 키워드를 뽑아라 (시험명, 시즌, 강사 특징 등)
+- 모든 섹션이 이 방향 안에서 일관되게 작동해야 함
+- 구체적인 시기/상황이 있으면 반드시 반영 (예: 6월 모평, 3월 개강, 수능 D-100)
+
+좋은 예시:
+- "6월 모평 직전이다. 이제 공부량이 아니라 '방향'이 성적을 가른다. 
+  모든 섹션은 '지금 바꾸지 않으면 6월 모평에서 후회한다'는 긴박감으로 통일."
+- "3월 첫 주, 수험생이 새 마음으로 시작점에 섰다. 
+  모든 섹션은 '올바른 방향 설정이 1년을 좌우한다'는 희망과 전략으로 통일."
+- "수능이 100일 남았다. 뉴런으로 개념-문제 괴리를 끊어낼 마지막 기회.
+  모든 섹션은 '지금 뉴런이 아니면 없다'는 확신으로 통일."
+
+나쁜 예시 (절대 이렇게 하지 말 것):
+- "체계적인 학습을 통해 성적을 향상시키는 방향" (너무 일반적)
+- "최고의 강사와 함께하는 커리큘럼" (AI 클리셰)
+
+JSON만 반환:
+{{"declaration": "이 페이지 전체 방향 선언문 (2-3문장, 구체적 상황 포함)", 
+  "core_keyword": "이 페이지의 핵심 키워드 단어 하나 (예: 뉴런, 6월모평, KISS)",
+  "emotional_tone": "감정 방향 (예: 긴박·도전, 희망·시작, 프리미엄·신뢰, 공감·따뜻)",
+  "forbidden_phrases": ["이 페이지에서 쓰면 안 되는 클리셰1", "클리셰2", "클리셰3"]}}"""
+    try:
+        result = safe_json(call_ai(prompt, max_tokens=500))
+        return result
+    except Exception:
+        # 실패해도 괜찮음 — 기본값 반환
+        return {
+            "declaration": ctx,
+            "core_keyword": ctx.split()[0] if ctx else "수능",
+            "emotional_tone": "도전·성장",
+            "forbidden_phrases": ["체계적인", "최고의", "합리적인"]
+        }
+        
 def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
     inst_ctx = _get_instructor_context()
     variation_hint = get_copy_variation()
+
+    # ★ 핵심 추가: 테마 선언문 먼저 생성
+    theme_decl = gen_theme_declaration(ctx, ptype)
+    declaration = theme_decl.get("declaration", ctx)
+    core_keyword = theme_decl.get("core_keyword", "")
+    forbidden = "·".join(theme_decl.get("forbidden_phrases", [])[:3])
+    
+    # 세션에도 저장 (gen_section에서도 쓸 수 있게)
+    st.session_state["_theme_declaration"] = theme_decl
     
     schemas = {
         "신규 커리큘럼": '{"bannerSub":"10자이내","bannerTitle":"20자이내","brandTagline":"페이지 컨셉을 관통하는 브랜드 문구 1문장","bannerLead":"60-90자 수험생 고민을 찌르는 리드","bannerTags":["키워드1","키워드2","키워드3"],"ctaCopy":"10자이내","ctaTitle":"CTA 제목","ctaSub":"30자이내","ctaBadge":"15자이내","statBadges":[],"introTitle":"20자이내","introDesc":"80-120자 강사만의 차별점","introBio":"강사 학습법 포함 60자이내","introBadges":[],"whyTitle":"20자이내","whySub":"30자이내","whyReasons":[["이모지","12자제목","60자 구체적 설명"],["이모지","12자","60자"],["이모지","12자","60자"]],"curriculumTitle":"20자이내","curriculumSub":"30자이내","curriculumSteps":[["01","8자제목","학생 입장에서 50자 이상 설명","기간"],["02","8자","50자 이상","기간"],["03","8자","50자 이상","기간"],["04","8자","50자 이상","기간"]],"targetTitle":"20자이내","targetItems":["이런 학생을 대상으로 하는지 40자 상황 묘사","항목2 40자","항목3 40자","항목4 40자"],"reviews":[["생생한 인용문 50-70자","이름","변화뱃지"],["50-70자 인용문","이름","뱃지"],["50-70자 인용문","이름","뱃지"]],"faqs":[["구체적 질문15자","명쾌한 답변 50자이상"],["질문","50자 답변"],["질문","50자 답변"]],"videoTitle":"영상 섹션 제목 20자","videoSub":"40자 설명","videoTag":"OFFICIAL TRAILER","baTitle":"수강 전/후 비교 제목","baSub":"30자","baBeforeItems":["수강 전 학생 고민 40자","고민2 40자","고민3 40자"],"baAfterItems":["수강 후 변화 40자","변화2 40자","변화3 40자"],"methodTitle":"학습법 시각화 제목","methodSub":"30자","methodSteps":[{"step":"STEP 01","label":"단계명","desc":"45자이상"},{"step":"STEP 02","label":"단계명","desc":"45자이상"},{"step":"STEP 03","label":"단계명","desc":"45자이상"}],"pkgTitle":"구성 안내 제목","pkgSub":"30자","packages":[{"icon":"📗","name":"구성명","desc":"구성 설명 40자이상","badge":"필수"},{"icon":"📖","name":"구성명","desc":"40자이상","badge":"포함"},{"icon":"🎯","name":"구성명","desc":"40자이상","badge":"포함"},{"icon":"💬","name":"구성명","desc":"40자이상","badge":"특전"}]}',
@@ -900,6 +1000,12 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
 ===문구 생성 지침===
 위 예시는 스타일 참고용입니다. 절대 베끼지 말고 [페이지 맥락]을 최우선으로 반영하여 창작하세요.
 {variation_hint}
+
+# ★★★ 이 페이지의 테마 선언문 (가장 중요) ★★★
+# 배너부터 CTA까지 모든 섹션은 반드시 이 방향 안에서 작동해야 합니다:
+{declaration}
+# 핵심 키워드: [{core_keyword}] — 이 단어가 자연스럽게 녹아있어야 함
+# 이 단어들은 이 페이지에서 절대 쓰지 마시오: {forbidden}
 
 ===강사 정보===
 {inst_ctx}
@@ -1100,7 +1206,19 @@ def gen_section(sec_id: str) -> dict:
     
     sec_name = SEC_LABELS.get(sec_id, sec_id)
     schema = schemas.get(sec_id, '{"title":"제목","desc":"설명"}')
+    # 세션에 저장된 테마 선언문 가져오기 (없으면 기본값)
+    theme_decl = st.session_state.get("_theme_declaration", {})
+    declaration = theme_decl.get("declaration", "")
+    core_keyword = theme_decl.get("core_keyword", "")
+    
+    declaration_hint = f"""
+# ★ 이 섹션도 반드시 아래 방향으로 작성하세요:
+{declaration}
+# 핵심 키워드 [{core_keyword}]가 자연스럽게 녹아있어야 합니다.
+""" if declaration else ""
+    
     prompt = f"""수능 교육 카피라이터. "{sec_name}" 섹션만 새롭게 생성.
+{declaration_hint}
 
 {FEW_SHOT_EXAMPLES}
 
@@ -1802,7 +1920,7 @@ def sec_why(d, cp, T):
         elif isinstance(it, dict):
             safe_r.append((it.get('icon','✦'), it.get('title',''), it.get('desc','')))
 
-    v = random.randint(0, 3)
+    v = random.randint(0, 4)
     rh = ""
 
     if v == 1:
@@ -1821,7 +1939,52 @@ def sec_why(d, cp, T):
             line_html = f'<div style="width:2px;flex:1;background:var(--bd);margin-top:8px;min-height:40px"></div>' if i < len(safe_r)-1 else ''
             rh += f'<div class="rv d{min(i+1,4)}" style="display:grid;grid-template-columns:56px 1fr;gap:20px;margin-bottom:28px"><div style="display:flex;flex-direction:column;align-items:center"><div style="width:56px;height:56px;border-radius:50%;background:var(--c1);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--on-c1, var(--bg));flex-shrink:0">{ic}</div>{line_html}</div><div style="padding-top:12px"><div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:8px">{strip_hanja(tt)}</div><p style="font-size:13.5px;line-height:1.85;color:var(--t70)">{strip_hanja(dc)}</p></div></div>'
         return f'<section class="sec" id="why"><div style="max-width:800px;margin:0 auto"><div class="rv" style="margin-bottom:48px"><div class="tag-line">수강 이유</div><h2 class="sec-h2 st">{t}</h2><p class="sec-sub">{s}</p></div>{rh}</div></section>'
-
+    elif v == 4:
+        # ★ 신규: 참고 이미지 스타일 — 풀와이드 배경색 반전 블록
+        for i, (ic, tt, dc) in enumerate(safe_r):
+            is_dark_block = i % 2 == 0
+            bg = "var(--bg2)" if is_dark_block else "var(--bg3)"
+            border_l = f"border-left:4px solid var(--c1);" if not is_dark_block else ""
+            rh += (
+                f'<div class="rv" style="padding:clamp(40px,5vw,64px) clamp(28px,6vw,80px);'
+                f'background:{bg};position:relative;overflow:hidden;margin-bottom:2px">'
+                # 배경 번호 장식
+                f'<div style="position:absolute;right:clamp(20px,4vw,60px);top:50%;'
+                f'transform:translateY(-50%);font-family:var(--fh);'
+                f'font-size:clamp(80px,12vw,160px);font-weight:900;'
+                f'color:var(--c1);opacity:.06;line-height:1;pointer-events:none">{i+1:02d}</div>'
+                # 본문
+                f'<div style="max-width:1100px;margin:0 auto;display:grid;'
+                f'grid-template-columns:240px 1fr;gap:clamp(24px,4vw,60px);align-items:center;'
+                f'position:relative;z-index:1">'
+                # 왼쪽: 아이콘 + 제목
+                f'<div style="text-align:center">'
+                f'<div style="font-size:clamp(44px,5vw,64px);margin-bottom:16px;'
+                f'filter:drop-shadow(0 4px 12px rgba(0,0,0,.2))">{ic}</div>'
+                f'<div style="font-family:var(--fh);font-size:clamp(16px,2vw,22px);'
+                f'font-weight:900;color:var(--text);line-height:1.2;{border_l}'
+                f'padding:8px 0">{strip_hanja(tt)}</div>'
+                f'</div>'
+                # 오른쪽: 설명
+                f'<div>'
+                f'<div style="width:32px;height:3px;background:var(--c1);margin-bottom:14px"></div>'
+                f'<p style="font-size:clamp(14px,1.5vw,17px);line-height:2;'
+                f'color:var(--t70);font-weight:500">{strip_hanja(dc)}</p>'
+                f'</div>'
+                f'</div></div>'
+            )
+        return (
+            f'<section id="why" style="padding:0">'
+            f'<div class="rv" style="padding:clamp(48px,6vw,72px) clamp(28px,6vw,80px);'
+            f'text-align:center;background:var(--bg)">'
+            f'<div class="tag-line" style="justify-content:center">수강 이유</div>'
+            f'<h2 class="sec-h2 st" style="text-align:center">{t}</h2>'
+            f'<p class="sec-sub" style="text-align:center;margin:0 auto">{s}</p>'
+            f'</div>'
+            f'{rh}'
+            f'</section>'
+        )
+        
     else:
         for i,(ic,tt,dc) in enumerate(safe_r):
             alt_bg = 'background:var(--bg3)' if i%2==0 else 'background:var(--bg2)'
