@@ -3809,17 +3809,7 @@ def build_html(secs: list) -> str:
         f'</script>'
     )
     
-    if idx == 0:
-        return html
-    direction = "polygon(0 0,100% 4%,100% 100%,0 100%)" if idx % 2 == 0 else "polygon(0 4%,100% 0,100% 100%,0 100%)"
-    fill = "var(--bg2)" if dark else "var(--bg)"
-    divider = (
-        f'<div style="height:48px;background:{fill};'
-        f'clip-path:{direction};margin-top:-24px;position:relative;z-index:3"></div>'
-    )
-    return divider + html
-
-sections_html = []
+    sections_html = []
     for i, s in enumerate(secs):
         if s in mp:
             sec_html = mp[s](d, cp, T)
