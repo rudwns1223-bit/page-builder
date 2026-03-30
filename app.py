@@ -1158,6 +1158,20 @@ COPY_VARIATION_SEEDS = [
         "why_hint": "각 이유를 수험생의 반박을 미리 예상하고 정면 반박하는 구조로",
         "cta_hint": "더 이상 망설이는 것 자체가 손해라는 직설적 선언",
     },
+    {
+        "style": "숫자·구체형",
+        "bannerTitle_hint": "막연한 '성적 향상' 대신 '3월→6월' '4등급→1등급' 같은 구체적 숫자를 제목에 넣어라",
+        "lead_hint": "학생이 지금 몇 등급이고, 몇 주 후에 어떻게 달라지는지 수치로 약속",
+        "why_hint": "각 이유를 '학생 행동' → '결과 수치' 구조로 작성 (예: 하루 30분 → 한 달 후 차이)",
+        "cta_hint": "지금 신청하면 몇 일 후에 뭘 받을 수 있는지 구체적으로",
+    },
+    {
+        "style": "질문 연속형",
+        "bannerTitle_hint": "제목 전체를 학생이 스스로에게 묻는 질문으로 만들어라 ('아직도 감으로 풀고 있나요?')",
+        "lead_hint": "3개의 짧은 질문을 연속으로 던진 뒤, 마지막에 이 강의가 답임을 제시",
+        "why_hint": "각 이유를 학생이 자주 하는 착각/오해를 질문으로 시작해 반박하는 구조",
+        "cta_hint": "마지막 질문 하나 + '이 강의가 그 답입니다'",
+    },
 ]
  
 def get_copy_variation() -> str:
@@ -2103,7 +2117,71 @@ def sec_why(d, cp, T):
             f'{rh}'
             f'</section>'
         )
-        
+    elif v == 5:
+        # ★ 잡지형 — 첫 번째 이유만 풀와이드, 나머지는 하단 2열
+        first = safe_r[0] if safe_r else ("🎯","핵심","설명")
+        rest  = safe_r[1:]
+        rest_html = "".join(
+            f'<div class="rv d{min(i+2,4)}" style="padding:28px;background:var(--bg3);'
+            f'border-radius:var(--r,4px);border:1px solid var(--bd)">'
+            f'<div style="font-size:32px;margin-bottom:12px">{ic}</div>'
+            f'<div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:8px">{strip_hanja(tt)}</div>'
+            f'<p style="font-size:13px;line-height:1.85;color:var(--t70);margin:0">{strip_hanja(dc)}</p>'
+            f'</div>'
+            for i,(ic,tt,dc) in enumerate(rest)
+        )
+        return (
+            f'<section id="why" style="padding:0">'
+            # 풀와이드 첫 번째 이유
+            f'<div style="padding:clamp(64px,8vw,100px) clamp(28px,6vw,80px);'
+            f'background:var(--c1);position:relative;overflow:hidden">'
+            f'<div style="position:absolute;right:-60px;top:-60px;width:400px;height:400px;'
+            f'border-radius:50%;background:rgba(255,255,255,.06);pointer-events:none"></div>'
+            f'<div style="max-width:900px;margin:0 auto;position:relative;z-index:1">'
+            f'<div style="font-size:64px;margin-bottom:20px">{first[0]}</div>'
+            f'<div style="font-family:var(--fh);font-size:clamp(24px,3.5vw,40px);font-weight:900;'
+            f'color:#fff;margin-bottom:16px">{strip_hanja(first[1])}</div>'
+            f'<p style="font-size:clamp(15px,1.6vw,18px);line-height:1.9;color:rgba(255,255,255,.82);'
+            f'max-width:640px">{strip_hanja(first[2])}</p>'
+            f'</div></div>'
+            # 나머지 2열 그리드
+            f'<div style="padding:clamp(40px,5vw,60px) clamp(28px,6vw,80px);background:var(--bg2)">'
+            f'<div style="max-width:900px;margin:0 auto;'
+            f'display:grid;grid-template-columns:repeat({min(len(rest),2)},1fr);gap:16px">'
+            f'{rest_html}</div></div>'
+            f'</section>'
+        )
+
+    elif v == 6:
+        # ★ 수평 타임라인 — 화살표로 연결된 단계 흐름
+        rh = ""
+        for i,(ic,tt,dc) in enumerate(safe_r):
+            arrow = (f'<div style="display:flex;align-items:center;color:var(--c1);'
+                     f'font-size:24px;font-weight:900;flex-shrink:0;padding:0 8px">→</div>'
+                     if i < len(safe_r)-1 else "")
+            rh += (
+                f'<div style="display:flex;align-items:stretch;flex:1;min-width:200px">'
+                f'<div class="rv d{min(i+1,4)}" style="flex:1;padding:28px 24px;'
+                f'background:var(--bg3);border-radius:var(--r,4px);border:1px solid var(--bd);'
+                f'display:flex;flex-direction:column;align-items:flex-start">'
+                f'<div style="font-size:36px;margin-bottom:14px">{ic}</div>'
+                f'<div style="font-size:11px;font-weight:800;color:var(--c1);'
+                f'letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px">0{i+1}</div>'
+                f'<div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:10px">{strip_hanja(tt)}</div>'
+                f'<p style="font-size:13px;line-height:1.8;color:var(--t70);margin:0;flex:1">{strip_hanja(dc)}</p>'
+                f'</div></div>'
+                + arrow
+            )
+        return (
+            f'<section class="sec" id="why">'
+            f'<div style="max-width:1200px;margin:0 auto">'
+            f'<div class="rv" style="text-align:center;margin-bottom:48px">'
+            f'<div class="tag-line" style="justify-content:center">수강 이유</div>'
+            f'<h2 class="sec-h2 st" style="text-align:center">{t}</h2>'
+            f'<p class="sec-sub" style="text-align:center;margin:0 auto">{s}</p></div>'
+            f'<div style="display:flex;align-items:stretch;gap:0;flex-wrap:nowrap;overflow-x:auto">'
+            f'{rh}</div></div></section>'
+        )
     else:
         for i,(ic,tt,dc) in enumerate(safe_r):
             alt_bg = 'background:var(--bg3)' if i%2==0 else 'background:var(--bg2)'
@@ -3715,7 +3793,25 @@ def build_html(secs: list) -> str:
         f'}})();'
         f'</script>'
     )
-    body = nav_html + "\n".join(mp[s](d,cp,T) for s in secs if s in mp)
+    def _with_divider(html: str, idx: int, dark: bool) -> str:
+    """섹션 사이 사선 SVG 구분선 삽입 (짝수/홀수 번갈아)"""
+    if idx == 0:
+        return html
+    direction = "polygon(0 0,100% 4%,100% 100%,0 100%)" if idx % 2 == 0 else "polygon(0 4%,100% 0,100% 100%,0 100%)"
+    fill = "var(--bg2)" if dark else "var(--bg)"
+    divider = (
+        f'<div style="height:48px;background:{fill};'
+        f'clip-path:{direction};margin-top:-24px;position:relative;z-index:3"></div>'
+    )
+    return divider + html
+
+sections_html = []
+for i, s in enumerate(secs):
+    if s in mp:
+        sec_html = mp[s](d, cp, T)
+        sections_html.append(_with_divider(sec_html, i, T["dark"]))
+
+body = nav_html + "\n".join(sections_html)
     ttl  = cp.get("bannerTitle", cp.get("festHeroTitle", d["purpose_label"]))
     particle_js = _particle_js(T.get("particle","none"))
     concept_key = st.session_state.concept if st.session_state.concept != "custom" else "custom"
