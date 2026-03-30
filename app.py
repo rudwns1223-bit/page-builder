@@ -161,6 +161,31 @@ FEW_SHOT_EXAMPLES = """
 [introDesc — 학생 고민 먼저 시작]
 - 지문은 읽히는데 답이 안 보이는 학생들이 있습니다. 어법은 외웠는데 실전에서 틀리는 학생들이 있습니다. 이 강의는 그 지점을 정확히 짚습니다.
 - 공부는 하는데 성적이 안 오르는 느낌, 다들 한번씩 겪습니다. 문제는 방법이 아니라 방향입니다.
+=== 강좌명·컨셉 워드플레이 필수 규칙 ===
+강좌명이나 페이지 맥락에서 반드시 단어 유희를 찾아내어 문구에 녹여라.
+
+[영문 강좌명 워드플레이 예시]
+- "KEY STEP" → bannerTitle: "1등급을 향한 열쇠, KEY STEP" / brandTagline: "한 스텝(STEP) 더, 1등급의 문이 열립니다(KEY)"
+- "KISSAVE" → bannerTitle: "KISSAVE — 너의 점수를 구한다" / brandTagline: "이제 KISS가 너의 점수를 세이브(SAVE)한다"
+- "KISSCHEMA" → "스키마(SCHEMA)처럼 구조가 잡힌다" / "머릿속 영어 회로가 바뀝니다"
+- "뉴런" → "이제 뇌가 다르게 연결됩니다" / "뉴런이 바뀌면 점수가 바뀐다"
+- "인셉션" → "머릿속 깊이 심어지는 국어 원리" / "꿈꾸듯 읽히기 시작합니다"
+- "R'gorithm" → "독해에도 알고리즘이 있다" / "논리 회로가 켜지는 순간"
+- "All Of KICE" → "수능 출제진의 모든 것을 담았다" / "KICE가 만든 모든 것, 우리가 먼저 분석했다"
+- "Starting Block" → "출발선이 달라지면 도착점이 달라진다"
+- "KICE Anatomy" → "수능을 해부한다"
+
+[한국어 강좌명 워드플레이 예시]
+- "파노라마" → "국어가 파노라마처럼 펼쳐집니다" / "전체가 한눈에 보이는 순간"
+- "세젤쉬" → "세상에서 제일 쉬운 수학이 됩니다"
+- "미친개념" → "이 정도면 미쳤다고 할 수밖에 없는 개념 강의"
+
+규칙:
+1. bannerTitle과 brandTagline에는 강좌명의 의미·발음·약자를 활용한 워드플레이를 반드시 1개 이상 포함
+2. introDesc, whyReasons, ctaSub에서도 강좌명과 자연스럽게 연결된 표현 사용
+3. 영문 강좌명은 한국어 뜻/발음도 함께 활용 (KEY=열쇠, SAVE=저장/구원, KISS=간결, STEP=단계 등)
+4. 억지스러운 워드플레이 금지 — 읽었을 때 "아, 맞다!" 하고 자연스럽게 느껴져야 함
+5. 강좌명을 모르는 독자도 이해할 수 있게 뜻을 문구 안에 녹여야 함
 === 절대 규칙 (위반 시 전체 실패) ===
 - 강사 정보에 명시된 과목만 언급. 영어 강사면 영어만, 수학 강사면 수학만.
 - 학교명·직위·소속·경력은 강사 정보에 없으면 절대 지어내지 말 것.
@@ -1001,6 +1026,35 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
         purpose_specific_rule = "⚠️ [신규 커리큘럼 규칙]\n1. 강사의 대표 강좌명이나 맥락을 기반으로 제목을 작성하세요."
 
     tone_instruction = COPY_TONES.get(st.session_state.copy_tone, "")
+    
+    # 강좌명 워드플레이 힌트 자동 생성
+    def _make_wordplay_hint(label: str) -> str:
+        if not label:
+            return ""
+        parts = []
+        import re as _re
+        eng_words = _re.findall(r"[A-Za-z']{2,}", label)
+        kor_words = _re.findall(r"[가-힣]{2,}", label)
+        MEANING_MAP = {
+            "KEY": "열쇠", "STEP": "단계", "SAVE": "구원/저장", "KISS": "간결함",
+            "SCHEMA": "구조/회로", "LOGIC": "논리", "ALL": "전부",
+            "KICE": "수능출제진", "START": "출발", "BLOCK": "블록",
+            "ANATOMY": "해부", "GORITHM": "알고리즘", "READ": "독해",
+            "CIRCLE": "원형/순환", "SYNTAX": "구문", "VIC": "승리",
+        }
+        hints = []
+        for w in eng_words:
+            wu = w.upper().replace("'","")
+            for key, meaning in MEANING_MAP.items():
+                if key in wu:
+                    hints.append(f"'{w}' = {meaning} 활용 가능")
+        if hints:
+            parts.append(f"강좌명 '{label}'의 워드플레이 힌트: {', '.join(hints[:3])}")
+        parts.append(f"bannerTitle과 brandTagline에 강좌명 '{label}'의 의미/발음/약자를 반드시 활용할 것")
+        return "\n".join(parts)
+    
+    wordplay_hint = _make_wordplay_hint(plabel)
+    
     prompt = f"""대한민국 최고 수능 교육 랜딩페이지 카피라이터.
 
 {FEW_SHOT_EXAMPLES}
@@ -1022,6 +1076,9 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
 맥락: "{ctx if ctx else '이벤트/기획전 안내'}"
 목적: {ptype} | 대상: {tgt} | 브랜드: {plabel}
 카피 어조: {tone_instruction}
+
+===강좌명 워드플레이 지침===
+{wordplay_hint}
 
 {purpose_specific_rule}
 
@@ -1946,7 +2003,13 @@ def sec_intro(d, cp, T):
     t    = strip_hanja(cp.get("introTitle", f"{d['name']} 선생님 소개" if d["name"] else f"{d['subject']} 강사 소개"))
     desc = strip_hanja(cp.get("introDesc", f"{d['subject']} 최상위권 합격의 비결"))
     bio  = strip_hanja(cp.get("introBio", ip.get("desc", f"검증된 {d['subject']} 강사")))
-    methods = [strip_hanja(m) for m in (ip.get("signatureMethods") or []) if m and m not in ("없음","")]
+    ptype = st.session_state.get("purpose_type", "신규 커리큘럼")
+    purpose_label = st.session_state.get("purpose_label", "")
+    if ptype == "신규 커리큘럼" and purpose_label:
+        # 신규 커리큘럼이면 강좌명 하나만 표시
+        methods = [purpose_label]
+    else:
+        methods = [strip_hanja(m) for m in (ip.get("signatureMethods") or []) if m and m not in ("없음","")]
     slogan  = strip_hanja(ip.get("slogan",""))
     mtags = "".join(
         f'<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border:1.5px solid var(--c1);border-radius:var(--r,4px);margin-bottom:8px">'
@@ -3644,8 +3707,15 @@ def sec_instructor_philosophy(d, cp, T):
     if not slogan and not desc:
         return ""  # 강사 정보 없으면 숨김
 
-    method_flow = " → ".join(methods[:3]) if methods else f"{d['subject']} 완성"
-
+    ptype = st.session_state.get("purpose_type", "신규 커리큘럼")
+    purpose_label = st.session_state.get("purpose_label", "")
+    if ptype == "신규 커리큘럼" and purpose_label:
+        # 신규 커리큘럼이면 강의 브랜드명(강좌명)을 핵심 공식으로 사용
+        method_flow = purpose_label
+    elif sig:
+        method_flow = " → ".join(sig[:3])
+    else:
+        method_flow = f"{d['subject']} 완성"
     return (
         f'<section class="sec" id="instructor-philosophy" '
         f'style="background:var(--bg);overflow:hidden;position:relative">'
