@@ -21,7 +21,6 @@ st.set_page_config(
 # ══════════════════════════════════════════════════════
 _D = {
     "api_key": "", "concept": "acid", "custom_theme": None,
-    "layout_seed": 0,  # <--- 이 줄을 여기에 쏙 넣어주세요!
     "instructor_name": "", "subject": "영어",
     "purpose_label": "2026 수능 파이널 완성",
     "purpose_type": "신규 커리큘럼", "target": "고3·N수",
@@ -1626,12 +1625,6 @@ def get_theme() -> dict:
 # BASE CSS — 파격적 업그레이드
 # ══════════════════════════════════════════════════════
 BASE_CSS = """
-.marquee-container { width: 100vw; overflow: hidden; position: absolute; top: 50%; transform: translateY(-50%) rotate(-2deg); opacity: 0.05; pointer-events: none; white-space: nowrap; z-index: 0; }
-.marquee-content { display: inline-block; font-family: var(--fh); font-size: 15vw; font-weight: 900; animation: marquee 30s linear infinite; text-transform: uppercase; color: var(--c1); }
-@keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-
-.rv { opacity: 0; transform: translateY(40px); transition: all 1s cubic-bezier(0.2, 1, 0.3, 1); }
-.rv.on { opacity: 1; transform: translateY(0); }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{font-family:var(--fb);background:var(--bg);color:var(--text);overflow-x:hidden;-webkit-font-smoothing:antialiased}
@@ -1889,56 +1882,67 @@ def _bg_vars(bg_url, dark):
 
 
 def sec_banner(d, cp, T):
-    sub    = strip_hanja(cp.get("bannerSub", d["subject"]+" 완성"))
-    title  = strip_hanja(cp.get("bannerTitle", d["purpose_label"]))
-    lead   = strip_hanja(cp.get("bannerLead", f"{d['target']}을 위한 커리큘럼"))
-    cta    = strip_hanja(cp.get("ctaCopy", "수강신청하기"))
-    bg_url = cp.get("bg_photo_url", "")
+    sub   = strip_hanja(cp.get("bannerSub", d["subject"]+" 완성"))
+    title = strip_hanja(cp.get("bannerTitle", d["purpose_label"]))
+    lead  = strip_hanja(cp.get("bannerLead", f"{d['target']}을 위한 커리큘럼"))
+    cta   = strip_hanja(cp.get("ctaCopy", "수강신청하기"))
+    bg_url= cp.get("bg_photo_url", "")
+    dark  = T["dark"]
     
-    # 테마 설정값 가져오기
-    dark = T.get("dark", True)
-    text_col = "#fff" if dark else "var(--text)"
-    
-    # 레이아웃 시드에 따른 분기 (v1: 마키/배경형, v2: 좌우분할, v3: 포스터)
-    v = (st.session_state.get("layout_seed", 0) % 3) + 1 
+    # 🌟 핵심: 문구(글자)가 바뀔 때마다 레이아웃이 3가지 중 하나로 랜덤하게 변함 🌟
+    text_hash = sum(ord(c) for c in title + lead)
+    v = (text_hash % 3) + 1
 
-    if v == 1: # 스타일 1: 마키 애니메이션 배경형
-        return f'''
-        <section id="hero" style="position:relative; min-height:90vh; overflow:hidden; background:var(--bg); display:flex; align-items:center; justify-content:center;">
-            <div class="marquee-container"><div class="marquee-content">{title} {title}</div></div>
-            <div class="rv" style="position:relative; z-index:2; text-align:center; padding:20px;">
-                <div style="display:inline-block; font-size:12px; font-weight:800; letter-spacing:0.2em; color:var(--c1); border:2px solid var(--c1); padding:8px 24px; border-radius:50px; margin-bottom:30px;">{sub}</div>
-                <h1 style="font-family:'Black Han Sans', var(--fh); font-size:clamp(50px, 8vw, 120px); color:{text_col}; line-height:1.1;">{title}</h1>
-                <p style="font-size:clamp(16px, 2vw, 24px); color:var(--c1); font-weight:800; margin-top:20px;">{lead}</p>
-                <a href="#cta" class="btn-p" style="margin-top:40px; padding:18px 45px; font-size:18px;">{cta} →</a>
-            </div>
-        </section>
-        '''
+    if v == 1: # [스타일 1: 거대 타이포 마키 (Brutal 스타일)]
+        bg_text = f"{title} " * 5
+        text_col = "#fff" if (dark or bg_url) else "var(--text)"
+        bg_style = f"background: url('{bg_url}') center/cover no-repeat;" if bg_url else f"background: var(--bg3);"
+        overlay = '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.6);z-index:1;"></div>' if bg_url else ''
+        
+        return (
+            f'<section id="hero" style="position:relative; min-height:100vh; overflow:hidden; {bg_style}; display:flex; flex-direction:column; justify-content:center; text-align:center;">'
+            + overlay +
+            f'<div class="marquee-container"><div class="marquee-content">{bg_text}{bg_text}</div></div>'
+            f'<div style="position:relative; z-index:2; padding:0 20px; max-width:1200px; margin:0 auto;">'
+            f'<div style="display:inline-block; font-size:12px; font-weight:800; letter-spacing:0.2em; color:var(--c1); border:2px solid var(--c1); padding:8px 24px; border-radius:50px; margin-bottom:30px;">{sub}</div>'
+            f'<h1 style="font-family:\'Black Han Sans\', var(--fh); font-size:clamp(60px, 8vw, 150px); font-weight:900; line-height:1.05; letter-spacing:-0.05em; color:{text_col}; margin-bottom:30px; word-break:keep-all;">{title}</h1>'
+            f'<p style="font-size:clamp(16px, 2vw, 22px); line-height:1.8; color:rgba(255,255,255,0.8) if {dark} else var(--t70); max-width:800px; margin:0 auto 50px; font-weight:600;">{lead}</p>'
+            f'<a href="#cta" style="display:inline-block; background:var(--c1); color:var(--bg); padding:20px 50px; font-size:18px; font-weight:900; font-family:var(--fh); text-decoration:none; box-shadow: 10px 10px 0px rgba(0,0,0,0.3); transition:transform 0.2s;">{cta} →</a>'
+            f'</div></section>'
+        )
 
-    elif v == 2: # 스타일 2: 깔끔한 좌우 분할형
-        bg_img_style = f"background:url('{bg_url}') center/cover;" if bg_url else "background:var(--bg3);"
-        return f'''
-        <section id="hero" style="display:grid; grid-template-columns:1fr 1.2fr; min-height:90vh; background:var(--bg2);">
-            <div style="padding:clamp(40px, 5vw, 80px); display:flex; flex-direction:column; justify-content:center;">
-                <div class="tag-line">{sub}</div>
-                <h1 class="rv" style="font-family:var(--fh); font-size:clamp(40px, 6vw, 80px); color:var(--text); line-height:1.1; margin-bottom:20px;">{title}</h1>
-                <p class="rv" style="font-size:clamp(15px, 1.5vw, 20px); color:var(--t70); margin-bottom:40px;">{lead}</p>
-                <a href="#cta" class="btn-p" style="width:fit-content; padding:15px 40px;">{cta}</a>
-            </div>
-            <div style="{bg_img_style}"></div>
-        </section>
-        '''
+    elif v == 2: # [스타일 2: 애플/프리미엄 여백 (Editorial 스타일)]
+        bg_style = f"background: url('{bg_url}') center/cover no-repeat;" if bg_url else f"background: linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);"
+        overlay = '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.5);z-index:1;"></div>' if bg_url else ''
+        text_color = "#fff" if (dark or bg_url) else "var(--text)"
+        
+        return (
+            f'<section id="hero" style="position:relative; min-height:90vh; display:flex; align-items:center; justify-content:center; text-align:center; overflow:hidden; {bg_style}">'
+            + overlay +
+            f'<div class="rv" style="position:relative; z-index:2; max-width:1200px; padding: 20px;">'
+            f'<h3 style="font-family:var(--fh); font-size:clamp(14px, 2vw, 20px); font-weight:800; color:var(--c1); letter-spacing:0.3em; margin-bottom:30px; text-transform:uppercase;">{sub}</h3>'
+            f'<h1 style="font-family:var(--fh); font-size:clamp(50px, 9vw, 140px); font-weight:900; color:{text_color}; line-height:1.05; letter-spacing:-0.05em; margin-bottom:40px; word-break:keep-all;">{title}</h1>'
+            f'<p style="font-size:clamp(16px, 2.2vw, 26px); color:rgba(255,255,255,0.7) if {dark} else var(--t70); font-weight:500; line-height:1.7; max-width:800px; margin:0 auto 60px; word-break:keep-all;">{lead}</p>'
+            f'<a href="#cta" style="display:inline-block; background:var(--c1); color:var(--bg); padding:20px 60px; border-radius:50px; font-size:clamp(16px, 2vw, 20px); font-weight:900; font-family:var(--fh); text-decoration:none; box-shadow: 0 10px 30px rgba(0,0,0,0.3); transition: transform 0.2s;">{cta}</a>'
+            f'</div></section>'
+        )
 
-    else: # 스타일 3: 강렬한 센터 포스터 스타일
-        return f'''
-        <section id="hero" style="position:relative; padding:150px 20px; background:var(--c1); color:var(--bg); text-align:center; min-height:90vh; display:flex; align-items:center; justify-content:center;">
-            <div class="rv" style="border:5px solid var(--bg); padding:clamp(40px, 5vw, 80px) 20px; width:100%; max-width:1000px;">
-                <div style="font-size:16px; font-weight:900; letter-spacing:0.3em; margin-bottom:20px;">{sub}</div>
-                <h1 style="font-family:'Black Han Sans', var(--fh); font-size:clamp(50px, 9vw, 130px); margin-bottom:30px;">{title}</h1>
-                <p style="font-size:clamp(18px, 2vw, 28px); opacity:0.9; font-weight:600;">{lead}</p>
-                <a href="#cta" style="display:inline-block; margin-top:50px; background:var(--bg); color:var(--c1); padding:20px 60px; font-weight:900; text-decoration:none; border-radius:var(--r-btn);"> {cta} </a>
-            </div>
-        </section>
+    else: # [스타일 3: 좌우 분할 매거진 (Split 스타일)]
+        bg_style = f"background: url('{bg_url}') center/cover no-repeat;" if bg_url else f"background: var(--bg2);"
+        overlay = '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.7);z-index:1;"></div>' if bg_url else ''
+        text_color = "#fff" if (dark or bg_url) else "var(--text)"
+        
+        return (
+            f'<section id="hero" style="position:relative; min-height:90vh; display:flex; align-items:center; overflow:hidden; {bg_style}">'
+            + overlay +
+            f'<div class="rv-left" style="position:relative; z-index:2; padding: 100px clamp(20px, 5vw, 80px); width:100%; max-width:1400px; margin:0 auto;">'
+            f'<div style="display:inline-block; font-size:14px; font-weight:800; color:var(--bg); background:var(--c1); padding:6px 16px; margin-bottom:24px;">{sub}</div>'
+            f'<h1 style="font-family:var(--fh); font-size:clamp(45px, 7vw, 110px); font-weight:900; color:{text_color}; line-height:1.1; letter-spacing:-0.03em; margin-bottom:30px; word-break:keep-all; text-align:left;">{title}</h1>'
+            f'<div style="width:60px; height:4px; background:var(--c1); margin-bottom:30px;"></div>'
+            f'<p style="font-size:clamp(15px, 1.8vw, 22px); color:rgba(255,255,255,0.7) if {dark} else var(--t70); font-weight:500; line-height:1.8; max-width:600px; margin-bottom:50px; text-align:left;">{lead}</p>'
+            f'<div style="text-align:left;"><a href="#cta" style="display:inline-block; background:transparent; border:2px solid var(--c1); color:{text_color}; padding:16px 40px; font-size:16px; font-weight:800; text-decoration:none; transition: all 0.2s;" onmouseover="this.style.background=\'var(--c1)\'; this.style.color=\'var(--bg)\'" onmouseout="this.style.background=\'transparent\'; this.style.color=\'{text_color}\'">{cta} →</a></div>'
+            f'</div></section>'
+        )
         
 def sec_intro(d, cp, T):
     label   = st.session_state.get("purpose_label", d["purpose_label"])
@@ -1988,89 +1992,79 @@ def sec_why(d, cp, T):
         elif isinstance(it, dict):
             safe_r.append((it.get('no','01'), it.get('title',''), it.get('desc','')))
 
-    # 🌟 글자가 바뀔 때마다 레이아웃이 3가지 중 하나로 랜덤하게 변함
+    # 🌟 글자가 바뀔 때마다 레이아웃이 3가지 중 하나로 랜덤하게 변함 🌟
     text_hash = sum(ord(c) for c in t + s)
     v = (text_hash % 3) + 1
-    rh = ""
 
-    if v == 1:
+    if v == 1: # [스타일 1: 거대 배경 숫자 + 다크 매거진 스타일]
         bg_text = f"{t} " * 10
+        rh = ""
         for i, (no, tt, dc) in enumerate(safe_r):
             align_self = "flex-start" if i % 2 == 0 else "flex-end"
             margin_top = "margin-top: -30px;" if i > 0 else "" 
-            idx_str = f"{i+1:02d}"
-            z_idx = i + 2
-            rh += f'''
-<div class="rv d{min(i+1,4)}" style="align-self:{align_self}; {margin_top} width: clamp(300px, 85%, 750px); position:relative; z-index:{z_idx};">
-    <div style="position:absolute; top:-70px; left:-30px; font-family:var(--fh); font-size: clamp(150px, 18vw, 250px); font-weight:900; color:var(--c1); opacity:0.08; line-height:1; pointer-events:none; z-index:-1;">{idx_str}</div>
-    <div style="background:var(--bg3); padding:50px 60px; border-radius:0; border-top: 4px solid var(--c1); box-shadow: 20px 20px 0px rgba(0,0,0,0.2);">
-        <div style="font-family:var(--fh); font-size: 16px; color:var(--c1); letter-spacing:0.2em; font-weight:800; margin-bottom:16px;">POINT {idx_str}</div>
-        <div style="font-family:var(--fh); font-size: clamp(28px, 3.5vw, 42px); font-weight:900; color:var(--text); margin-bottom:24px; word-break:keep-all; line-height:1.2;">{strip_hanja(tt)}</div>
-        <p style="font-size: clamp(16px, 1.8vw, 20px); line-height:1.9; color:var(--t70); margin:0; font-weight:500;">{strip_hanja(dc)}</p>
-    </div>
-</div>
-'''
-        return f'''
-        <section class="sec" id="why" style="position:relative; overflow:hidden; padding: 180px 20px;">
-            <div class="marquee-container"><div class="marquee-content">{bg_text}{bg_text}</div></div>
-            <div style="max-width:1100px; margin:0 auto; position:relative; z-index:2;">
-                <div class="rv" style="margin-bottom:120px; text-align:center;">
-                    <div class="tag-line" style="justify-content:center; font-size:14px; letter-spacing:0.3em;">WHY CHOOSE US</div>
-                    <h2 style="font-family:'Black Han Sans',var(--fh); font-size:clamp(40px, 6vw, 80px); font-weight:900; color:var(--text); letter-spacing:-0.05em; margin-top:20px;">{t}</h2>
-                    <p class="sec-sub" style="margin: 24px auto 0; font-size:20px; color:var(--c1); font-weight:700;">{s}</p>
-                </div>
-                <div style="display:flex; flex-direction:column; gap:60px;">{rh}</div>
-            </div>
-        </section>
-        '''
+            rh += (
+                f'<div class="rv d{min(i+1,4)}" style="align-self:{align_self}; {margin_top} width: clamp(300px, 85%, 750px); position:relative; z-index:{i+2};">'
+                # 뒤에 깔리는 거대한 투명 숫자
+                f'<div style="position:absolute; top:-70px; left:-30px; font-family:var(--fh); font-size: clamp(150px, 18vw, 250px); font-weight:900; color:var(--c1); opacity:0.08; line-height:1; pointer-events:none; z-index:-1;">{i+1:02d}</div>'
+                # 카드 본체 (이모지 대신 심플한 라인 디자인)
+                f'<div style="background:var(--bg3); padding:50px 60px; border-radius:0; border-top: 4px solid var(--c1); box-shadow: 20px 20px 0px rgba(0,0,0,0.2);">'
+                f'<div style="font-family:var(--fh); font-size: 16px; color:var(--c1); letter-spacing:0.2em; font-weight:800; margin-bottom:16px;">POINT {i+1:02d}</div>'
+                f'<div style="font-family:var(--fh); font-size: clamp(28px, 3.5vw, 42px); font-weight:900; color:var(--text); margin-bottom:24px; word-break:keep-all; line-height:1.2;">{strip_hanja(tt)}</div>'
+                f'<p style="font-size: clamp(16px, 1.8vw, 20px); line-height:1.9; color:var(--t70); margin:0; font-weight:500;">{strip_hanja(dc)}</p>'
+                f'</div></div>'
+            )
+        return (
+            f'<section class="sec" id="why" style="position:relative; overflow:hidden; padding: 180px 20px;">'
+            f'<div class="marquee-container"><div class="marquee-content">{bg_text}{bg_text}</div></div>'
+            f'<div style="max-width:1100px; margin:0 auto; position:relative; z-index:2;">'
+            f'<div class="rv" style="margin-bottom:120px; text-align:center;">'
+            f'<div class="tag-line" style="justify-content:center; font-size:14px; letter-spacing:0.3em;">WHY CHOOSE US</div>'
+            f'<h2 style="font-family:\'Black Han Sans\',var(--fh); font-size:clamp(40px, 6vw, 80px); font-weight:900; color:var(--text); letter-spacing:-0.05em; margin-top:20px;">{t}</h2>'
+            f'<p class="sec-sub" style="margin: 24px auto 0; font-size:20px; color:var(--c1); font-weight:700;">{s}</p></div>'
+            f'<div style="display:flex; flex-direction:column; gap:60px;">{rh}</div>'
+            f'</div></section>'
+        )
 
-    elif v == 2: # 스타일 2: 애플 스타일 세로 정렬
+    elif v == 2: # [스타일 2: 애플 스타일 세로 정렬 (Clean & Minimal)]
+        rh = ""
         for i, (no, tt, dc) in enumerate(safe_r):
-            # 에러 방지를 위해 번호를 미리 문자열로 만듭니다.
-            idx_str = f"{i+1:02d}"
-            
-            rh += f'''
-            <div class="rv d{min(i+1,4)}" style="display:flex; gap:40px; align-items:flex-start; padding:50px 0; border-bottom:1px solid var(--bd);">
-                <div style="font-family:var(--fh); font-size:60px; font-weight:900; color:var(--c1); line-height:1; flex-shrink:0;">{idx_str}.</div>
-                <div>
-                    <h3 style="font-family:var(--fh); font-size:clamp(26px, 3.5vw, 40px); font-weight:900; color:var(--text); margin-bottom:20px; letter-spacing:-0.03em;">{strip_hanja(tt)}</h3>
-                    <p style="font-size:clamp(16px, 1.8vw, 20px); color:var(--t70); line-height:1.85; margin:0; font-weight:500;">{strip_hanja(dc)}</p>
-                </div>
-            </div>
-            '''
-        return f'''
-        <section class="sec alt" id="why" style="padding: 160px 20px;">
-            <div style="max-width:900px; margin:0 auto;">
-                <div class="rv" style="text-align:left; margin-bottom:80px;">
-                    <div class="tag-line" style="font-size:13px;">{s}</div>
-                    <h2 style="font-family:var(--fh); font-size:clamp(45px, 6vw, 75px); font-weight:900; color:var(--text); letter-spacing:-0.04em; margin-top:16px;">{t}</h2>
-                </div>
-                <div style="border-top:2px solid var(--c1);">{rh}</div>
-            </div>
-        </section>
-        '''
-    else: # 기본 스타일 3
+            rh += (
+                f'<div class="rv d{min(i+1,4)}" style="display:flex; gap:40px; align-items:flex-start; padding:50px 0; border-bottom:1px solid var(--bd);">'
+                f'<div style="font-family:var(--fh); font-size:60px; font-weight:900; color:var(--c1); line-height:1; flex-shrink:0;">{i+1:02d}.</div>'
+                f'<div><h3 style="font-family:var(--fh); font-size:clamp(26px, 3.5vw, 40px); font-weight:900; color:var(--text); margin-bottom:20px; letter-spacing:-0.03em;">{strip_hanja(tt)}</h3>'
+                f'<p style="font-size:clamp(16px, 1.8vw, 20px); color:var(--t70); line-height:1.85; margin:0; font-weight:500;">{strip_hanja(dc)}</p></div>'
+                f'</div>'
+            )
+        return (
+            f'<section class="sec alt" id="why" style="padding: 160px 20px;">'
+            f'<div style="max-width:900px; margin:0 auto;">'
+            f'<div class="rv" style="text-align:left; margin-bottom:80px;">'
+            f'<div class="tag-line" style="font-size:13px;">{s}</div>'
+            f'<h2 style="font-family:var(--fh); font-size:clamp(45px, 6vw, 75px); font-weight:900; color:var(--text); letter-spacing:-0.04em; margin-top:16px;">{t}</h2>'
+            f'</div><div style="border-top:2px solid var(--c1);">{rh}</div></div></section>'
+        )
+
+    else: # [스타일 3: 프리미엄 3열 그리드 (구분선 강조)]
+        rh = ""
         for i, (no, tt, dc) in enumerate(safe_r):
-            rh += f'''
-            <div class="rv d{min(i+1,4)}" style="padding:40px; background:transparent; border:1px solid var(--bd); position:relative;">
-                <div style="width:40px; height:4px; background:var(--c1); margin-bottom:30px;"></div>
-                <div style="font-family:var(--fh); font-size:14px; font-weight:800; color:var(--c1); margin-bottom:16px; letter-spacing:0.1em;">REASON 0{i+1}</div>
-                <h3 style="font-family:var(--fh); font-size:clamp(22px, 2.5vw, 28px); font-weight:900; color:var(--text); margin-bottom:24px; line-height:1.4;">{strip_hanja(tt)}</h3>
-                <p style="font-size:16px; color:var(--t70); line-height:1.8; margin:0;">{strip_hanja(dc)}</p>
-            </div>
-            '''
-        return f'''
-        <section class="sec" id="why" style="padding: 160px 20px; background:var(--bg2);">
-            <div style="max-width:1200px; margin:0 auto;">
-                <div class="rv" style="display:flex; flex-direction:column; align-items:center; text-align:center; margin-bottom:80px;">
-                    <div class="tag-line" style="margin-bottom:20px;">WHY THIS CLASS</div>
-                    <h2 style="font-family:var(--fh); font-size:clamp(36px, 5vw, 64px); font-weight:900; color:var(--text);">{t}</h2>
-                    <p style="font-size:18px; color:var(--t70); margin-top:20px;">{s}</p>
-                </div>
-                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:30px;">{rh}</div>
-            </div>
-        </section>
-        '''
+            rh += (
+                f'<div class="rv d{min(i+1,4)}" style="padding:40px; background:transparent; border:1px solid var(--bd); position:relative;">'
+                f'<div style="width:40px; height:4px; background:var(--c1); margin-bottom:30px;"></div>'
+                f'<div style="font-family:var(--fh); font-size:14px; font-weight:800; color:var(--c1); margin-bottom:16px; letter-spacing:0.1em;">REASON 0{i+1}</div>'
+                f'<h3 style="font-family:var(--fh); font-size:clamp(22px, 2.5vw, 28px); font-weight:900; color:var(--text); margin-bottom:24px; line-height:1.4;">{strip_hanja(tt)}</h3>'
+                f'<p style="font-size:16px; color:var(--t70); line-height:1.8; margin:0;">{strip_hanja(dc)}</p>'
+                f'</div>'
+            )
+        return (
+            f'<section class="sec" id="why" style="padding: 160px 20px; background:var(--bg2);">'
+            f'<div style="max-width:1200px; margin:0 auto;">'
+            f'<div class="rv" style="display:flex; flex-direction:column; align-items:center; text-align:center; margin-bottom:80px;">'
+            f'<div class="tag-line" style="margin-bottom:20px;">WHY THIS CLASS</div>'
+            f'<h2 style="font-family:var(--fh); font-size:clamp(36px, 5vw, 64px); font-weight:900; color:var(--text);">{t}</h2>'
+            f'<p style="font-size:18px; color:var(--t70); margin-top:20px;">{s}</p>'
+            f'</div><div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:30px;">{rh}</div>'
+            f'</div></section>'
+        )
 
 def sec_curriculum(d, cp, T):
     t = strip_hanja(cp.get("curriculumTitle", f"{d['purpose_label']} 커리큘럼"))
@@ -2764,57 +2758,47 @@ def _sec_event_promo(d: dict, c: dict, T: dict) -> str:
 
 def sec_custom(d, cp, T):
     """기타 섹션 — 메인 분기 처리"""
-    # 1. 데이터를 안전하게 먼저 가져옵니다.
-    c = cp.get("custom_section_data") if cp else None
-    if not c: 
-        return ""
+    c = cp.get("custom_section_data", {})
+    if not c: return ""
     
-    # 2. 이벤트 스타일인지 일반 스타일인지 판단합니다.
+    # 안전장치: AI가 event_style을 안 주더라도, 상품명이나 이벤트 표가 있으면 무조건 이벤트 폼으로 렌더링
     is_event = c.get("event_style") or "event_details" in c or "prize_name" in c or "raffle_count" in c
     
     if is_event:
         return _sec_event_promo(d, c, T)
 
-    # 3. 일반 섹션 레이아웃 처리
+    # 이벤트가 아닌 일반 섹션 (이전의 카드/텍스트 레이아웃)
     tag   = strip_hanja(c.get("tag", "추가 안내"))
     title = strip_hanja(c.get("title", "추가 섹션"))
     items = c.get("items", [])
     desc  = strip_hanja(c.get("desc", ""))
 
     if items:
-        ih = ""
-        for i, it in enumerate(items):
-            icon = it.get("icon", "✦")
-            it_title = strip_hanja(it.get("title", ""))
-            it_desc = strip_hanja(it.get("desc", ""))
-            ih += f'''
-            <div class="card rv d{min(i+1,3)}">
-                <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
-                    <div style="width:40px;height:40px;min-width:40px;border-radius:var(--r,4px);background:var(--c1);display:flex;align-items:center;justify-content:center;font-size:18px">{icon}</div>
-                    <div style="font-family:var(--fh);font-size:14px;font-weight:700" class="st">{it_title}</div>
-                </div>
-                <p style="font-size:12.5px;line-height:1.9;color:var(--t70)">{it_desc}</p>
-            </div>
-            '''
-            
-        # f-string 밖에서 미리 문자열을 완성하여 합칩니다.
-        cols = f"repeat({min(len(items),3)}, 1fr)"
+        ih = "".join(
+            f'<div class="card rv d{min(i+1,3)}">'
+            f'<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">'
+            f'<div style="width:40px;height:40px;min-width:40px;border-radius:var(--r,4px);'
+            f'background:var(--c1);display:flex;align-items:center;justify-content:center;'
+            f'font-size:18px">{it.get("icon","✦")}</div>'
+            f'<div style="font-family:var(--fh);font-size:14px;font-weight:700" class="st">'
+            f'{strip_hanja(it.get("title",""))}</div></div>'
+            f'<p style="font-size:12.5px;line-height:1.9;color:var(--t70)">'
+            f'{strip_hanja(it.get("desc",""))}</p>'
+            f'</div>'
+            for i, it in enumerate(items)
+        )
+        cols = f"repeat({min(len(items),3)},1fr)"
         body = f'<div style="display:grid;grid-template-columns:{cols};gap:14px" class="rv d1">{ih}</div>'
     else:
         body = f'<div class="rv d1"><p style="font-size:14px;line-height:1.9;color:var(--t70)">{desc}</p></div>'
 
-    # 최종 결과물 반환
-    return f'''
-    <section class="sec" id="custom-section">
-        <div style="max-width:1200px;margin:0 auto">
-            <div class="rv">
-                <div class="tag-line">{tag}</div>
-                <h2 class="sec-h2 st">{title}</h2>
-            </div>
-            {body}
-        </div>
-    </section>
-    '''
+    return (
+        f'<section class="sec" id="custom-section">'
+        f'<div style="max-width:1200px;margin:0 auto">'
+        f'<div class="rv"><div class="tag-line">{tag}</div>'
+        f'<h2 class="sec-h2 st">{title}</h2></div>'
+        f'{body}</div></section>'
+    )
 
 
 # ══════════════════════════════════════════════════════
@@ -4074,7 +4058,6 @@ with L:
                                 if st.session_state.custom_copy is None:
                                     st.session_state.custom_copy = {}
                                 st.session_state.custom_copy.update(r)
-                                st.session_state.layout_seed += 1  # <--- 이 줄을 추가하세요!
                                 st.session_state.preview_key = st.session_state.get("preview_key", 0) + 1
                                 st.rerun()
                             except Exception as e:
