@@ -1988,79 +1988,84 @@ def sec_why(d, cp, T):
         elif isinstance(it, dict):
             safe_r.append((it.get('no','01'), it.get('title',''), it.get('desc','')))
 
-    # 🌟 글자가 바뀔 때마다 레이아웃이 3가지 중 하나로 랜덤하게 변함 🌟
+    # 🌟 글자가 바뀔 때마다 레이아웃이 3가지 중 하나로 랜덤하게 변함
     text_hash = sum(ord(c) for c in t + s)
     v = (text_hash % 3) + 1
+    rh = ""
 
-    if v == 1: # [스타일 1: 거대 배경 숫자 + 다크 매거진 스타일]
+    if v == 1: # 스타일 1: 거대 배경 숫자 + 다크 매거진 스타일
         bg_text = f"{t} " * 10
-        rh = ""
         for i, (no, tt, dc) in enumerate(safe_r):
             align_self = "flex-start" if i % 2 == 0 else "flex-end"
             margin_top = "margin-top: -30px;" if i > 0 else "" 
-            rh += (
-                f'<div class="rv d{min(i+1,4)}" style="align-self:{align_self}; {margin_top} width: clamp(300px, 85%, 750px); position:relative; z-index:{i+2};">'
-                # 뒤에 깔리는 거대한 투명 숫자
-                f'<div style="position:absolute; top:-70px; left:-30px; font-family:var(--fh); font-size: clamp(150px, 18vw, 250px); font-weight:900; color:var(--c1); opacity:0.08; line-height:1; pointer-events:none; z-index:-1;">{i+1:02d}</div>'
-                # 카드 본체 (이모지 대신 심플한 라인 디자인)
-                f'<div style="background:var(--bg3); padding:50px 60px; border-radius:0; border-top: 4px solid var(--c1); box-shadow: 20px 20px 0px rgba(0,0,0,0.2);">'
-                f'<div style="font-family:var(--fh); font-size: 16px; color:var(--c1); letter-spacing:0.2em; font-weight:800; margin-bottom:16px;">POINT {i+1:02d}</div>'
-                f'<div style="font-family:var(--fh); font-size: clamp(28px, 3.5vw, 42px); font-weight:900; color:var(--text); margin-bottom:24px; word-break:keep-all; line-height:1.2;">{strip_hanja(tt)}</div>'
-                f'<p style="font-size: clamp(16px, 1.8vw, 20px); line-height:1.9; color:var(--t70); margin:0; font-weight:500;">{strip_hanja(dc)}</p>'
-                f'</div></div>'
-            )
-        return (
-            f'<section class="sec" id="why" style="position:relative; overflow:hidden; padding: 180px 20px;">'
-            f'<div class="marquee-container"><div class="marquee-content">{bg_text}{bg_text}</div></div>'
-            f'<div style="max-width:1100px; margin:0 auto; position:relative; z-index:2;">'
-            f'<div class="rv" style="margin-bottom:120px; text-align:center;">'
-            f'<div class="tag-line" style="justify-content:center; font-size:14px; letter-spacing:0.3em;">WHY CHOOSE US</div>'
-            f'<h2 style="font-family:\'Black Han Sans\',var(--fh); font-size:clamp(40px, 6vw, 80px); font-weight:900; color:var(--text); letter-spacing:-0.05em; margin-top:20px;">{t}</h2>'
-            f'<p class="sec-sub" style="margin: 24px auto 0; font-size:20px; color:var(--c1); font-weight:700;">{s}</p></div>'
-            f'<div style="display:flex; flex-direction:column; gap:60px;">{rh}</div>'
-            f'</div></section>'
-        )
+            rh += f'''
+            <div class="rv d{min(i+1,4)}" style="align-self:{align_self}; {margin_top} width: clamp(300px, 85%, 750px); position:relative; z-index:{i+2};">
+                <div style="position:absolute; top:-70px; left:-30px; font-family:var(--fh); font-size: clamp(150px, 18vw, 250px); font-weight:900; color:var(--c1); opacity:0.08; line-height:1; pointer-events:none; z-index:-1;">{i+1:02d}</div>
+                <div style="background:var(--bg3); padding:50px 60px; border-radius:0; border-top: 4px solid var(--c1); box-shadow: 20px 20px 0px rgba(0,0,0,0.2);">
+                    <div style="font-family:var(--fh); font-size: 16px; color:var(--c1); letter-spacing:0.2em; font-weight:800; margin-bottom:16px;">POINT {i+1:02d}</div>
+                    <div style="font-family:var(--fh); font-size: clamp(28px, 3.5vw, 42px); font-weight:900; color:var(--text); margin-bottom:24px; word-break:keep-all; line-height:1.2;">{strip_hanja(tt)}</div>
+                    <p style="font-size: clamp(16px, 1.8vw, 20px); line-height:1.9; color:var(--t70); margin:0; font-weight:500;">{strip_hanja(dc)}</p>
+                </div>
+            </div>
+            '''
+        return f'''
+        <section class="sec" id="why" style="position:relative; overflow:hidden; padding: 180px 20px;">
+            <div class="marquee-container"><div class="marquee-content">{bg_text}{bg_text}</div></div>
+            <div style="max-width:1100px; margin:0 auto; position:relative; z-index:2;">
+                <div class="rv" style="margin-bottom:120px; text-align:center;">
+                    <div class="tag-line" style="justify-content:center; font-size:14px; letter-spacing:0.3em;">WHY CHOOSE US</div>
+                    <h2 style="font-family:'Black Han Sans',var(--fh); font-size:clamp(40px, 6vw, 80px); font-weight:900; color:var(--text); letter-spacing:-0.05em; margin-top:20px;">{t}</h2>
+                    <p class="sec-sub" style="margin: 24px auto 0; font-size:20px; color:var(--c1); font-weight:700;">{s}</p>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:60px;">{rh}</div>
+            </div>
+        </section>
+        '''
 
-    elif v == 2: # [스타일 2: 애플 스타일 세로 정렬 (Clean & Minimal)]
-        rh = ""
+    elif v == 2: # 스타일 2: 애플 스타일 세로 정렬
         for i, (no, tt, dc) in enumerate(safe_r):
-            rh += (
-                f'<div class="rv d{min(i+1,4)}" style="display:flex; gap:40px; align-items:flex-start; padding:50px 0; border-bottom:1px solid var(--bd);">'
-                f'<div style="font-family:var(--fh); font-size:60px; font-weight:900; color:var(--c1); line-height:1; flex-shrink:0;">{i+1:02d}.</div>'
-                f'<div><h3 style="font-family:var(--fh); font-size:clamp(26px, 3.5vw, 40px); font-weight:900; color:var(--text); margin-bottom:20px; letter-spacing:-0.03em;">{strip_hanja(tt)}</h3>'
-                f'<p style="font-size:clamp(16px, 1.8vw, 20px); color:var(--t70); line-height:1.85; margin:0; font-weight:500;">{strip_hanja(dc)}</p></div>'
-                f'</div>'
-            )
-        return (
-            f'<section class="sec alt" id="why" style="padding: 160px 20px;">'
-            f'<div style="max-width:900px; margin:0 auto;">'
-            f'<div class="rv" style="text-align:left; margin-bottom:80px;">'
-            f'<div class="tag-line" style="font-size:13px;">{s}</div>'
-            f'<h2 style="font-family:var(--fh); font-size:clamp(45px, 6vw, 75px); font-weight:900; color:var(--text); letter-spacing:-0.04em; margin-top:16px;">{t}</h2>'
-            f'</div><div style="border-top:2px solid var(--c1);">{rh}</div></div></section>'
-        )
-
-    else: # [스타일 3: 프리미엄 3열 그리드 (구분선 강조)]
-        rh = ""
+            rh += f'''
+            <div class="rv d{min(i+1,4)}" style="display:flex; gap:40px; align-items:flex-start; padding:50px 0; border-bottom:1px solid var(--bd);">
+                <div style="font-family:var(--fh); font-size:60px; font-weight:900; color:var(--c1); line-height:1; flex-shrink:0;">{i+1:02d}.</div>
+                <div>
+                    <h3 style="font-family:var(--fh); font-size:clamp(26px, 3.5vw, 40px); font-weight:900; color:var(--text); margin-bottom:20px; letter-spacing:-0.03em;">{strip_hanja(tt)}</h3>
+                    <p style="font-size:clamp(16px, 1.8vw, 20px); color:var(--t70); line-height:1.85; margin:0; font-weight:500;">{strip_hanja(dc)}</p>
+                </div>
+            </div>
+            '''
+        return f'''
+        <section class="sec alt" id="why" style="padding: 160px 20px;">
+            <div style="max-width:900px; margin:0 auto;">
+                <div class="rv" style="text-align:left; margin-bottom:80px;">
+                    <div class="tag-line" style="font-size:13px;">{s}</div>
+                    <h2 style="font-family:var(--fh); font-size:clamp(45px, 6vw, 75px); font-weight:900; color:var(--text); letter-spacing:-0.04em; margin-top:16px;">{t}</h2>
+                </div>
+                <div style="border-top:2px solid var(--c1);">{rh}</div>
+            </div>
+        </section>
+        '''
+    else: # 기본 스타일 3
         for i, (no, tt, dc) in enumerate(safe_r):
-            rh += (
-                f'<div class="rv d{min(i+1,4)}" style="padding:40px; background:transparent; border:1px solid var(--bd); position:relative;">'
-                f'<div style="width:40px; height:4px; background:var(--c1); margin-bottom:30px;"></div>'
-                f'<div style="font-family:var(--fh); font-size:14px; font-weight:800; color:var(--c1); margin-bottom:16px; letter-spacing:0.1em;">REASON 0{i+1}</div>'
-                f'<h3 style="font-family:var(--fh); font-size:clamp(22px, 2.5vw, 28px); font-weight:900; color:var(--text); margin-bottom:24px; line-height:1.4;">{strip_hanja(tt)}</h3>'
-                f'<p style="font-size:16px; color:var(--t70); line-height:1.8; margin:0;">{strip_hanja(dc)}</p>'
-                f'</div>'
-            )
-        return (
-            f'<section class="sec" id="why" style="padding: 160px 20px; background:var(--bg2);">'
-            f'<div style="max-width:1200px; margin:0 auto;">'
-            f'<div class="rv" style="display:flex; flex-direction:column; align-items:center; text-align:center; margin-bottom:80px;">'
-            f'<div class="tag-line" style="margin-bottom:20px;">WHY THIS CLASS</div>'
-            f'<h2 style="font-family:var(--fh); font-size:clamp(36px, 5vw, 64px); font-weight:900; color:var(--text);">{t}</h2>'
-            f'<p style="font-size:18px; color:var(--t70); margin-top:20px;">{s}</p>'
-            f'</div><div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:30px;">{rh}</div>'
-            f'</div></section>'
-        )
+            rh += f'''
+            <div class="rv d{min(i+1,4)}" style="padding:40px; background:transparent; border:1px solid var(--bd); position:relative;">
+                <div style="width:40px; height:4px; background:var(--c1); margin-bottom:30px;"></div>
+                <div style="font-family:var(--fh); font-size:14px; font-weight:800; color:var(--c1); margin-bottom:16px; letter-spacing:0.1em;">REASON 0{i+1}</div>
+                <h3 style="font-family:var(--fh); font-size:clamp(22px, 2.5vw, 28px); font-weight:900; color:var(--text); margin-bottom:24px; line-height:1.4;">{strip_hanja(tt)}</h3>
+                <p style="font-size:16px; color:var(--t70); line-height:1.8; margin:0;">{strip_hanja(dc)}</p>
+            </div>
+            '''
+        return f'''
+        <section class="sec" id="why" style="padding: 160px 20px; background:var(--bg2);">
+            <div style="max-width:1200px; margin:0 auto;">
+                <div class="rv" style="display:flex; flex-direction:column; align-items:center; text-align:center; margin-bottom:80px;">
+                    <div class="tag-line" style="margin-bottom:20px;">WHY THIS CLASS</div>
+                    <h2 style="font-family:var(--fh); font-size:clamp(36px, 5vw, 64px); font-weight:900; color:var(--text);">{t}</h2>
+                    <p style="font-size:18px; color:var(--t70); margin-top:20px;">{s}</p>
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:30px;">{rh}</div>
+            </div>
+        </section>
+        '''
 
 def sec_curriculum(d, cp, T):
     t = strip_hanja(cp.get("curriculumTitle", f"{d['purpose_label']} 커리큘럼"))
