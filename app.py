@@ -1309,8 +1309,28 @@ def gen_section(sec_id: str) -> dict:
 # 핵심 키워드 [{core_keyword}]가 자연스럽게 녹아있어야 합니다.
 """ if declaration else ""
 
-    prompt = f"""수능 교육 카피라이터. "{sec_name}" 섹션만 새롭게 생성.
+# 🌟 매번 누를 때마다 이모지와 문구 스타일을 파격적으로 바꾸는 지시어 추가 🌟
+    variation_hint = get_copy_variation()
+
+    prompt = f"""당신은 대한민국 최고 수준의 1타 강사 프로모션 카피라이터입니다. "{sec_name}" 섹션만 새롭게 생성하세요.
 {declaration_hint}
+
+{variation_hint}
+
+{inst_ctx}
+과목: {st.session_state.subject} | 브랜드: {st.session_state.purpose_label}
+카피 어조: {COPY_TONES.get(st.session_state.copy_tone, "")}
+
+{purpose_specific_rule}
+
+=== 🚨 극단적 다양성 및 이모지 규칙 🚨 ===
+1. 흔하고 뻔한 이모지(🎯, ⚡, 💡, 📚, 📈, 📖)는 절대 쓰지 마세요!!
+2. 대신 맥락에 맞는 창의적이고 강력한 이모지(예: 🌪️, 🧩, 🚀, 🔨, 🧭, 🩸, 🦅, 🌊, 🗝️ 등)를 반드시 사용하세요.
+3. 길고 지루한 설명 대신, 한 줄을 쓰더라도 심장을 찌르는 파격적인 단어 조합을 시도하세요.
+4. 한자, 수치(%) 지어내기 절대 금지. "교수" 금지. 강사 고유명사를 억지로 끼워넣지 말 것.
+
+아래 JSON 형식만 반환. 마크다운 금지:
+{schema}"""
 
 {FEW_SHOT_EXAMPLES}
 
@@ -1901,32 +1921,60 @@ def sec_banner(d, cp, T):
     cta   = strip_hanja(cp.get("ctaCopy", "수강신청하기"))
     bg_url= cp.get("bg_photo_url", "")
     dark  = T["dark"]
-
-    # 고급스러운 Apple / 메가스터디 대형 기획전 스타일
-    bg_style = f"background: url('{bg_url}') center/cover no-repeat;" if bg_url else f"background: linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);"
-    overlay = '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.5);z-index:1;"></div>' if bg_url else ''
-    text_color = "#fff" if (dark or bg_url) else "var(--text)"
-    sub_color = "rgba(255,255,255,0.7)" if (dark or bg_url) else "var(--t70)"
     
-    return (
-        f'<section id="hero" style="position:relative; min-height:100vh; display:flex; align-items:center; justify-content:center; text-align:center; overflow:hidden; {bg_style}">'
-        + overlay +
-        f'<div class="rv" style="position:relative; z-index:2; max-width:1200px; padding: 20px;">'
+    # 🌟 랜덤으로 3가지 파격 레이아웃 중 하나 선택 🌟
+    v = random.randint(1, 3)
+
+    if v == 1: # [스타일 1: 거대 타이포 마키 (Brutal 스타일)]
+        bg_text = f"{title} " * 5
+        text_col = "#fff" if (dark or bg_url) else "var(--text)"
+        bg_style = f"background: url('{bg_url}') center/cover no-repeat;" if bg_url else f"background: var(--bg3);"
+        overlay = '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.6);z-index:1;"></div>' if bg_url else ''
         
-        # 상단 작은 브랜드명
-        f'<h3 style="font-family:var(--fh); font-size:clamp(14px, 2vw, 20px); font-weight:800; color:var(--c1); letter-spacing:0.3em; margin-bottom:30px; text-transform:uppercase;">{sub}</h3>'
+        return (
+            f'<section id="hero" style="position:relative; min-height:100vh; overflow:hidden; {bg_style}; display:flex; flex-direction:column; justify-content:center; text-align:center;">'
+            + overlay +
+            f'<div class="marquee-container"><div class="marquee-content">{bg_text}{bg_text}</div></div>'
+            f'<div style="position:relative; z-index:2; padding:0 20px; max-width:1200px; margin:0 auto;">'
+            f'<div style="display:inline-block; font-size:12px; font-weight:800; letter-spacing:0.2em; color:var(--c1); border:2px solid var(--c1); padding:8px 24px; border-radius:50px; margin-bottom:30px;">{sub}</div>'
+            f'<h1 style="font-family:\'Black Han Sans\', var(--fh); font-size:clamp(50px, 8vw, 130px); font-weight:900; line-height:1.05; letter-spacing:-0.05em; color:{text_col}; margin-bottom:30px; word-break:keep-all;">{title}</h1>'
+            f'<p style="font-size:clamp(16px, 2vw, 22px); line-height:1.8; color:rgba(255,255,255,0.8) if {dark} else var(--t70); max-width:800px; margin:0 auto 50px; font-weight:600;">{lead}</p>'
+            f'<a href="#cta" style="display:inline-block; background:var(--c1); color:var(--bg); padding:20px 50px; font-size:18px; font-weight:900; font-family:var(--fh); text-decoration:none; box-shadow: 10px 10px 0px rgba(0,0,0,0.3); transition:transform 0.2s;">{cta} →</a>'
+            f'</div></section>'
+        )
+
+    elif v == 2: # [스타일 2: 애플/프리미엄 여백 (Editorial 스타일)]
+        bg_style = f"background: url('{bg_url}') center/cover no-repeat;" if bg_url else f"background: linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);"
+        overlay = '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.5);z-index:1;"></div>' if bg_url else ''
+        text_color = "#fff" if (dark or bg_url) else "var(--text)"
         
-        # 거대한 메인 카피
-        f'<h1 style="font-family:\'Black Han Sans\', var(--fh); font-size:clamp(50px, 9vw, 140px); font-weight:900; color:{text_color}; line-height:1.05; letter-spacing:-0.05em; margin-bottom:40px; word-break:keep-all;">{title}</h1>'
+        return (
+            f'<section id="hero" style="position:relative; min-height:90vh; display:flex; align-items:center; justify-content:center; text-align:center; overflow:hidden; {bg_style}">'
+            + overlay +
+            f'<div class="rv" style="position:relative; z-index:2; max-width:1200px; padding: 20px;">'
+            f'<h3 style="font-family:var(--fh); font-size:clamp(14px, 2vw, 20px); font-weight:800; color:var(--c1); letter-spacing:0.3em; margin-bottom:30px; text-transform:uppercase;">{sub}</h3>'
+            f'<h1 style="font-family:var(--fh); font-size:clamp(50px, 9vw, 140px); font-weight:900; color:{text_color}; line-height:1.05; letter-spacing:-0.05em; margin-bottom:40px; word-break:keep-all;">{title}</h1>'
+            f'<p style="font-size:clamp(16px, 2.2vw, 26px); color:rgba(255,255,255,0.7) if {dark} else var(--t70); font-weight:500; line-height:1.7; max-width:800px; margin:0 auto 60px; word-break:keep-all;">{lead}</p>'
+            f'<a href="#cta" style="display:inline-block; background:var(--c1); color:var(--bg); padding:20px 60px; border-radius:50px; font-size:clamp(16px, 2vw, 20px); font-weight:900; font-family:var(--fh); text-decoration:none; box-shadow: 0 10px 30px rgba(0,0,0,0.3); transition: transform 0.2s;">{cta}</a>'
+            f'</div></section>'
+        )
+
+    else: # [스타일 3: 좌우 분할 매거진 (Split 스타일)]
+        bg_style = f"background: url('{bg_url}') center/cover no-repeat;" if bg_url else f"background: var(--bg2);"
+        overlay = '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.7);z-index:1;"></div>' if bg_url else ''
+        text_color = "#fff" if (dark or bg_url) else "var(--text)"
         
-        # 서브 카피
-        f'<p style="font-size:clamp(16px, 2.2vw, 26px); color:{sub_color}; font-weight:500; line-height:1.7; max-width:800px; margin:0 auto 60px; word-break:keep-all;">{lead}</p>'
-        
-        # 둥글고 고급스러운 버튼
-        f'<a href="#cta" style="display:inline-block; background:var(--c1); color:var(--bg); padding:20px 60px; border-radius:50px; font-size:clamp(16px, 2vw, 20px); font-weight:900; font-family:var(--fh); text-decoration:none; box-shadow: 0 10px 30px rgba(0,0,0,0.3); transition: transform 0.2s;">{cta}</a>'
-        f'</div>'
-        f'</section>'
-    )
+        return (
+            f'<section id="hero" style="position:relative; min-height:90vh; display:flex; align-items:center; overflow:hidden; {bg_style}">'
+            + overlay +
+            f'<div class="rv-left" style="position:relative; z-index:2; padding: 100px clamp(20px, 5vw, 80px); width:100%; max-width:1400px; margin:0 auto;">'
+            f'<div style="display:inline-block; font-size:14px; font-weight:800; color:var(--bg); background:var(--c1); padding:6px 16px; margin-bottom:24px;">{sub}</div>'
+            f'<h1 style="font-family:var(--fh); font-size:clamp(45px, 7vw, 110px); font-weight:900; color:{text_color}; line-height:1.1; letter-spacing:-0.03em; margin-bottom:30px; word-break:keep-all; text-align:left;">{title}</h1>'
+            f'<div style="width:60px; height:4px; background:var(--c1); margin-bottom:30px;"></div>'
+            f'<p style="font-size:clamp(15px, 1.8vw, 22px); color:rgba(255,255,255,0.7) if {dark} else var(--t70); font-weight:500; line-height:1.8; max-width:600px; margin-bottom:50px; text-align:left;">{lead}</p>'
+            f'<div style="text-align:left;"><a href="#cta" style="display:inline-block; background:transparent; border:2px solid var(--c1); color:{text_color}; padding:16px 40px; font-size:16px; font-weight:800; text-decoration:none; transition: all 0.2s;" onmouseover="this.style.background=\'var(--c1)\'; this.style.color=\'var(--bg)\'" onmouseout="this.style.background=\'transparent\'; this.style.color=\'{text_color}\'">{cta} →</a></div>'
+            f'</div></section>'
+        )
 
 def sec_intro(d, cp, T):
     """강좌 핵심 소개 — 짧고 임팩트 있는 강좌 요약 섹션"""
@@ -2000,46 +2048,82 @@ def sec_why(d, cp, T):
     t = strip_hanja(cp.get('whyTitle', '이 강의가 필요한 이유'))
     s = strip_hanja(cp.get('whySub', f"{d['subject']} 1등급의 비결"))
     reasons = cp.get('whyReasons', [])
-    
     safe_r = []
     for it in reasons:
         if isinstance(it, (list, tuple)) and len(it) >= 3:
             safe_r.append((str(it[0]), str(it[1]), str(it[2])))
         elif isinstance(it, dict):
             safe_r.append((it.get('icon','✦'), it.get('title',''), it.get('desc','')))
-    
-    # 지그재그 고급 매거진 스타일
-    cards_html = ""
-    for i, (ic, tt, dc) in enumerate(safe_r):
-        align = "margin-left: auto;" if i % 2 != 0 else "margin-right: auto;"
-        # 카드가 살짝 겹치는 느낌을 위해 음수 마진 적용
-        margin_top = "margin-top: -40px;" if i > 0 else ""
-        
-        cards_html += (
-            f'<div class="rv d{min(i+1, 4)}" style="width: clamp(300px, 85%, 800px); {align} {margin_top} position:relative; z-index:{i+1};">'
-            
-            # 배경에 깔리는 거대한 숫자
-            f'<div style="position:absolute; top:-100px; left:-50px; font-family:var(--fh); font-size:clamp(150px, 20vw, 250px); font-weight:900; color:var(--c1); opacity:0.06; z-index:0; pointer-events:none;">0{i+1}</div>'
-            
-            # 고급스러운 라운드 박스와 그림자
-            f'<div style="background:var(--bg3); padding:clamp(40px, 6vw, 60px); border-radius:32px; position:relative; z-index:1; box-shadow: 0 30px 60px rgba(0,0,0,0.08); border:1px solid var(--bd);">'
-            f'<div style="font-size:clamp(40px, 5vw, 60px); margin-bottom:24px;">{ic}</div>'
-            f'<h3 style="font-family:var(--fh); font-size:clamp(26px, 4vw, 48px); font-weight:900; color:var(--text); margin-bottom:20px; letter-spacing:-0.03em;">{strip_hanja(tt)}</h3>'
-            f'<p style="font-size:clamp(16px, 2vw, 22px); color:var(--t70); line-height:1.9; font-weight:500; margin:0;">{strip_hanja(dc)}</p>'
-            f'</div></div>'
+
+    # 🌟 랜덤으로 3가지 파격 레이아웃 중 하나 선택 🌟
+    v = random.randint(1, 3)
+
+    if v == 1: # [스타일 1: 거대 숫자 + 비대칭 겹침 (Brutal)]
+        bg_text = f"{t} " * 10
+        rh = ""
+        for i, (ic, tt, dc) in enumerate(safe_r):
+            align_self = "flex-start" if i % 2 == 0 else "flex-end"
+            margin_top = "margin-top: -60px;" if i > 0 else "" 
+            rh += (
+                f'<div class="rv d{min(i+1,4)}" style="align-self:{align_self}; {margin_top} width: clamp(300px, 80%, 750px); position:relative; z-index:{i+2};">'
+                f'<div style="position:absolute; top:-80px; left:-40px; font-family:var(--fh); font-size: clamp(120px, 15vw, 220px); font-weight:900; color:var(--c1); opacity:0.12; line-height:1; pointer-events:none; z-index:-1;">{i+1:02d}</div>'
+                f'<div style="background:var(--bg3); padding:40px 50px; border-radius:12px; border:1px solid var(--bd); box-shadow: 0 30px 60px rgba(0,0,0,0.18);">'
+                f'<div style="font-size: clamp(36px, 4vw, 56px); margin-bottom:24px;">{ic}</div>'
+                f'<div style="font-family:var(--fh); font-size: clamp(24px, 3.5vw, 40px); font-weight:900; color:var(--text); margin-bottom:20px;">{strip_hanja(tt)}</div>'
+                f'<p style="font-size: clamp(16px, 1.8vw, 19px); line-height:1.95; color:var(--t70); margin:0;">{strip_hanja(dc)}</p>'
+                f'</div></div>'
+            )
+        return (
+            f'<section class="sec" id="why" style="position:relative; overflow:hidden; padding: 160px 20px;">'
+            f'<div class="marquee-container"><div class="marquee-content">{bg_text}{bg_text}</div></div>'
+            f'<div style="max-width:1100px; margin:0 auto; position:relative; z-index:2;">'
+            f'<div class="rv" style="margin-bottom:100px; text-align:center;">'
+            f'<div class="tag-line" style="justify-content:center;">수강 이유</div>'
+            f'<h2 style="font-family:\'Black Han Sans\',var(--fh); font-size:clamp(40px, 6vw, 80px); font-weight:900; color:var(--text); letter-spacing:-0.05em;">{t}</h2>'
+            f'<p class="sec-sub" style="margin: 24px auto 0; font-size:18px;">{s}</p></div>'
+            f'<div style="display:flex; flex-direction:column; gap:60px;">{rh}</div>'
+            f'</div></section>'
         )
-    
-    return (
-        f'<section id="why" style="padding: 150px 20px; background:var(--bg); overflow:hidden;">'
-        f'<div style="max-width:1200px; margin:0 auto;">'
-        f'<div class="rv" style="text-align:center; margin-bottom:120px;">'
-        f'<h4 style="color:var(--c1); font-weight:800; letter-spacing:0.3em; margin-bottom:16px; font-size:14px;">WHY</h4>'
-        f'<h2 style="font-family:\'Black Han Sans\', var(--fh); font-size:clamp(40px, 6vw, 80px); font-weight:900; color:var(--text); letter-spacing:-0.05em; line-height:1.1;">{t}</h2>'
-        f'<p style="font-size:clamp(18px, 2vw, 24px); color:var(--t70); margin-top:24px;">{s}</p>'
-        f'</div>'
-        f'<div style="display:flex; flex-direction:column;">{cards_html}</div>'
-        f'</div></section>'
-    )
+
+    elif v == 2: # [스타일 2: 유리 질감(Glassmorphism) 세로 정렬 카드]
+        rh = ""
+        for i, (ic, tt, dc) in enumerate(safe_r):
+            rh += (
+                f'<div class="rv d{min(i+1,4)}" style="display:flex; gap:30px; align-items:flex-start; padding:40px; background:rgba(255,255,255,0.03); backdrop-filter:blur(10px); border:1px solid var(--bd); border-radius:24px; margin-bottom:20px;">'
+                f'<div style="width:80px; height:80px; border-radius:50%; background:var(--c1); display:flex; align-items:center; justify-content:center; font-size:36px; flex-shrink:0;">{ic}</div>'
+                f'<div><h3 style="font-family:var(--fh); font-size:clamp(22px, 3vw, 32px); font-weight:900; color:var(--text); margin-bottom:16px;">{strip_hanja(tt)}</h3>'
+                f'<p style="font-size:16px; color:var(--t70); line-height:1.8; margin:0;">{strip_hanja(dc)}</p></div>'
+                f'</div>'
+            )
+        return (
+            f'<section class="sec alt" id="why" style="padding: 120px 20px;">'
+            f'<div style="max-width:900px; margin:0 auto;">'
+            f'<div class="rv" style="text-align:left; margin-bottom:60px; padding-bottom:30px; border-bottom:2px solid var(--c1);">'
+            f'<div class="tag-line">{s}</div>'
+            f'<h2 style="font-family:var(--fh); font-size:clamp(36px, 5vw, 64px); font-weight:900; color:var(--text); letter-spacing:-0.03em;">{t}</h2>'
+            f'</div>{rh}</div></section>'
+        )
+
+    else: # [스타일 3: 다크 3열 그리드 (Compact & Clean)]
+        rh = ""
+        for i, (ic, tt, dc) in enumerate(safe_r):
+            rh += (
+                f'<div class="rv d{min(i+1,4)}" style="padding:40px 30px; background:var(--bg2); border-top:4px solid var(--c1); border-radius:4px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">'
+                f'<div style="font-size:48px; margin-bottom:20px;">{ic}</div>'
+                f'<h3 style="font-family:var(--fh); font-size:24px; font-weight:900; color:var(--text); margin-bottom:16px; line-height:1.3;">{strip_hanja(tt)}</h3>'
+                f'<p style="font-size:15px; color:var(--t70); line-height:1.7; margin:0;">{strip_hanja(dc)}</p>'
+                f'</div>'
+            )
+        return (
+            f'<section class="sec" id="why" style="padding: 120px 20px;">'
+            f'<div style="max-width:1200px; margin:0 auto;">'
+            f'<div class="rv" style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:20px; margin-bottom:60px;">'
+            f'<div><div class="tag-line">WHY THIS CLASS</div><h2 style="font-family:var(--fh); font-size:clamp(32px, 4vw, 56px); font-weight:900; color:var(--text);">{t}</h2></div>'
+            f'<p style="font-size:16px; color:var(--t70); max-width:400px; text-align:right;">{s}</p>'
+            f'</div><div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:20px;">{rh}</div>'
+            f'</div></section>'
+        )
+        
 def sec_curriculum(d, cp, T):
     t = strip_hanja(cp.get("curriculumTitle", f"{d['purpose_label']} 커리큘럼"))
     s = strip_hanja(cp.get("curriculumSub", "단계별 완성 로드맵"))
@@ -3709,21 +3793,21 @@ st.markdown("""<style>
 }
 
 /* 🌟 2. 드롭다운(클릭시 나오는 팝업 리스트) UI 완벽 해결 🌟 */
-div[data-baseweb="popover"] > div {
+div[data-baseweb="popover"] > div,
+div[data-baseweb="popover"] ul[role="listbox"],
+ul[data-baseweb="menu"] {
     background-color: #1A2038 !important;
     border: 1px solid #343C58 !important;
-}
-ul[role="listbox"] {
-    background-color: #1A2038 !important;
 }
 li[role="option"] {
     color: #FFFFFF !important;
     background-color: transparent !important;
     font-size: 13px !important;
 }
-li[role="option"]:hover, li[role="option"][aria-selected="true"] {
-    background-color: #232A40 !important;
-    color: #FF6B35 !important;
+li[role="option"]:hover, 
+li[role="option"][aria-selected="true"] {
+    background-color: #FF6B35 !important;
+    color: #FFFFFF !important;
 }
 
 /* 🌟 3. 멀티셀렉트(섹션 순서) 태그 칩 세련되게 고치기 🌟 */
