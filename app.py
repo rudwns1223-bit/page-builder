@@ -1229,6 +1229,20 @@ COPY_VARIATION_SEEDS = [
         "why_hint": "각 이유를 학생이 자주 하는 착각/오해를 질문으로 시작해 반박하는 구조",
         "cta_hint": "마지막 질문 하나 + '이 강의가 그 답입니다'",
     },
+    {
+        "style": "💥 극단적 팩트폭력형",
+        "bannerTitle_hint": "학생의 뼈를 때리는 가장 현실적이고 차가운 팩트를 제목으로 작성",
+        "lead_hint": "희망고문 없이, 지금 성적이 안 나오는 이유를 아주 차갑고 논리적으로 분석",
+        "why_hint": "감정적인 위로를 다 빼고, 오직 데이터와 팩트만으로 압도할 것",
+        "cta_hint": "'할 테면 해보든가' 식의 엄청난 자신감을 보여주는 차가운 한 문장"
+    },
+    {
+        "style": "🔮 사이비 교주형 (광기)",
+        "bannerTitle_hint": "마치 홀린 듯이 이 강의를 들을 수밖에 없게 만드는 맹신적인 제목",
+        "lead_hint": "다른 강사를 들으면 망할 것처럼, 오직 나만이 구원자라는 뉘앙스로 작성",
+        "why_hint": "이유를 묻지도 따지지도 말고 그냥 따라오라는 식의 압도적인 확신",
+        "cta_hint": "1등급을 향한 마지막 동아줄임을 강조하는 다급한 문장"
+    },
 ]
  
 def get_copy_variation() -> str:
@@ -3889,6 +3903,8 @@ def build_html(secs: list) -> str:
     + f'</script>'
     + f'<button id="mode-toggle" onclick="(function(){{var b=document.body;b.classList.toggle(\'light-mode\');localStorage.setItem(\'mode\',b.classList.contains(\'light-mode\')?\' light\':\'dark\');this.textContent=b.classList.contains(\'light-mode\')?\'🌙\':\'☀️\'}}).call(this)" title="다크/라이트 모드">☀️</button>'
     + f'<script>(function(){{var m=localStorage.getItem(\'mode\');var btn=document.getElementById(\'mode-toggle\');if(m===\'light\'){{document.body.classList.add(\'light-mode\');if(btn)btn.textContent=\'🌙\'}}}})()</script>'
+    + f'<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>'
+    + f'<button onclick="html2canvas(document.body).then(canvas => {{ let a = document.createElement(\'a\'); a.href = canvas.toDataURL(\'image/png\'); a.download = \'landing_page.png\'; a.click(); }})" style="position:fixed; bottom:100px; left:24px; z-index:9999; padding:14px 24px; background:#FF2244; color:#fff; border:none; border-radius:50px; font-weight:900; font-size:16px; cursor:pointer; box-shadow:0 8px 24px rgba(255,34,68,0.4);">📸 전체 화면 이미지로 저장</button>'
     + f'</body></html>'
 )
 
@@ -4279,15 +4295,15 @@ with st.sidebar:
 
     # 섹션 ON/OFF
     st.markdown('<div class="sec-hdr">📑 섹션 ON/OFF</div>', unsafe_allow_html=True)
-    for sid in PURPOSE_SECTIONS[st.session_state.purpose_type]:
-        st.checkbox(SEC_LABELS.get(sid,sid),
-                    value=sid in st.session_state.active_sections, key=f"sec_{sid}")
-
-    # 체크박스 위젯 상태 → active_sections 즉시 동기화 (rerun 불필요)
-    st.session_state.active_sections = [
-        sid for sid in PURPOSE_SECTIONS[st.session_state.purpose_type]
-        if st.session_state.get(f"sec_{sid}", False)
-    ]
+    # 섹션 순서 및 ON/OFF (체크박스 대신 멀티셀렉트 사용)
+    default_secs = PURPOSE_SECTIONS[st.session_state.purpose_type]
+    
+    st.session_state.active_sections = st.multiselect(
+        "표시할 섹션을 원하는 순서대로 고르세요",
+        options=list(SEC_LABELS.keys()),
+        default=default_secs,
+        format_func=lambda x: SEC_LABELS.get(x, x)
+    )
 
     st.markdown("---")
     csec_on = st.checkbox("✏️ 기타 섹션 추가", value=st.session_state.custom_section_on, key="chk_cs")
@@ -4603,6 +4619,11 @@ with L:
 
 with R:
     st.markdown("### 👁 실시간 미리보기")
+    
+    # 모바일/PC 전환 토글 버튼 만들기
+    view_mode = st.radio("화면 크기", ["💻 PC 화면", "📱 모바일 화면"], horizontal=True)
+    
+    preview_width = 400 if view_mode == "📱 모바일 화면" else None
 
     td = (st.session_state.custom_theme.get("name", "AI 커스텀")
           if st.session_state.concept == "custom" and st.session_state.custom_theme
@@ -4626,4 +4647,4 @@ with R:
 
     preview_height = 1400 if st.session_state.preview_large else 700
     import streamlit.components.v1 as components
-    components.html(final_html, height=preview_height, scrolling=True)
+    components.html(final_html, height=preview_height, width=preview_width, scrolling=True)
