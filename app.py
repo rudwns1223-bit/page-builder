@@ -55,33 +55,15 @@ if not st.session_state.api_key:
 GROQ_URL    = "https://api.groq.com/openai/v1/chat/completions"
 # 기존 COPY_TONES 딕셔너리를 아래로 교체 (83행)
 COPY_TONES = {
-    "🔥 강렬·도발": (
-        "어조: 직접적·도전적. 수험생의 현실 안일함을 정면으로 찌름. "
-        "'아직도 감으로 공부해?' '남은 시간이 없어요' 같은 긴장감 문체. "
-        "문장은 짧고 끊어쳐야 함. 마침표 대신 줄바꿈. 감탄문·의문문 적극 활용."
-    ),
-    "🤝 친근·공감": (
-        "어조: 선배 느낌. 학생의 고민을 먼저 말해주는 방식. "
-        "'저도 그 막막함 알아요' '이 느낌 있죠?' 같은 공감 문체. "
-        "따뜻하지만 구체적. 추상적 위로 금지 — 반드시 구체적 상황 묘사 포함."
-    ),
-    "💎 프리미엄·권위": (
-        "어조: 절제된 고급 브랜드 톤. '선택받은 수험생만의 커리큘럼' 느낌. "
-        "수식어 최소화, 사실과 결과 중심. 문장 끝을 명사형으로 마무리. "
-        "과장 금지 — 단 하나의 가장 강한 근거만 제시."
-    ),
-    "😎 쿨·MZ": (
-        "어조: 트렌디하고 간결. '솔직히 말할게요' '그냥 됩니다' 같은 직설 문체. "
-        "긴 문장 금지. 한 줄에 하나의 메시지. 이모지 1~2개 허용. "
-        "설명하지 말고 결과만 말할 것."
-    ),
-    "📖 차분·신뢰": (
-        "어조: 전문적·데이터 중심. '기출 분석 결과' '패턴 기반 학습' 같은 근거 제시형. "
-        "숫자 대신 '반복 패턴', '출제 원리'로 구체화. "
-        "신뢰는 주장이 아니라 방법론으로 쌓아야 함."
-    ),
+    "🔥 강렬·도발": "어조: 직접적·도전적. 수험생의 현실 안일함을 정면으로 찌름. 문장은 짧고 끊어쳐야 함.",
+    "🤝 친근·공감": "어조: 선배 느낌. 학생의 고민을 먼저 말해주는 방식. 따뜻하지만 구체적 상황 묘사.",
+    "💎 프리미엄·권위": "어조: 절제된 고급 브랜드 톤. 수식어 최소화, 사실과 결과 중심.",
+    "😎 쿨·MZ": "어조: 트렌디하고 간결. 설명하지 말고 결과만 쿨하게 던질 것.",
+    "📖 차분·신뢰": "어조: 전문적·데이터 중심. 숫자, 패턴, 출제 원리 기반의 근거 제시형.",
+    # --- 여기서부터 파격적인 신규 어조 ---
+    "💥 팩트폭력 (독설)": "어조: 피도 눈물도 없는 차가운 팩트 폭력. 감정적 위로 절대 금지. '아직도 정신 못 차렸습니까?' 같은 차갑고 논리적인 독설로 학생을 압도할 것.",
+    "🔮 사이비 교주 (광기)": "어조: 학생을 홀리는 듯한 극단적이고 맹신적인 문체. 오직 이 강의만이 구원이라는 오만함과 확신. 감탄문과 극단적인 단어(구원, 파멸, 절대 등)를 적극 사용할 것."
 }
-
 GROQ_MODELS = [
     "llama-3.3-70b-versatile",          # 메인 (기존 유지)
     "meta-llama/llama-4-scout-17b-16e-instruct",  # Llama 4 Scout
@@ -3958,6 +3940,25 @@ div[data-testid="stMetric"] div{color:#E0E8F8!important;font-weight:700!importan
   .stMetric{margin-bottom:8px;}
   iframe{min-height:600px!important;}
 }
+/* 멀티셀렉트(섹션 순서) 태그 UI 세련되게 고치기 */
+span[data-baseweb="tag"] {
+  background-color: #161E38 !important;
+  color: #C0CDE8 !important;
+  border: 1px solid #343C58 !important;
+  border-radius: 4px !important;
+  padding: 4px 8px !important;
+  font-size: 11px !important;
+}
+span[data-baseweb="tag"] svg {
+  fill: #8A9AB8 !important;
+}
+span[data-baseweb="tag"]:hover {
+  background-color: #232A40 !important;
+}
+div[data-baseweb="select"] > div {
+  background-color: #090D1C !important;
+  border-color: #1A2038 !important;
+}
 </style>""", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════
@@ -4232,14 +4233,19 @@ with st.sidebar:
     st.divider()
 
     # 강사 정보
-    st.markdown('<div class="sec-hdr">🎭 카피 어조</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-hdr">🎭 카피 어조 (AI 페르소나)</div>', unsafe_allow_html=True)
     tone_options = list(COPY_TONES.keys())
-    selected_tone = st.radio("어조", tone_options,
+    
+    # 라디오 버튼 대신 셀렉트박스로 변경하여 공간 절약 및 깔끔한 UI 확보
+    selected_tone = st.selectbox("어조 선택", tone_options,
         index=tone_options.index(st.session_state.copy_tone),
         label_visibility="collapsed")
+        
     if selected_tone != st.session_state.copy_tone:
         st.session_state.copy_tone = selected_tone
-    st.caption(COPY_TONES[st.session_state.copy_tone])
+        
+    # 선택한 어조의 설명을 캡션으로 보여줌
+    st.info(COPY_TONES[st.session_state.copy_tone], icon="💡")
     st.divider()
     st.markdown('<div class="sec-hdr">👤 강사 정보</div>', unsafe_allow_html=True)
     known_names = ["직접 입력"] + list(INSTRUCTOR_DB.keys())
