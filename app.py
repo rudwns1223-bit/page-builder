@@ -1303,13 +1303,9 @@ def gen_section(sec_id: str) -> dict:
     declaration = theme_decl.get("declaration", "")
     core_keyword = theme_decl.get("core_keyword", "")
 
-    declaration_hint = f"""
-# ★ 이 섹션도 반드시 아래 방향으로 작성하세요:
-{declaration}
-# 핵심 키워드 [{core_keyword}]가 자연스럽게 녹아있어야 합니다.
-""" if declaration else ""
+    declaration_hint = f"# ★ 이 섹션도 반드시 아래 방향으로 작성하세요:\n{declaration}\n# 핵심 키워드 [{core_keyword}]가 자연스럽게 녹아있어야 합니다." if declaration else ""
 
-# 🌟 매번 누를 때마다 이모지와 문구 스타일을 파격적으로 바꾸는 지시어 추가 🌟
+    # 🌟 매번 누를 때마다 파격적인 프롬프트를 생성 🌟
     variation_hint = get_copy_variation()
 
     prompt = f"""당신은 대한민국 최고 수준의 1타 강사 프로모션 카피라이터입니다. "{sec_name}" 섹션만 새롭게 생성하세요.
@@ -1323,26 +1319,12 @@ def gen_section(sec_id: str) -> dict:
 
 {purpose_specific_rule}
 
-=== 🚨 극단적 다양성 및 이모지 규칙 🚨 ===
-1. 흔하고 뻔한 이모지(🎯, ⚡, 💡, 📚, 📈, 📖)는 절대 쓰지 마세요!!
-2. 대신 맥락에 맞는 창의적이고 강력한 이모지(예: 🌪️, 🧩, 🚀, 🔨, 🧭, 🩸, 🦅, 🌊, 🗝️ 등)를 반드시 사용하세요.
-3. 길고 지루한 설명 대신, 한 줄을 쓰더라도 심장을 찌르는 파격적인 단어 조합을 시도하세요.
-4. 한자, 수치(%) 지어내기 절대 금지. "교수" 금지. 강사 고유명사를 억지로 끼워넣지 말 것.
+=== 🚨 극단적 다양성 및 이모지 규칙 (가장 중요!) 🚨 ===
+1. 흔하고 뻔한 이모지(🎯, ⚡, 💡, 📚, 📈, 📖)는 절대로, 절대로 쓰지 마세요!!
+2. 대신 맥락에 맞고 시선을 끄는 파격적인 이모지(예: 🌪️, 🧩, 🚀, 🔨, 🧭, 🩸, 🦅, 🌊, 🗝️, 🪐, 🌋 등)를 무조건 사용하세요.
+3. 재생성할 때마다 문장 구조와 단어를 완전히 새롭게 비틀어야 합니다. (명령형, 단답형, 질문형 섞어서 사용)
+4. 한자 금지, 수치 지어내기 절대 금지. "교수" 금지.
 
-아래 JSON 형식만 반환. 마크다운 금지:
-{schema}"""
-
-{FEW_SHOT_EXAMPLES}
-
-위 예시를 절대 베끼지 마세요. 강사와 과목에 맞게 완전히 새로운 문구로 작성.
-
-{inst_ctx}
-과목: {st.session_state.subject} | 브랜드: {st.session_state.purpose_label}
-카피 어조: {COPY_TONES.get(st.session_state.copy_tone, "")}
-
-{purpose_specific_rule}
-
-규칙: 한자 금지, 수치 금지, 반드시 순수 한국어로만 작성. "교수" 절대 금지. 강사의 특정 강좌명(KISS Logic 등)을 맥락 없이 억지로 넣지 말 것.
 아래 JSON 형식만 반환. 마크다운 금지:
 {schema}"""
 
@@ -1921,11 +1903,10 @@ def sec_banner(d, cp, T):
     cta   = strip_hanja(cp.get("ctaCopy", "수강신청하기"))
     bg_url= cp.get("bg_photo_url", "")
     dark  = T["dark"]
+    hs    = T.get("heroStyle", "typographic") # 🌟 테마별 히어로 스타일 가져오기 🌟
     
-    # 🌟 랜덤으로 3가지 파격 레이아웃 중 하나 선택 🌟
-    v = random.randint(1, 3)
-
-    if v == 1: # [스타일 1: 거대 타이포 마키 (Brutal 스타일)]
+    # 1. 타이포그래피 스타일 (Brutal, Acid 등)
+    if hs in ["typographic", "billboard"]:
         bg_text = f"{title} " * 5
         text_col = "#fff" if (dark or bg_url) else "var(--text)"
         bg_style = f"background: url('{bg_url}') center/cover no-repeat;" if bg_url else f"background: var(--bg3);"
@@ -1937,13 +1918,14 @@ def sec_banner(d, cp, T):
             f'<div class="marquee-container"><div class="marquee-content">{bg_text}{bg_text}</div></div>'
             f'<div style="position:relative; z-index:2; padding:0 20px; max-width:1200px; margin:0 auto;">'
             f'<div style="display:inline-block; font-size:12px; font-weight:800; letter-spacing:0.2em; color:var(--c1); border:2px solid var(--c1); padding:8px 24px; border-radius:50px; margin-bottom:30px;">{sub}</div>'
-            f'<h1 style="font-family:\'Black Han Sans\', var(--fh); font-size:clamp(50px, 8vw, 130px); font-weight:900; line-height:1.05; letter-spacing:-0.05em; color:{text_col}; margin-bottom:30px; word-break:keep-all;">{title}</h1>'
+            f'<h1 style="font-family:var(--fh); font-size:clamp(50px, 8vw, 130px); font-weight:900; line-height:1.05; letter-spacing:-0.05em; color:{text_col}; margin-bottom:30px; word-break:keep-all;">{title}</h1>'
             f'<p style="font-size:clamp(16px, 2vw, 22px); line-height:1.8; color:rgba(255,255,255,0.8) if {dark} else var(--t70); max-width:800px; margin:0 auto 50px; font-weight:600;">{lead}</p>'
             f'<a href="#cta" style="display:inline-block; background:var(--c1); color:var(--bg); padding:20px 50px; font-size:18px; font-weight:900; font-family:var(--fh); text-decoration:none; box-shadow: 10px 10px 0px rgba(0,0,0,0.3); transition:transform 0.2s;">{cta} →</a>'
             f'</div></section>'
         )
 
-    elif v == 2: # [스타일 2: 애플/프리미엄 여백 (Editorial 스타일)]
+    # 2. 에디토리얼 스타일 (Apple/Premium, Cinematic 등)
+    elif hs in ["editorial_bold", "cinematic"]: 
         bg_style = f"background: url('{bg_url}') center/cover no-repeat;" if bg_url else f"background: linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);"
         overlay = '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.5);z-index:1;"></div>' if bg_url else ''
         text_color = "#fff" if (dark or bg_url) else "var(--text)"
@@ -1959,7 +1941,8 @@ def sec_banner(d, cp, T):
             f'</div></section>'
         )
 
-    else: # [스타일 3: 좌우 분할 매거진 (Split 스타일)]
+    # 3. 좌우 분할 매거진 (Split 스타일)
+    else: 
         bg_style = f"background: url('{bg_url}') center/cover no-repeat;" if bg_url else f"background: var(--bg2);"
         overlay = '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.7);z-index:1;"></div>' if bg_url else ''
         text_color = "#fff" if (dark or bg_url) else "var(--text)"
@@ -1977,69 +1960,37 @@ def sec_banner(d, cp, T):
         )
 
 def sec_intro(d, cp, T):
-    """강좌 핵심 소개 — 짧고 임팩트 있는 강좌 요약 섹션"""
     label   = st.session_state.get("purpose_label", d["purpose_label"])
     subj    = d["subject"]
     tagline = strip_hanja(cp.get("brandTagline", ""))
     desc    = strip_hanja(cp.get("introDesc", f"{label}이 특별한 이유가 있습니다."))
 
-    # 강좌 핵심 포인트 — whyReasons 앞 3개 재활용
     reasons = cp.get("whyReasons", [])
     points  = []
     for r in reasons[:3]:
         if isinstance(r, (list, tuple)) and len(r) >= 3:
             points.append((str(r[0]), str(r[1]), str(r[2])))
     if not points:
-        points = [
-            ("🎯", "핵심만 담았다",   f"{label} 한 강좌로 {subj} 완성"),
-            ("⚡", "즉시 적용된다",   "배운 내용을 바로 실전에 적용"),
-            ("📈", "결과가 달라진다", "수강 후 성적 변화를 직접 체감"),
-        ]
+        points = [("🎯", "핵심만 담았다", f"{label} 한 강좌로 {subj} 완성"),("⚡", "즉시 적용된다", "배운 내용을 바로 실전에 적용"),("📈", "결과가 달라진다", "수강 후 성적 변화 체감")]
 
     point_html = "".join(
-        f'<div class="rv d{i+1}" style="flex:1;min-width:180px;padding:28px 24px;'
-        f'background:var(--bg3);border-radius:var(--r,4px);'
-        f'border:1px solid var(--bd);border-top:3px solid var(--c1)">'
+        f'<div class="rv d{i+1}" style="flex:1;min-width:180px;padding:28px 24px;background:var(--bg3);border-radius:var(--r,4px);border:1px solid var(--bd);border-top:3px solid var(--c1)">'
         f'<div style="font-size:34px;margin-bottom:14px">{ic}</div>'
-        f'<div style="font-family:var(--fh);font-size:15px;font-weight:800;'
-        f'color:var(--text);margin-bottom:8px">{strip_hanja(tt)}</div>'
-        f'<p style="font-size:13px;line-height:1.8;color:var(--t70);margin:0">'
-        f'{strip_hanja(dc)}</p>'
+        f'<div style="font-family:var(--fh);font-size:15px;font-weight:800;color:var(--text);margin-bottom:8px">{strip_hanja(tt)}</div>'
+        f'<p style="font-size:13px;line-height:1.8;color:var(--t70);margin:0">{strip_hanja(dc)}</p>'
         f'</div>'
         for i, (ic, tt, dc) in enumerate(points)
     )
 
-    tagline_html = (
-        f'<div style="padding:22px 28px;background:var(--c1);border-radius:var(--r,4px);margin-bottom:20px">'
-        f'<p style="font-size:clamp(15px,1.6vw,18px);font-style:italic;font-weight:700;'
-        f'color:#fff;line-height:1.6;margin:0">"{tagline}"</p>'
-        f'</div>'
-    ) if tagline else ""
+    tagline_html = f'<div style="padding:22px 28px;background:var(--c1);border-radius:var(--r,4px);margin-bottom:20px"><p style="font-size:clamp(15px,1.6vw,18px);font-style:italic;font-weight:700;color:#fff;line-height:1.6;margin:0">"{tagline}"</p></div>' if tagline else ""
 
     return (
-        f'<section class="sec" id="intro">'
-        f'<div style="max-width:1100px;margin:0 auto">'
-        # 상단: 강좌명 + 설명
-        f'<div class="rv" style="display:grid;grid-template-columns:1fr 1.8fr;'
-        f'gap:60px;align-items:center;padding-bottom:40px;'
-        f'border-bottom:2px solid var(--bd);margin-bottom:40px">'
-        f'<div>'
-        f'<div class="tag-line">{subj} 강좌 소개</div>'
-        f'<h2 style="font-family:\'Black Han Sans\',var(--fh);'
-        f'font-size:clamp(28px,4vw,52px);font-weight:900;line-height:1.05;'
-        f'color:var(--text);margin-bottom:14px">{label}</h2>'
-        f'<div style="display:flex;align-items:center;gap:8px;margin-top:16px">'
-        f'<span style="font-size:10px;font-weight:800;background:var(--c1);color:#fff;'
-        f'padding:4px 14px;border-radius:var(--r-btn,100px)">{subj}</span>'
-        f'<span style="font-size:10px;font-weight:700;color:var(--t45)">{d["target"]}</span>'
-        f'</div>'
-        f'</div>'
-        f'<div>'
-        f'{tagline_html}'
-        f'<p style="font-size:15px;line-height:2;color:var(--t70)">{desc}</p>'
-        f'</div>'
-        f'</div>'
-        # 하단: 핵심 포인트 카드
+        f'<section class="sec" id="intro"><div style="max-width:1100px;margin:0 auto">'
+        f'<div class="rv" style="display:grid;grid-template-columns:1fr 1.8fr;gap:60px;align-items:center;padding-bottom:40px;border-bottom:2px solid var(--bd);margin-bottom:40px">'
+        f'<div><div class="tag-line">{subj} 강좌 소개</div>'
+        f'<h2 style="font-family:var(--fh);font-size:clamp(28px,4vw,52px);font-weight:900;line-height:1.05;color:var(--text);margin-bottom:14px">{label}</h2>'
+        f'<div style="display:flex;align-items:center;gap:8px;margin-top:16px"><span style="font-size:10px;font-weight:800;background:var(--c1);color:#fff;padding:4px 14px;border-radius:var(--r-btn,100px)">{subj}</span><span style="font-size:10px;font-weight:700;color:var(--t45)">{d["target"]}</span></div></div>'
+        f'<div>{tagline_html}<p style="font-size:15px;line-height:2;color:var(--t70)">{desc}</p></div></div>'
         f'<div style="display:flex;gap:16px;flex-wrap:wrap">{point_html}</div>'
         f'</div></section>'
     )
@@ -2055,8 +2006,9 @@ def sec_why(d, cp, T):
         elif isinstance(it, dict):
             safe_r.append((it.get('icon','✦'), it.get('title',''), it.get('desc','')))
 
-    # 🌟 랜덤으로 3가지 파격 레이아웃 중 하나 선택 🌟
-    v = random.randint(1, 3)
+    # 🌟 테마(Concept)에 따라 결정되는 안정적인 3가지 레이아웃 🌟
+    concept_hash = sum(ord(c) for c in st.session_state.concept)
+    v = (concept_hash % 3) + 1
 
     if v == 1: # [스타일 1: 거대 숫자 + 비대칭 겹침 (Brutal)]
         bg_text = f"{t} " * 10
@@ -2079,17 +2031,17 @@ def sec_why(d, cp, T):
             f'<div style="max-width:1100px; margin:0 auto; position:relative; z-index:2;">'
             f'<div class="rv" style="margin-bottom:100px; text-align:center;">'
             f'<div class="tag-line" style="justify-content:center;">수강 이유</div>'
-            f'<h2 style="font-family:\'Black Han Sans\',var(--fh); font-size:clamp(40px, 6vw, 80px); font-weight:900; color:var(--text); letter-spacing:-0.05em;">{t}</h2>'
+            f'<h2 style="font-family:var(--fh); font-size:clamp(40px, 6vw, 80px); font-weight:900; color:var(--text); letter-spacing:-0.05em;">{t}</h2>'
             f'<p class="sec-sub" style="margin: 24px auto 0; font-size:18px;">{s}</p></div>'
             f'<div style="display:flex; flex-direction:column; gap:60px;">{rh}</div>'
             f'</div></section>'
         )
 
-    elif v == 2: # [스타일 2: 유리 질감(Glassmorphism) 세로 정렬 카드]
+    elif v == 2: # [스타일 2: 세로 정렬 카드]
         rh = ""
         for i, (ic, tt, dc) in enumerate(safe_r):
             rh += (
-                f'<div class="rv d{min(i+1,4)}" style="display:flex; gap:30px; align-items:flex-start; padding:40px; background:rgba(255,255,255,0.03); backdrop-filter:blur(10px); border:1px solid var(--bd); border-radius:24px; margin-bottom:20px;">'
+                f'<div class="rv d{min(i+1,4)}" style="display:flex; gap:30px; align-items:flex-start; padding:40px; background:var(--bg3); border:1px solid var(--bd); border-radius:24px; margin-bottom:20px;">'
                 f'<div style="width:80px; height:80px; border-radius:50%; background:var(--c1); display:flex; align-items:center; justify-content:center; font-size:36px; flex-shrink:0;">{ic}</div>'
                 f'<div><h3 style="font-family:var(--fh); font-size:clamp(22px, 3vw, 32px); font-weight:900; color:var(--text); margin-bottom:16px;">{strip_hanja(tt)}</h3>'
                 f'<p style="font-size:16px; color:var(--t70); line-height:1.8; margin:0;">{strip_hanja(dc)}</p></div>'
@@ -2123,270 +2075,44 @@ def sec_why(d, cp, T):
             f'</div><div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:20px;">{rh}</div>'
             f'</div></section>'
         )
-        
+
 def sec_curriculum(d, cp, T):
     t = strip_hanja(cp.get("curriculumTitle", f"{d['purpose_label']} 커리큘럼"))
     s = strip_hanja(cp.get("curriculumSub", "단계별 완성 로드맵"))
-    steps = cp.get("curriculumSteps", [
-        ["01","개념 완성","핵심 개념을 정확히 이해하고 내 것으로 만드는 단계입니다.","4주"],
-        ["02","유형 훈련","기출 완전 분석으로 실전 패턴 파악","4주"],
-        ["03","심화 특훈","고난도 아이디어 체화","3주"],
-        ["04","파이널","실전 완성","3주"],
-    ])
+    steps = cp.get("curriculumSteps", [])
+    if not steps:
+        steps = [["01","개념 완성","핵심 개념을 정확히 이해","4주"], ["02","훈련","기출 완전 분석","4주"], ["03","심화","고난도 특훈","3주"], ["04","파이널","실전 완성","3주"]]
 
-    v = random.randint(0, 4)
+    concept_hash = sum(ord(c) for c in st.session_state.concept)
+    v = (concept_hash % 3) + 1
     sh = ""
 
     if v == 1:
         for i, step in enumerate(steps):
-            line_html = f'<div style="position:absolute;top:26px;left:calc(50% + 36px);right:calc(-50% + 36px);height:2px;background:var(--bd)"></div>' if i < len(steps)-1 else ''
-            sh += f'<div class="rv d{min(i+1,4)}" style="flex:1;min-width:160px;text-align:center;position:relative"><div style="width:52px;height:52px;border-radius:50%;background:var(--c1);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-family:var(--fh);font-size:15px;font-weight:900;color:var(--on-c1, var(--bg))">{str(step[0])}</div><div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:8px">{strip_hanja(str(step[1]))}</div><p style="font-size:12px;line-height:1.75;color:var(--t70)">{strip_hanja(str(step[2]))}</p><div style="font-size:9px;background:var(--bg3);color:var(--c1);padding:3px 10px;border-radius:100px;font-weight:700;display:inline-block;margin-top:8px;border:1px solid var(--bd)">{str(step[3]) if len(step)>3 else "4주"}</div>{line_html}</div>'
-        return f'<section class="sec alt" id="curriculum"><div style="max-width:1200px;margin:0 auto"><div class="rv" style="text-align:center;margin-bottom:52px"><div class="tag-line" style="justify-content:center">커리큘럼</div><h2 class="sec-h2 st" style="text-align:center">{t}</h2><p class="sec-sub" style="text-align:center;margin:0 auto">{s}</p></div><div style="display:flex;gap:0;align-items:flex-start;flex-wrap:wrap">{sh}</div></div></section>'
+            sh += f'<div class="rv d{min(i+1,4)}" style="display:flex;gap:20px;align-items:flex-start;padding:20px 0;border-bottom:1px solid var(--bd)"><div style="flex-shrink:0;width:40px;height:40px;border-radius:var(--r-btn,4px);background:var(--c1);display:flex;align-items:center;justify-content:center;font-family:var(--fh);font-size:16px;color:var(--bg);font-weight:900">✓</div><div style="flex:1"><div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><span style="font-family:var(--fh);font-size:18px;font-weight:800;color:var(--text)">{strip_hanja(str(step[1]))}</span><span style="font-size:10px;background:var(--bg3);color:var(--c1);padding:2px 10px;border-radius:100px;font-weight:700;border:1px solid var(--bd)">{str(step[3]) if len(step)>3 else "4주"}</span></div><p style="font-size:14px;line-height:1.8;color:var(--t70);margin:0">{strip_hanja(str(step[2]))}</p></div></div>'
+        return f'<section class="sec alt" id="curriculum"><div style="max-width:900px;margin:0 auto"><div class="rv" style="margin-bottom:40px"><div class="tag-line">커리큘럼</div><h2 style="font-family:var(--fh); font-size:clamp(36px, 5vw, 64px); font-weight:900; color:var(--text); letter-spacing:-0.03em;">{t}</h2><p class="sec-sub">{s}</p></div>{sh}</div></section>'
 
     elif v == 2:
-        for i, step in enumerate(steps):
-            sh += f'<div class="rv d{min(i+1,4)}" style="display:flex;gap:20px;align-items:flex-start;padding:20px 0;border-bottom:1px solid var(--bd)"><div style="flex-shrink:0;width:40px;height:40px;border-radius:var(--r-btn,4px);background:var(--c1);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--on-c1, var(--bg));font-weight:900">✓</div><div style="flex:1"><div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><span style="font-size:15px;font-weight:800;color:var(--text)">{strip_hanja(str(step[1]))}</span><span style="font-size:9px;background:var(--bg3);color:var(--c1);padding:2px 10px;border-radius:100px;font-weight:700;border:1px solid var(--bd)">{str(step[3]) if len(step)>3 else "4주"}</span></div><p style="font-size:13px;line-height:1.8;color:var(--t70);margin:0">{strip_hanja(str(step[2]))}</p></div></div>'
-        return f'<section class="sec" id="curriculum"><div style="max-width:900px;margin:0 auto"><div class="rv" style="margin-bottom:40px"><div class="tag-line">커리큘럼</div><h2 class="sec-h2 st">{t}</h2><p class="sec-sub">{s}</p></div>{sh}</div></section>'
-
-    elif v == 3:
-        for i, step in enumerate(steps):
-            sh += f'<div class="rv d{min(i+1,4)}" style="display:grid;grid-template-columns:1fr 64px 1fr;gap:0;align-items:center;margin-bottom:16px">'
-            if i % 2 == 0:
-                sh += f'<div style="padding:24px 28px;background:var(--bg3);border-radius:var(--r,4px) 0 0 var(--r,4px);border:1px solid var(--bd);border-right:none"><div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:8px">{strip_hanja(str(step[1]))}</div><p style="font-size:13px;line-height:1.8;color:var(--t70);margin:0">{strip_hanja(str(step[2]))}</p></div><div style="background:var(--c1);height:100%;display:flex;align-items:center;justify-content:center;font-family:var(--fh);font-size:14px;font-weight:900;color:var(--on-c1, var(--bg))">{str(step[0])}</div><div style="padding:24px 28px;border-radius:0 var(--r,4px) var(--r,4px) 0;border:1px solid var(--bd);border-left:none"><span style="font-size:9px;background:var(--bg3);color:var(--c1);padding:3px 10px;border-radius:100px;font-weight:700;border:1px solid var(--bd)">{str(step[3]) if len(step)>3 else "4주"}</span></div>'
-            else:
-                sh += f'<div style="padding:24px 28px;border-radius:var(--r,4px) 0 0 var(--r,4px);border:1px solid var(--bd);border-right:none"><span style="font-size:9px;background:var(--bg3);color:var(--c1);padding:3px 10px;border-radius:100px;font-weight:700;border:1px solid var(--bd)">{str(step[3]) if len(step)>3 else "4주"}</span></div><div style="background:var(--c1);height:100%;display:flex;align-items:center;justify-content:center;font-family:var(--fh);font-size:14px;font-weight:900;color:var(--on-c1, var(--bg))">{str(step[0])}</div><div style="padding:24px 28px;background:var(--bg3);border-radius:0 var(--r,4px) var(--r,4px) 0;border:1px solid var(--bd);border-left:none"><div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:8px">{strip_hanja(str(step[1]))}</div><p style="font-size:13px;line-height:1.8;color:var(--t70);margin:0">{strip_hanja(str(step[2]))}</p></div>'
-            sh += f'</div>'
-        return f'<section class="sec alt" id="curriculum"><div style="max-width:1000px;margin:0 auto"><div class="rv" style="text-align:center;margin-bottom:48px"><div class="tag-line" style="justify-content:center">커리큘럼</div><h2 class="sec-h2 st" style="text-align:center">{t}</h2><p class="sec-sub" style="text-align:center;margin:0 auto">{s}</p></div>{sh}</div></section>'
-
-    elif v == 4:
-        STEP_COLORS = [("var(--c1)", "var(--on-c1, var(--bg))"), ("var(--c2)", "var(--c4)"), ("var(--bg3)", "var(--text)"), ("var(--c3)", "var(--c4)")]
+        STEP_COLORS = [("var(--c1)", "var(--bg)"), ("var(--c2)", "var(--c4)"), ("var(--bg3)", "var(--text)"), ("var(--c3)", "var(--c4)")]
         for idx, step in enumerate(steps):
-            no = str(step[0]); tt = str(step[1]); dc = str(step[2])
             du = str(step[3]) if len(step) > 3 else "4주"
             bg_c, tx_c = STEP_COLORS[idx % len(STEP_COLORS)]
             num_block = f'<div style="background:{bg_c};display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;position:relative;overflow:hidden"><div style="position:absolute;font-family:var(--fh);font-size:120px;font-weight:900;color:rgba(0,0,0,.08);line-height:1;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none">{idx+1}</div><div style="font-family:var(--fh);font-size:64px;font-weight:900;color:{tx_c};line-height:1;position:relative;z-index:1">{idx+1}</div><div style="font-size:11px;font-weight:800;color:{tx_c};opacity:.6;letter-spacing:.12em;margin-top:4px;text-transform:uppercase;position:relative;z-index:1">STEP</div></div>'
-            content_block = f'<div style="background:var(--bg3);padding:32px;border:1px solid var(--bd)"><div style="font-size:10px;font-weight:800;color:var(--c1);letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px">{du}</div><div style="font-family:var(--fh);font-size:18px;font-weight:700;color:var(--text);margin-bottom:10px">{strip_hanja(tt)}</div><p style="font-size:13px;line-height:1.85;color:var(--t70);margin:0">{strip_hanja(dc)}</p></div>'
+            content_block = f'<div style="background:var(--bg3);padding:32px;border:1px solid var(--bd)"><div style="font-size:10px;font-weight:800;color:var(--c1);letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px">{du}</div><div style="font-family:var(--fh);font-size:20px;font-weight:700;color:var(--text);margin-bottom:10px">{strip_hanja(str(step[1]))}</div><p style="font-size:14px;line-height:1.85;color:var(--t70);margin:0">{strip_hanja(str(step[2]))}</p></div>'
             if idx % 2 == 0:
                 sh += f'<div class="rv d{min(idx+1,4)}" style="display:grid;grid-template-columns:200px 1fr;min-height:200px;border-radius:var(--r,4px);overflow:hidden;margin-bottom:12px">{num_block}{content_block}</div>'
             else:
                 sh += f'<div class="rv d{min(idx+1,4)}" style="display:grid;grid-template-columns:1fr 200px;min-height:200px;border-radius:var(--r,4px);overflow:hidden;margin-bottom:12px">{content_block}{num_block}</div>'
-        return f'<section class="sec" id="curriculum"><div style="max-width:900px;margin:0 auto"><div class="rv" style="text-align:center;margin-bottom:48px"><div class="tag-line" style="justify-content:center">커리큘럼</div><h2 class="sec-h2 st" style="text-align:center">{t}</h2><p class="sec-sub" style="text-align:center;margin:0 auto">{s}</p></div>{sh}</div></section>'
+        return f'<section class="sec" id="curriculum"><div style="max-width:900px;margin:0 auto"><div class="rv" style="text-align:center;margin-bottom:48px"><div class="tag-line" style="justify-content:center">커리큘럼</div><h2 style="font-family:var(--fh); font-size:clamp(36px, 5vw, 64px); font-weight:900; color:var(--text); letter-spacing:-0.03em;">{t}</h2><p class="sec-sub" style="text-align:center;margin:0 auto">{s}</p></div>{sh}</div></section>'
 
     else:
         for idx, step in enumerate(steps):
-            no = str(step[0]); tt = str(step[1]); dc = str(step[2])
             du = str(step[3]) if len(step) > 3 else "4주"
             margin_b = "0" if idx == len(steps)-1 else "12px"
             bg_col_left = "var(--c1)" if idx%2==0 else "var(--bg3)"
-            border_col_left = "var(--c1)" if idx%2==0 else "var(--bd)"
-            text_col_step = "var(--on-c1, var(--bg))" if idx%2==0 else "var(--t45)"
-            text_col_num = "var(--on-c1, var(--bg))" if idx%2==0 else "var(--c1)"
-            opacity_step = "0.6" if idx%2==0 else "1"
-            sh += f'<div class="rv d{min(idx+1,4)}" style="display:flex;gap:0;align-items:stretch;margin-bottom:{margin_b}"><div style="flex-shrink:0;width:72px;background:{bg_col_left};display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 8px;border-radius:var(--r,4px) 0 0 var(--r,4px);border:1px solid {border_col_left};border-right:none"><div style="font-family:\'Black Han Sans\',var(--fh);font-size:11px;font-weight:900;color:{text_col_step};opacity:{opacity_step};letter-spacing:.1em">STEP</div><div style="font-family:\'Black Han Sans\',var(--fh);font-size:26px;font-weight:900;color:{text_col_num};line-height:1;margin-top:2px">{idx+1:02d}</div></div><div style="flex:1;padding:22px 28px;background:var(--bg);border-radius:0 var(--r,4px) var(--r,4px) 0;border:1px solid var(--bd);border-left:none"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><div style="font-family:\'Black Han Sans\',var(--fh);font-size:16px;font-weight:900;color:var(--text)">{strip_hanja(tt)}</div><span style="font-size:9px;background:var(--bg3);color:var(--c1);padding:3px 12px;border-radius:100px;font-weight:800;border:1px solid var(--bd);flex-shrink:0">{du}</span></div><p style="font-size:13px;line-height:1.85;color:var(--t70);margin:0">{strip_hanja(dc)}</p></div></div>'
-        return f'<section class="sec alt" id="curriculum"><div style="display:grid;grid-template-columns:1fr 1.5fr;gap:72px;align-items:start;max-width:1200px;margin:0 auto"><div class="rv" style="position:sticky;top:60px"><div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><div style="width:40px;height:3px;background:var(--c1)"></div><span style="font-size:9.5px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--c1)">커리큘럼</span></div><h2 style="font-family:\'Black Han Sans\',var(--fh);font-size:clamp(26px,3.5vw,44px);font-weight:900;line-height:1.05;color:var(--text);margin-bottom:12px">{t}</h2><p style="font-size:14px;line-height:1.9;color:var(--t70);margin-bottom:32px">{s}</p><div style="padding:24px 28px;background:var(--c1);border-radius:var(--r,4px)"><div style="font-size:9.5px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--on-c1, var(--bg));opacity:0.6;margin-bottom:10px">TOTAL</div><div style="font-family:\'Black Han Sans\',var(--fh);font-size:48px;font-weight:900;color:var(--on-c1, var(--bg));line-height:1">{len(steps)*4}주</div><div style="font-size:12px;color:var(--on-c1, var(--bg));opacity:.8;margin-top:6px;font-weight:600">{len(steps)}단계 완성 과정</div></div></div><div>{sh}</div></div></section>'
-
-def sec_curriculum(d, cp, T):
-    t = strip_hanja(cp.get("curriculumTitle", f"{d['purpose_label']} 커리큘럼"))
-    s = strip_hanja(cp.get("curriculumSub", "단계별 완성 로드맵"))
-    steps = cp.get("curriculumSteps", [
-        ["01","개념 완성","핵심 개념을 정확히 이해하고 내 것으로 만드는 단계입니다.","4주"],
-        ["02","유형 훈련","기출 완전 분석으로 실전 패턴 파악","4주"],
-        ["03","심화 특훈","고난도 아이디어 체화","3주"],
-        ["04","파이널","실전 완성","3주"],
-    ])
-
-    v = random.randint(0, 4)
-
-    if v == 1:
-        sh = "".join(
-            f'<div class="rv d{min(i+1,4)}" style="flex:1;min-width:160px;text-align:center;position:relative">'
-            f'<div style="width:52px;height:52px;border-radius:50%;background:var(--c1);'
-            f'display:flex;align-items:center;justify-content:center;margin:0 auto 14px;'
-            f'font-family:var(--fh);font-size:15px;font-weight:900;color:var(--on-c1, var(--bg))">{str(step[0])}</div>'
-            f'<div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:8px">{strip_hanja(str(step[1]))}</div>'
-            f'<p style="font-size:12px;line-height:1.75;color:var(--t70)">{strip_hanja(str(step[2]))}</p>'
-            f'<div style="font-size:9px;background:var(--bg3);color:var(--c1);padding:3px 10px;'
-            f'border-radius:100px;font-weight:700;display:inline-block;margin-top:8px;border:1px solid var(--bd)">'
-            f'{str(step[3]) if len(step)>3 else "4주"}</div>'
-            + (f'<div style="position:absolute;top:26px;left:calc(50% + 36px);right:calc(-50% + 36px);'
-               f'height:2px;background:var(--bd)"></div>' if i < len(steps)-1 else '')
-            + f'</div>'
-            for i, step in enumerate(steps)
-        )
-        return (
-            f'<section class="sec alt" id="curriculum"><div style="max-width:1200px;margin:0 auto">'
-            f'<div class="rv" style="text-align:center;margin-bottom:52px">'
-            f'<div class="tag-line" style="justify-content:center">커리큘럼</div>'
-            f'<h2 class="sec-h2 st" style="text-align:center">{t}</h2>'
-            f'<p class="sec-sub" style="text-align:center;margin:0 auto">{s}</p></div>'
-            f'<div style="display:flex;gap:0;align-items:flex-start;flex-wrap:wrap">{sh}</div>'
-            f'</div></section>'
-        )
-
-    elif v == 2:
-        sh = "".join(
-            f'<div class="rv d{min(i+1,4)}" style="display:flex;gap:20px;align-items:flex-start;'
-            f'padding:20px 0;border-bottom:1px solid var(--bd)">'
-            f'<div style="flex-shrink:0;width:40px;height:40px;border-radius:var(--r-btn,4px);'
-            f'background:var(--c1);display:flex;align-items:center;justify-content:center;'
-            f'font-size:16px;color:var(--on-c1, var(--bg));font-weight:900">✓</div>'
-            f'<div style="flex:1">'
-            f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">'
-            f'<span style="font-size:15px;font-weight:800;color:var(--text)">{strip_hanja(str(step[1]))}</span>'
-            f'<span style="font-size:9px;background:var(--bg3);color:var(--c1);padding:2px 10px;'
-            f'border-radius:100px;font-weight:700;border:1px solid var(--bd)">{str(step[3]) if len(step)>3 else "4주"}</span>'
-            f'</div>'
-            f'<p style="font-size:13px;line-height:1.8;color:var(--t70);margin:0">{strip_hanja(str(step[2]))}</p>'
-            f'</div></div>'
-            for i, step in enumerate(steps)
-        )
-        return (
-            f'<section class="sec" id="curriculum"><div style="max-width:900px;margin:0 auto">'
-            f'<div class="rv" style="margin-bottom:40px">'
-            f'<div class="tag-line">커리큘럼</div>'
-            f'<h2 class="sec-h2 st">{t}</h2>'
-            f'<p class="sec-sub">{s}</p></div>'
-            f'{sh}</div></section>'
-        )
-
-    elif v == 3:
-        sh = "".join(
-            f'<div class="rv d{min(i+1,4)}" style="display:grid;grid-template-columns:1fr 64px 1fr;'
-            f'gap:0;align-items:center;margin-bottom:16px">'
-            + (
-                f'<div style="padding:24px 28px;background:var(--bg3);border-radius:var(--r,4px) 0 0 var(--r,4px);border:1px solid var(--bd);border-right:none">'
-                f'<div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:8px">{strip_hanja(str(step[1]))}</div>'
-                f'<p style="font-size:13px;line-height:1.8;color:var(--t70);margin:0">{strip_hanja(str(step[2]))}</p></div>'
-                f'<div style="background:var(--c1);height:100%;display:flex;align-items:center;justify-content:center;'
-                f'font-family:var(--fh);font-size:14px;font-weight:900;color:var(--on-c1, var(--bg))">{str(step[0])}</div>'
-                f'<div style="padding:24px 28px;border-radius:0 var(--r,4px) var(--r,4px) 0;border:1px solid var(--bd);border-left:none">'
-                f'<span style="font-size:9px;background:var(--bg3);color:var(--c1);padding:3px 10px;border-radius:100px;font-weight:700;border:1px solid var(--bd)">{str(step[3]) if len(step)>3 else "4주"}</span>'
-                f'</div>'
-                if i % 2 == 0 else
-                f'<div style="padding:24px 28px;border-radius:var(--r,4px) 0 0 var(--r,4px);border:1px solid var(--bd);border-right:none">'
-                f'<span style="font-size:9px;background:var(--bg3);color:var(--c1);padding:3px 10px;border-radius:100px;font-weight:700;border:1px solid var(--bd)">{str(step[3]) if len(step)>3 else "4주"}</span>'
-                f'</div>'
-                f'<div style="background:var(--c1);height:100%;display:flex;align-items:center;justify-content:center;'
-                f'font-family:var(--fh);font-size:14px;font-weight:900;color:var(--on-c1, var(--bg))">{str(step[0])}</div>'
-                f'<div style="padding:24px 28px;background:var(--bg3);border-radius:0 var(--r,4px) var(--r,4px) 0;border:1px solid var(--bd);border-left:none">'
-                f'<div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:8px">{strip_hanja(str(step[1]))}</div>'
-                f'<p style="font-size:13px;line-height:1.8;color:var(--t70);margin:0">{strip_hanja(str(step[2]))}</p></div>'
-            )
-            + f'</div>'
-            for i, step in enumerate(steps)
-        )
-        return (
-            f'<section class="sec alt" id="curriculum"><div style="max-width:1000px;margin:0 auto">'
-            f'<div class="rv" style="text-align:center;margin-bottom:48px">'
-            f'<div class="tag-line" style="justify-content:center">커리큘럼</div>'
-            f'<h2 class="sec-h2 st" style="text-align:center">{t}</h2>'
-            f'<p class="sec-sub" style="text-align:center;margin:0 auto">{s}</p></div>'
-            f'{sh}</div></section>'
-        )
-
-    elif v == 4:
-        STEP_COLORS = [
-            ("var(--c1)", "var(--on-c1, var(--bg))"),
-            ("var(--c2)", "var(--c4)"),
-            ("var(--bg3)", "var(--text)"),
-            ("var(--c3)", "var(--c4)"),
-        ]
-        sh = ""
-        for idx, step in enumerate(steps):
-            no   = str(step[0]); tt = str(step[1]); dc = str(step[2])
-            du   = str(step[3]) if len(step) > 3 else "4주"
-            bg_c, tx_c = STEP_COLORS[idx % len(STEP_COLORS)]
-            is_left = idx % 2 == 0
-            num_block = (
-                f'<div style="background:{bg_c};display:flex;flex-direction:column;'
-                f'align-items:center;justify-content:center;padding:32px;position:relative;overflow:hidden">'
-                f'<div style="position:absolute;font-family:var(--fh);font-size:120px;font-weight:900;'
-                f'color:rgba(0,0,0,.08);line-height:1;top:50%;left:50%;transform:translate(-50%,-50%);'
-                f'pointer-events:none">{idx+1}</div>'
-                f'<div style="font-family:var(--fh);font-size:64px;font-weight:900;'
-                f'color:{tx_c};line-height:1;position:relative;z-index:1">{idx+1}</div>'
-                f'<div style="font-size:11px;font-weight:800;color:{tx_c};opacity:.6;'
-                f'letter-spacing:.12em;margin-top:4px;text-transform:uppercase;position:relative;z-index:1">STEP</div>'
-                f'</div>'
-            )
-            content_block = (
-                f'<div style="background:var(--bg3);padding:32px;border:1px solid var(--bd)">'
-                f'<div style="font-size:10px;font-weight:800;color:var(--c1);letter-spacing:.12em;'
-                f'text-transform:uppercase;margin-bottom:8px">{du}</div>'
-                f'<div style="font-family:var(--fh);font-size:18px;font-weight:700;'
-                f'color:var(--text);margin-bottom:10px">{strip_hanja(tt)}</div>'
-                f'<p style="font-size:13px;line-height:1.85;color:var(--t70);margin:0">'
-                f'{strip_hanja(dc)}</p></div>'
-            )
-            if is_left:
-                sh += (
-                    f'<div class="rv d{min(idx+1,4)}" style="display:grid;grid-template-columns:200px 1fr;'
-                    f'min-height:200px;border-radius:var(--r,4px);overflow:hidden;margin-bottom:12px">'
-                    + num_block + content_block + f'</div>'
-                )
-            else:
-                sh += (
-                    f'<div class="rv d{min(idx+1,4)}" style="display:grid;grid-template-columns:1fr 200px;'
-                    f'min-height:200px;border-radius:var(--r,4px);overflow:hidden;margin-bottom:12px">'
-                    + content_block + num_block + f'</div>'
-                )
-        return (
-            f'<section class="sec" id="curriculum">'
-            f'<div style="max-width:900px;margin:0 auto">'
-            f'<div class="rv" style="text-align:center;margin-bottom:48px">'
-            f'<div class="tag-line" style="justify-content:center">커리큘럼</div>'
-            f'<h2 class="sec-h2 st" style="text-align:center">{t}</h2>'
-            f'<p class="sec-sub" style="text-align:center;margin:0 auto">{s}</p></div>'
-            f'{sh}</div></section>'
-        )
-
-    else:
-        sh = ""
-        for idx, step in enumerate(steps):
-            no = str(step[0]); tt = str(step[1]); dc = str(step[2])
-            du = str(step[3]) if len(step) > 3 else "4주"
-            is_last = idx == len(steps)-1
-            sh += (
-                f'<div class="rv d{min(idx+1,4)}" style="display:flex;gap:0;align-items:stretch;'
-                f'margin-bottom:{"0" if is_last else "12px"}">'
-                f'<div style="flex-shrink:0;width:72px;background:{"var(--c1)" if idx%2==0 else "var(--bg3)"};'
-                f'display:flex;flex-direction:column;align-items:center;justify-content:center;'
-                f'padding:20px 8px;border-radius:var(--r,4px) 0 0 var(--r,4px);'
-                f'border:1px solid {"var(--c1)" if idx%2==0 else "var(--bd)"};border-right:none">'
-                f'<div style="font-family:\'Black Han Sans\',var(--fh);font-size:11px;font-weight:900;'
-                f'color:{"var(--on-c1, var(--bg))" if idx%2==0 else "var(--t45)"}; opacity:{"0.6" if idx%2==0 else "1"}; letter-spacing:.1em">STEP</div>'
-                f'<div style="font-family:\'Black Han Sans\',var(--fh);font-size:26px;font-weight:900;'
-                f'color:{"var(--on-c1, var(--bg))" if idx%2==0 else "var(--c1)"};line-height:1;margin-top:2px">{idx+1:02d}</div>'
-                f'</div>'
-                f'<div style="flex:1;padding:22px 28px;background:var(--bg);'
-                f'border-radius:0 var(--r,4px) var(--r,4px) 0;border:1px solid var(--bd);border-left:none">'
-                f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'
-                f'<div style="font-family:\'Black Han Sans\',var(--fh);font-size:16px;font-weight:900;color:var(--text)">{strip_hanja(tt)}</div>'
-                f'<span style="font-size:9px;background:var(--bg3);color:var(--c1);padding:3px 12px;'
-                f'border-radius:100px;font-weight:800;border:1px solid var(--bd);flex-shrink:0">{du}</span>'
-                f'</div>'
-                f'<p style="font-size:13px;line-height:1.85;color:var(--t70);margin:0">{strip_hanja(dc)}</p>'
-                f'</div></div>'
-            )
-        return (
-            f'<section class="sec alt" id="curriculum">'
-            f'<div style="display:grid;grid-template-columns:1fr 1.5fr;gap:72px;align-items:start;max-width:1200px;margin:0 auto">'
-            f'<div class="rv" style="position:sticky;top:60px">'
-            f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">'
-            f'<div style="width:40px;height:3px;background:var(--c1)"></div>'
-            f'<span style="font-size:9.5px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--c1)">커리큘럼</span>'
-            f'</div>'
-            f'<h2 style="font-family:\'Black Han Sans\',var(--fh);font-size:clamp(26px,3.5vw,44px);font-weight:900;line-height:1.05;color:var(--text);margin-bottom:12px">{t}</h2>'
-            f'<p style="font-size:14px;line-height:1.9;color:var(--t70);margin-bottom:32px">{s}</p>'
-            f'<div style="padding:24px 28px;background:var(--c1);border-radius:var(--r,4px)">'
-            f'<div style="font-size:9.5px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--on-c1, var(--bg));opacity:0.6;margin-bottom:10px">TOTAL</div>'
-            f'<div style="font-family:\'Black Han Sans\',var(--fh);font-size:48px;font-weight:900;color:var(--on-c1, var(--bg));line-height:1">{len(steps)*4}주</div>'
-            f'<div style="font-size:12px;color:var(--on-c1, var(--bg));opacity:.8;margin-top:6px;font-weight:600">{len(steps)}단계 완성 과정</div>'
-            f'</div></div>'
-            f'<div>{sh}</div>'
-            f'</div></section>'
-        )
-
+            text_col_num = "var(--bg)" if idx%2==0 else "var(--c1)"
+            sh += f'<div class="rv d{min(idx+1,4)}" style="display:flex;gap:0;align-items:stretch;margin-bottom:{margin_b}"><div style="flex-shrink:0;width:80px;background:{bg_col_left};display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 8px;border-radius:var(--r,4px) 0 0 var(--r,4px);"><div style="font-family:var(--fh);font-size:11px;font-weight:900;color:{text_col_num};opacity:0.6;letter-spacing:.1em">STEP</div><div style="font-family:var(--fh);font-size:32px;font-weight:900;color:{text_col_num};line-height:1;margin-top:2px">{idx+1:02d}</div></div><div style="flex:1;padding:26px 32px;background:var(--bg);border-radius:0 var(--r,4px) var(--r,4px) 0;border:1px solid var(--bd);border-left:none"><div style="display:flex;align-items:center;gap:12px;margin-bottom:10px"><div style="font-family:var(--fh);font-size:20px;font-weight:900;color:var(--text)">{strip_hanja(str(step[1]))}</div><span style="font-size:10px;background:var(--bg3);color:var(--c1);padding:3px 12px;border-radius:100px;font-weight:800;border:1px solid var(--bd);flex-shrink:0">{du}</span></div><p style="font-size:14px;line-height:1.85;color:var(--t70);margin:0">{strip_hanja(str(step[2]))}</p></div></div>'
+        return f'<section class="sec alt" id="curriculum"><div style="display:grid;grid-template-columns:1fr 1.5fr;gap:72px;align-items:start;max-width:1200px;margin:0 auto"><div class="rv" style="position:sticky;top:60px"><div class="tag-line">커리큘럼</div><h2 style="font-family:var(--fh); font-size:clamp(36px, 5vw, 64px); font-weight:900; color:var(--text); letter-spacing:-0.03em;">{t}</h2><p style="font-size:15px;line-height:1.9;color:var(--t70);margin-bottom:32px">{s}</p><div style="padding:30px;background:var(--c1);border-radius:var(--r,4px)"><div style="font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--bg);opacity:0.8;margin-bottom:10px">TOTAL</div><div style="font-family:var(--fh);font-size:56px;font-weight:900;color:var(--bg);line-height:1">{len(steps)*4}주</div></div></div><div>{sh}</div></div></section>'
 
 def sec_target(d, cp, T):
     t = strip_hanja(cp.get("targetTitle","이런 분들께 추천합니다"))
@@ -3793,19 +3519,18 @@ st.markdown("""<style>
 }
 
 /* 🌟 2. 드롭다운(클릭시 나오는 팝업 리스트) UI 완벽 해결 🌟 */
+div[data-baseweb="popover"],
 div[data-baseweb="popover"] > div,
-div[data-baseweb="popover"] ul[role="listbox"],
-ul[data-baseweb="menu"] {
+div[data-baseweb="popover"] ul {
     background-color: #1A2038 !important;
-    border: 1px solid #343C58 !important;
 }
-li[role="option"] {
+div[data-baseweb="popover"] li {
     color: #FFFFFF !important;
     background-color: transparent !important;
     font-size: 13px !important;
 }
-li[role="option"]:hover, 
-li[role="option"][aria-selected="true"] {
+div[data-baseweb="popover"] li:hover, 
+div[data-baseweb="popover"] li[aria-selected="true"] {
     background-color: #FF6B35 !important;
     color: #FFFFFF !important;
 }
