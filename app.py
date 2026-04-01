@@ -2754,47 +2754,54 @@ def _sec_event_promo(d: dict, c: dict, T: dict) -> str:
 
 def sec_custom(d, cp, T):
     """기타 섹션 — 메인 분기 처리"""
-    c = cp.get("custom_section_data", {})
-    if not c: return ""
+    # 에러 원인: f-string 내부에서 {}를 직접 쓰면 안 됨. 
+    # 데이터를 먼저 변수에 담아 처리합니다.
+    c = cp.get("custom_section_data")
+    if not c: 
+        return ""
     
-    # 안전장치: AI가 event_style을 안 주더라도, 상품명이나 이벤트 표가 있으면 무조건 이벤트 폼으로 렌더링
+    # 안전장치: AI가 event_style을 안 주더라도 특정 키가 있으면 이벤트로 처리
     is_event = c.get("event_style") or "event_details" in c or "prize_name" in c or "raffle_count" in c
     
     if is_event:
         return _sec_event_promo(d, c, T)
 
-    # 이벤트가 아닌 일반 섹션 (이전의 카드/텍스트 레이아웃)
+    # 이벤트가 아닌 일반 섹션 레이아웃
     tag   = strip_hanja(c.get("tag", "추가 안내"))
     title = strip_hanja(c.get("title", "추가 섹션"))
     items = c.get("items", [])
     desc  = strip_hanja(c.get("desc", ""))
 
     if items:
-        ih = "".join(
-            f'<div class="card rv d{min(i+1,3)}">'
-            f'<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">'
-            f'<div style="width:40px;height:40px;min-width:40px;border-radius:var(--r,4px);'
-            f'background:var(--c1);display:flex;align-items:center;justify-content:center;'
-            f'font-size:18px">{it.get("icon","✦")}</div>'
-            f'<div style="font-family:var(--fh);font-size:14px;font-weight:700" class="st">'
-            f'{strip_hanja(it.get("title",""))}</div></div>'
-            f'<p style="font-size:12.5px;line-height:1.9;color:var(--t70)">'
-            f'{strip_hanja(it.get("desc",""))}</p>'
-            f'</div>'
-            for i, it in enumerate(items)
-        )
+        ih = ""
+        for i, it in enumerate(items):
+            icon = it.get("icon", "✦")
+            it_title = strip_hanja(it.get("title", ""))
+            it_desc = strip_hanja(it.get("desc", ""))
+            ih += f'''
+            <div class="card rv d{min(i+1,3)}">
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+                    <div style="width:40px;height:40px;min-width:40px;border-radius:var(--r,4px);background:var(--c1);display:flex;align-items:center;justify-content:center;font-size:18px">{icon}</div>
+                    <div style="font-family:var(--fh);font-size:14px;font-weight:700" class="st">{it_title}</div>
+                </div>
+                <p style="font-size:12.5px;line-height:1.9;color:var(--t70)">{it_desc}</p>
+            </div>
+            '''
         cols = f"repeat({min(len(items),3)},1fr)"
         body = f'<div style="display:grid;grid-template-columns:{cols};gap:14px" class="rv d1">{ih}</div>'
     else:
         body = f'<div class="rv d1"><p style="font-size:14px;line-height:1.9;color:var(--t70)">{desc}</p></div>'
 
-    return (
-        f'<section class="sec" id="custom-section">'
-        f'<div style="max-width:1200px;margin:0 auto">'
-        f'<div class="rv"><div class="tag-line">{tag}</div>'
-        f'<h2 class="sec-h2 st">{title}</h2></div>'
-        f'{body}</div></section>'
-    )
+    return f'''
+    <section class="sec" id="custom-section">
+        <div style="max-width:1200px;margin:0 auto">
+            <div class="rv">
+                <div class="tag-line">{tag}</div>
+                <h2 class="sec-h2 st">{title}</h2>
+            </div>
+            {body}
+        </div>
+    </section>
 
 
 # ══════════════════════════════════════════════════════
