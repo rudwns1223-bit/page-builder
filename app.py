@@ -21,6 +21,7 @@ st.set_page_config(
 # ══════════════════════════════════════════════════════
 _D = {
     "api_key": "", "concept": "acid", "custom_theme": None,
+    "layout_seed": 0,  # <--- 이 줄을 여기에 쏙 넣어주세요!
     "instructor_name": "", "subject": "영어",
     "purpose_label": "2026 수능 파이널 완성",
     "purpose_type": "신규 커리큘럼", "target": "고3·N수",
@@ -1625,6 +1626,12 @@ def get_theme() -> dict:
 # BASE CSS — 파격적 업그레이드
 # ══════════════════════════════════════════════════════
 BASE_CSS = """
+.marquee-container { width: 100vw; overflow: hidden; position: absolute; top: 50%; transform: translateY(-50%) rotate(-2deg); opacity: 0.05; pointer-events: none; white-space: nowrap; z-index: 0; }
+.marquee-content { display: inline-block; font-family: var(--fh); font-size: 15vw; font-weight: 900; animation: marquee 30s linear infinite; text-transform: uppercase; color: var(--c1); }
+@keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+
+.rv { opacity: 0; transform: translateY(40px); transition: all 1s cubic-bezier(0.2, 1, 0.3, 1); }
+.rv.on { opacity: 1; transform: translateY(0); }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{font-family:var(--fb);background:var(--bg);color:var(--text);overflow-x:hidden;-webkit-font-smoothing:antialiased}
@@ -1887,17 +1894,20 @@ def sec_banner(d, cp, T):
     lead  = strip_hanja(cp.get("bannerLead", f"{d['target']}을 위한 커리큘럼"))
     cta   = strip_hanja(cp.get("ctaCopy", "수강신청하기"))
     bg_url= cp.get("bg_photo_url", "")
-    dark  = T["dark"]
     
-    # 🌟 핵심: 문구(글자)가 바뀔 때마다 레이아웃이 3가지 중 하나로 랜덤하게 변함 🌟
-    text_hash = sum(ord(c) for c in title + lead)
-    v = (text_hash % 3) + 1
+    # 🌟 재생성 시 디자인을 바꾸는 핵심 코드!
+    v = (st.session_state.layout_seed % 3) + 1 
 
-    if v == 1: # [스타일 1: 거대 타이포 마키 (Brutal 스타일)]
-        bg_text = f"{title} " * 5
-        text_col = "#fff" if (dark or bg_url) else "var(--text)"
-        bg_style = f"background: url('{bg_url}') center/cover no-repeat;" if bg_url else f"background: var(--bg3);"
-        overlay = '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.6);z-index:1;"></div>' if bg_url else ''
+    if v == 1: # 스타일 1: 글자가 흐르는 배경형
+        return f'''
+        <section id="hero" style="position:relative; min-height:90vh; overflow:hidden; background:var(--bg); display:flex; align-items:center; justify-content:center;">
+            <div class="marquee-container"><div class="marquee-content">{title} {title}</div></div>
+            <div class="rv" style="position:relative; z-index:2; text-align:center;">
+                <h1 style="font-family:var(--fh); font-size:120px; color:var(--text);">{title}</h1>
+                <p style="font-size:24px; color:var(--c1); font-weight:800;">{lead}</p>
+                <a href="#cta" class="btn-p" style="margin-top:30px;">{cta} →</a>
+            </div>
+        </section>
         
         return (
             f'<section id="hero" style="position:relative; min-height:100vh; overflow:hidden; {bg_style}; display:flex; flex-direction:column; justify-content:center; text-align:center;">'
@@ -1911,10 +1921,16 @@ def sec_banner(d, cp, T):
             f'</div></section>'
         )
 
-    elif v == 2: # [스타일 2: 애플/프리미엄 여백 (Editorial 스타일)]
-        bg_style = f"background: url('{bg_url}') center/cover no-repeat;" if bg_url else f"background: linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);"
-        overlay = '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.5);z-index:1;"></div>' if bg_url else ''
-        text_color = "#fff" if (dark or bg_url) else "var(--text)"
+    elif v == 2: # 스타일 2: 깔끔한 좌우 분할형
+        return f'''
+        <section id="hero" style="display:grid; grid-template-columns:1fr 1.2fr; min-height:90vh; background:var(--bg2);">
+            <div style="padding:80px; display:flex; flex-direction:column; justify-content:center;">
+                <h1 class="rv" style="font-size:80px; color:var(--text); line-height:1.1;">{title}</h1>
+                <p class="rv" style="font-size:20px; color:var(--t70); margin:30px 0;">{lead}</p>
+                <a href="#cta" class="btn-p" style="width:fit-content;">{cta}</a>
+            </div>
+            <div style="background:url('{bg_url}') center/cover;"></div>
+        </section>
         
         return (
             f'<section id="hero" style="position:relative; min-height:90vh; display:flex; align-items:center; justify-content:center; text-align:center; overflow:hidden; {bg_style}">'
@@ -1927,10 +1943,14 @@ def sec_banner(d, cp, T):
             f'</div></section>'
         )
 
-    else: # [스타일 3: 좌우 분할 매거진 (Split 스타일)]
-        bg_style = f"background: url('{bg_url}') center/cover no-repeat;" if bg_url else f"background: var(--bg2);"
-        overlay = '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.7);z-index:1;"></div>' if bg_url else ''
-        text_color = "#fff" if (dark or bg_url) else "var(--text)"
+   else: # 스타일 3: 포스터 스타일
+        return f'''
+        <section id="hero" style="padding:150px 20px; background:var(--c1); color:var(--bg); text-align:center;">
+            <div class="rv" style="border:5px solid var(--bg); padding:60px 20px;">
+                <h1 style="font-size:100px;">{title}</h1>
+                <p style="font-size:26px; opacity:0.9;">{lead}</p>
+            </div>
+        </section>
         
         return (
             f'<section id="hero" style="position:relative; min-height:90vh; display:flex; align-items:center; overflow:hidden; {bg_style}">'
@@ -4058,6 +4078,7 @@ with L:
                                 if st.session_state.custom_copy is None:
                                     st.session_state.custom_copy = {}
                                 st.session_state.custom_copy.update(r)
+                                st.session_state.layout_seed += 1  # <--- 이 줄을 추가하세요!
                                 st.session_state.preview_key = st.session_state.get("preview_key", 0) + 1
                                 st.rerun()
                             except Exception as e:
