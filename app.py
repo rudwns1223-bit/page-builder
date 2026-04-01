@@ -982,10 +982,11 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
     st.session_state["_theme_declaration"] = theme_decl
     
     # 🌟 이모지 완전 삭제, 고급화 🌟
+    # 🌟 메인 카피는 무조건 짧게, 리드는 강렬하게 🌟
     schemas = {
-        "신규 커리큘럼": '{"bannerSub":"과목의 본질을 찌르는 15자 이내","bannerTitle":"기존 틀을 부수는 파격적인 메인 카피 (자유 길이)","brandTagline":"영문 슬로건 한 문장","bannerLead":"뻔한 위로가 아닌 현 상황을 찌르는 팩트폭력 리드문","bannerTags":["키워드1","키워드2","키워드3"],"ctaCopy":"망설임을 없애는 단어","ctaTitle":"강력한 CTA 제목","ctaSub":"지금 안 하면 손해라는 서브 문구","ctaBadge":"10자이내","introTitle":"강사의 절대적 권위 제목","introDesc":"왜 이 강의를 들어야만 하는지 날카롭게 서술 (길게)","introBio":"시그니처 1문장","whyTitle":"파격적 제목","whySub":"30자이내","whyReasons":[["01","직설적인 짧은 제목","학생이 읽고 아차 싶을 만큼 뼈 때리는 구체적 이유와 해결책 서술 (최소 80자 이상)"],["02","제목","서술"],["03","제목","서술"]],"curriculumTitle":"20자이내","curriculumSub":"30자이내","curriculumSteps":[["01","단계명","이 시기에 학생들이 하는 착각과, 이 단계가 그걸 어떻게 부수고 점수를 만드는지 서술","기간"],["02","단계","서술","기간"],["03","단계","서술","기간"],["04","단계","서술","기간"]],"targetTitle":"이런 학생이라면 반드시 들어라","targetItems":["구체적인 절망적 상황 묘사 1","상황 묘사 2","상황 묘사 3","상황 묘사 4"],"reviews":[["진짜 학생이 흥분해서 쓴 것 같은 매우 길고 구체적인 후기","이름","변화뱃지"],["후기","이름","뱃지"],["후기","이름","뱃지"]],"videoTitle":"영상 제목","videoSub":"설명","videoTag":"OFFICIAL TRAILER"}',
-        "이벤트": '{"bannerSub":"10자","bannerTitle":"틀을 깨는 이벤트 제목","brandTagline":"이벤트 분위기 한 문장","bannerLead":"참여하지 않으면 손해라는 긴박감 리드","bannerTags":["이벤트특징1","이벤트특징2","이벤트특징3"],"ctaCopy":"행동 유도","ctaTitle":"CTA","ctaSub":"서브문구","ctaBadge":"15자","eventTitle":"20자","eventDesc":"50자이상","eventDetails":[["일정","날짜"],["대상","값"],["혜택","값"]],"benefitsTitle":"20자","eventBenefits":[{"no":"01","title":"혜택명","desc":"50자이상","badge":"8자"},{"no":"02","title":"혜택명","desc":"50자","badge":"8자"},{"no":"03","title":"혜택명","desc":"50자","badge":"8자"}],"deadlineTitle":"20자","deadlineMsg":"70자 긴박감"}',
-        "기획전": '{"festHeroTitle":"파격적인 기획전 제목","festHeroCopy":"30자","festHeroSub":"50자이상","brandTagline":"분위기 문장","festHeroStats":[["수치","라벨"],["수치","라벨"]],"festLineupTitle":"20자","festLineupSub":"40자","festLineup":[{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지"},{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지"}],"festBenefitsTitle":"20자","festBenefits":[{"no":"01","title":"혜택명","desc":"50자이상","badge":"8자"},{"no":"02","title":"혜택명","desc":"50자","badge":"8자"}],"festCtaTitle":"CTA제목","festCtaSub":"50자이상"}'
+        "신규 커리큘럼": '{"bannerSub":"과목의 본질을 찌르는 10자 이내","bannerTitle":"15자 이내의 아주 짧고 압도적인 단어/구 (절대 길게 쓰지 마세요)","brandTagline":"영문 슬로건 한 문장","bannerLead":"뻔한 위로가 아닌 현 상황을 찌르는 팩트폭력 리드문","bannerTags":["키워드1","키워드2","키워드3"],"ctaCopy":"망설임을 없애는 단어","ctaTitle":"강력한 CTA 제목","ctaSub":"지금 안 하면 손해라는 서브 문구","ctaBadge":"10자이내","introTitle":"강사의 절대적 권위 제목","introDesc":"왜 이 강의를 들어야만 하는지 날카롭게 서술 (길게)","introBio":"시그니처 1문장","whyTitle":"파격적 제목","whySub":"30자이내","whyReasons":[["01","직설적인 짧은 제목","학생이 읽고 아차 싶을 만큼 뼈 때리는 구체적 이유와 해결책 서술 (최소 80자 이상)"],["02","제목","서술"],["03","제목","서술"]],"curriculumTitle":"20자이내","curriculumSub":"30자이내","curriculumSteps":[["01","단계명","이 시기에 학생들이 하는 착각과, 이 단계가 그걸 어떻게 부수고 점수를 만드는지 서술","기간"],["02","단계","서술","기간"],["03","단계","서술","기간"],["04","단계","서술","기간"]],"targetTitle":"이런 학생이라면 반드시 들어라","targetItems":["구체적인 절망적 상황 묘사 1","상황 묘사 2","상황 묘사 3","상황 묘사 4"],"reviews":[["진짜 학생이 흥분해서 쓴 것 같은 매우 길고 구체적인 후기","이름","변화뱃지"],["후기","이름","뱃지"],["후기","이름","뱃지"]],"videoTitle":"영상 제목","videoSub":"설명","videoTag":"OFFICIAL TRAILER"}',
+        "이벤트": '{"bannerSub":"10자","bannerTitle":"15자 이내의 짧고 파격적인 이벤트 제목","brandTagline":"이벤트 분위기 한 문장","bannerLead":"참여하지 않으면 손해라는 긴박감 리드","bannerTags":["이벤트특징1","이벤트특징2","이벤트특징3"],"ctaCopy":"행동 유도","ctaTitle":"CTA","ctaSub":"서브문구","ctaBadge":"15자","eventTitle":"20자","eventDesc":"50자이상","eventDetails":[["일정","날짜"],["대상","값"],["혜택","값"]],"benefitsTitle":"20자","eventBenefits":[{"no":"01","title":"혜택명","desc":"50자이상","badge":"8자"},{"no":"02","title":"혜택명","desc":"50자","badge":"8자"},{"no":"03","title":"혜택명","desc":"50자","badge":"8자"}],"deadlineTitle":"20자","deadlineMsg":"70자 긴박감"}',
+        "기획전": '{"festHeroTitle":"15자 이내의 강렬한 기획전 제목","festHeroCopy":"30자","festHeroSub":"50자이상","brandTagline":"분위기 문장","festHeroStats":[["수치","라벨"],["수치","라벨"]],"festLineupTitle":"20자","festLineupSub":"40자","festLineup":[{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지"},{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지"}],"festBenefitsTitle":"20자","festBenefits":[{"no":"01","title":"혜택명","desc":"50자이상","badge":"8자"},{"no":"02","title":"혜택명","desc":"50자","badge":"8자"}],"festCtaTitle":"CTA제목","festCtaSub":"50자이상"}'
     }
 
     tone_instruction = COPY_TONES.get(st.session_state.copy_tone, "")
@@ -1252,10 +1253,11 @@ def gen_section(sec_id: str) -> dict:
     inst_ctx = _get_instructor_context()
     ptype = st.session_state.purpose_type
 
+    # 🌟 부분 재생성 시에도 메인 카피는 짧게 유지 🌟
     schemas = {
-        "banner": '{"bannerSub":"10자","bannerTitle":"20자","brandTagline":"컨셉을 담은 브랜드 한 문장","bannerLead":"60-90자 수험생이 공감하는 구체적 리드","bannerTags":["키워드1","키워드2","키워드3"],"ctaCopy":"10자","statBadges":[]}',
+        "banner": '{"bannerSub":"10자","bannerTitle":"15자 이내의 아주 짧고 압도적인 단어/구","brandTagline":"컨셉을 담은 브랜드 한 문장","bannerLead":"60-90자 수험생이 공감하는 구체적 리드","bannerTags":["키워드1","키워드2","키워드3"],"ctaCopy":"10자","statBadges":[]}',
         "intro":  '{"introTitle":"20자","introDesc":"80-120자 강사 철학과 차별점","introBio":"강사 학습법 포함 60자","introBadges":[]}',
-        "why":    '{"whyTitle":"20자","whySub":"30자","whyReasons":[["이모지","12자","학생 입장에서 구체적 설명 60자"],["이모지","12자","60자"],["이모지","12자","60자"]]}',
+        "why":    '{"whyTitle":"20자","whySub":"30자","whyReasons":[["01","직설적인 짧은 제목","학생 입장에서 구체적 설명 최소 80자"],["02","12자","80자"],["03","12자","80자"]]}',
         "curriculum": '{"curriculumTitle":"20자","curriculumSub":"30자","curriculumSteps":[["01","8자","이 단계 통해 무엇이 달라지는지 50자 이상 설명","기간"],["02","8자","50자 이상","기간"],["03","8자","50자 이상","기간"],["04","8자","50자 이상","기간"]]}',
         "target": '{"targetTitle":"20자","targetItems":["이런 학생을 위한 40-50자 구체적 상황","항목2 40자","항목3 40자","항목4 40자"]}',
         "reviews": '{"reviews":[["지금도 쓸 것 같은 생생한 50-70자 인용문, 구체적 점수·방법 언급","이름","뱃지"],["50-70자 인용문","이름","뱃지"],["50-70자 인용문","이름","뱃지"]]}',
@@ -1886,10 +1888,12 @@ def sec_banner(d, cp, T):
     cta   = strip_hanja(cp.get("ctaCopy", "수강신청하기"))
     bg_url= cp.get("bg_photo_url", "")
     dark  = T["dark"]
-    hs    = T.get("heroStyle", "typographic") # 🌟 테마별 히어로 스타일 가져오기 🌟
     
-    # 1. 타이포그래피 스타일 (Brutal, Acid 등)
-    if hs in ["typographic", "billboard"]:
+    # 🌟 핵심: 문구(글자)가 바뀔 때마다 레이아웃이 3가지 중 하나로 랜덤하게 변함 🌟
+    text_hash = sum(ord(c) for c in title + lead)
+    v = (text_hash % 3) + 1
+
+    if v == 1: # [스타일 1: 거대 타이포 마키 (Brutal 스타일)]
         bg_text = f"{title} " * 5
         text_col = "#fff" if (dark or bg_url) else "var(--text)"
         bg_style = f"background: url('{bg_url}') center/cover no-repeat;" if bg_url else f"background: var(--bg3);"
@@ -1901,14 +1905,13 @@ def sec_banner(d, cp, T):
             f'<div class="marquee-container"><div class="marquee-content">{bg_text}{bg_text}</div></div>'
             f'<div style="position:relative; z-index:2; padding:0 20px; max-width:1200px; margin:0 auto;">'
             f'<div style="display:inline-block; font-size:12px; font-weight:800; letter-spacing:0.2em; color:var(--c1); border:2px solid var(--c1); padding:8px 24px; border-radius:50px; margin-bottom:30px;">{sub}</div>'
-            f'<h1 style="font-family:var(--fh); font-size:clamp(50px, 8vw, 130px); font-weight:900; line-height:1.05; letter-spacing:-0.05em; color:{text_col}; margin-bottom:30px; word-break:keep-all;">{title}</h1>'
+            f'<h1 style="font-family:\'Black Han Sans\', var(--fh); font-size:clamp(60px, 8vw, 150px); font-weight:900; line-height:1.05; letter-spacing:-0.05em; color:{text_col}; margin-bottom:30px; word-break:keep-all;">{title}</h1>'
             f'<p style="font-size:clamp(16px, 2vw, 22px); line-height:1.8; color:rgba(255,255,255,0.8) if {dark} else var(--t70); max-width:800px; margin:0 auto 50px; font-weight:600;">{lead}</p>'
             f'<a href="#cta" style="display:inline-block; background:var(--c1); color:var(--bg); padding:20px 50px; font-size:18px; font-weight:900; font-family:var(--fh); text-decoration:none; box-shadow: 10px 10px 0px rgba(0,0,0,0.3); transition:transform 0.2s;">{cta} →</a>'
             f'</div></section>'
         )
 
-    # 2. 에디토리얼 스타일 (Apple/Premium, Cinematic 등)
-    elif hs in ["editorial_bold", "cinematic"]: 
+    elif v == 2: # [스타일 2: 애플/프리미엄 여백 (Editorial 스타일)]
         bg_style = f"background: url('{bg_url}') center/cover no-repeat;" if bg_url else f"background: linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);"
         overlay = '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.5);z-index:1;"></div>' if bg_url else ''
         text_color = "#fff" if (dark or bg_url) else "var(--text)"
@@ -1924,8 +1927,7 @@ def sec_banner(d, cp, T):
             f'</div></section>'
         )
 
-    # 3. 좌우 분할 매거진 (Split 스타일)
-    else: 
+    else: # [스타일 3: 좌우 분할 매거진 (Split 스타일)]
         bg_style = f"background: url('{bg_url}') center/cover no-repeat;" if bg_url else f"background: var(--bg2);"
         overlay = '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.7);z-index:1;"></div>' if bg_url else ''
         text_color = "#fff" if (dark or bg_url) else "var(--text)"
@@ -1941,7 +1943,7 @@ def sec_banner(d, cp, T):
             f'<div style="text-align:left;"><a href="#cta" style="display:inline-block; background:transparent; border:2px solid var(--c1); color:{text_color}; padding:16px 40px; font-size:16px; font-weight:800; text-decoration:none; transition: all 0.2s;" onmouseover="this.style.background=\'var(--c1)\'; this.style.color=\'var(--bg)\'" onmouseout="this.style.background=\'transparent\'; this.style.color=\'{text_color}\'">{cta} →</a></div>'
             f'</div></section>'
         )
-
+        
 def sec_intro(d, cp, T):
     label   = st.session_state.get("purpose_label", d["purpose_label"])
     subj    = d["subject"]
@@ -1990,9 +1992,9 @@ def sec_why(d, cp, T):
         elif isinstance(it, dict):
             safe_r.append((it.get('no','01'), it.get('title',''), it.get('desc','')))
 
-    # 🌟 메가스터디/대성마이맥 프리미엄 스타일 (이모지 없음, 라인과 숫자 강조) 🌟
-    concept_hash = sum(ord(c) for c in st.session_state.concept)
-    v = (concept_hash % 3) + 1
+    # 🌟 글자가 바뀔 때마다 레이아웃이 3가지 중 하나로 랜덤하게 변함 🌟
+    text_hash = sum(ord(c) for c in t + s)
+    v = (text_hash % 3) + 1
 
     if v == 1: # [스타일 1: 거대 배경 숫자 + 다크 매거진 스타일]
         bg_text = f"{t} " * 10
@@ -2071,8 +2073,9 @@ def sec_curriculum(d, cp, T):
     if not steps:
         steps = [["01","개념 완성","핵심 개념을 정확히 이해","4주"], ["02","훈련","기출 완전 분석","4주"], ["03","심화","고난도 특훈","3주"], ["04","파이널","실전 완성","3주"]]
 
-    concept_hash = sum(ord(c) for c in st.session_state.concept)
-    v = (concept_hash % 3) + 1
+    # 🌟 글자가 바뀔 때마다 레이아웃이 3가지 중 하나로 랜덤하게 변함 🌟
+    text_hash = sum(ord(c) for c in t + s)
+    v = (text_hash % 3) + 1
     sh = ""
 
     if v == 1:
