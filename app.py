@@ -1823,6 +1823,34 @@ body.light-mode #site-nav{background:rgba(245,245,240,.92)!important}
 body.light-mode #site-nav a{color:rgba(10,10,10,.65)!important}
 body.light-mode #site-nav a:hover{color:#0A0A0A!important}
 body.light-mode #mode-toggle{background:rgba(240,240,235,.9)!important;border-color:rgba(0,0,0,.15)!important}
+
+/* -- 텍스트 마키(Marquee) 애니메이션 -- */
+.marquee-container {
+  width: 100vw;
+  max-width: 100%;
+  overflow-x: hidden;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%) rotate(-3deg);
+  white-space: nowrap;
+  z-index: 0;
+  pointer-events: none;
+}
+.marquee-content {
+  display: inline-block;
+  font-family: 'Black Han Sans', var(--fh);
+  font-size: clamp(80px, 12vw, 200px);
+  font-weight: 900;
+  color: var(--c1);
+  opacity: 0.05;
+  line-height: 1;
+  text-transform: uppercase;
+  animation: marquee 20s linear infinite;
+}
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
 """
 
 
@@ -2065,11 +2093,7 @@ def sec_intro(d, cp, T):
 def sec_why(d, cp, T):
     t = strip_hanja(cp.get('whyTitle', '이 강의가 필요한 이유'))
     s = strip_hanja(cp.get('whySub', f"{d['subject']} 1등급의 비결"))
-    reasons = cp.get('whyReasons', [
-        ['🎯','유형별 완전 정복','수능 출제 유형을 완전히 분석하여 어떤 문제도 흔들리지 않는 실력을 만듭니다.'],
-        ['📊','기출 데이터 분석','최근 5년 기출을 철저히 분석하여 실전에서 반드시 나오는 유형만 집중 훈련합니다.'],
-        ['⚡','실전 속도 훈련','정확도와 속도를 동시에 잡아 70분 안에 45문항을 완벽히 소화하는 훈련을 합니다.'],
-    ])
+    reasons = cp.get('whyReasons', [])
     safe_r = []
     for it in reasons:
         if isinstance(it, (list, tuple)) and len(it) >= 3:
@@ -2077,177 +2101,49 @@ def sec_why(d, cp, T):
         elif isinstance(it, dict):
             safe_r.append((it.get('icon','✦'), it.get('title',''), it.get('desc','')))
 
-    v = random.randint(0, 3)
+    # 무한 흐름 텍스트 (Marquee) 
+    bg_text = f"{t} " * 10
+    
     rh = ""
-
-    if v == 1:
-        # ★ 개선: 좌우 분할 강조형 — 아이콘 크게, 설명 충분히
-        for i, (ic, tt, dc) in enumerate(safe_r):
-            left_bg = "var(--c1)" if i % 2 == 0 else "var(--bg3)"
-            left_tc = "rgba(255,255,255,.85)" if i % 2 == 0 else "var(--t70)"
-            left_nc = "#fff" if i % 2 == 0 else "var(--c1)"
-            rh += (
-                f'<div class="rv d{min(i+1,4)}" style="display:grid;'
-                f'grid-template-columns:180px 1fr;margin-bottom:12px;'
-                f'border-radius:var(--r,4px);overflow:hidden;min-height:140px">'
-                # 왼쪽: 아이콘 블록
-                f'<div style="background:{left_bg};display:flex;flex-direction:column;'
-                f'align-items:center;justify-content:center;padding:32px 20px;'
-                f'position:relative;overflow:hidden">'
-                f'<div style="position:absolute;font-family:var(--fh);font-size:80px;'
-                f'font-weight:900;color:rgba(0,0,0,.1);line-height:1;'
-                f'bottom:-10px;right:-5px;pointer-events:none">{i+1:02d}</div>'
-                f'<div style="font-size:44px;margin-bottom:10px;'
-                f'filter:drop-shadow(0 4px 8px rgba(0,0,0,.2))">{ic}</div>'
-                f'<div style="font-size:13px;font-weight:800;color:{left_nc};'
-                f'text-align:center;line-height:1.3">{strip_hanja(tt)}</div>'
-                f'</div>'
-                # 오른쪽: 설명 블록
-                f'<div style="background:var(--bg3);padding:28px 32px;'
-                f'display:flex;flex-direction:column;justify-content:center;'
-                f'border:1px solid var(--bd);border-left:none">'
-                f'<div style="width:28px;height:3px;background:var(--c1);'
-                f'margin-bottom:12px"></div>'
-                f'<p style="font-size:14px;line-height:1.9;color:var(--t70);'
-                f'margin:0;font-weight:500">{strip_hanja(dc)}</p>'
-                f'</div></div>'
-            )
-        return (
-            f'<section class="sec alt" id="why">'
-            f'<div style="max-width:900px;margin:0 auto">'
-            f'<div class="rv" style="margin-bottom:36px">'
-            f'<div class="tag-line">수강 이유</div>'
-            f'<h2 class="sec-h2 st">{t}</h2>'
-            f'<p class="sec-sub">{s}</p></div>'
-            f'{rh}</div></section>'
-        )
-
-    elif v == 2:
-        for i,(ic,tt,dc) in enumerate(safe_r):
-            bg_color = "var(--bg2)" if i%2==0 else "var(--bg3)"
-            rh += f'<div class="rv d{min(i+1,4)}" style="display:grid;grid-template-columns:100px 1fr;background:{bg_color};border-radius:var(--r,4px);overflow:hidden;margin-bottom:6px"><div style="background:var(--c1);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 12px"><div style="font-size:28px">{ic}</div><div style="font-family:var(--fh);font-size:24px;font-weight:900;color:var(--on-c1, var(--bg));opacity:0.4;margin-top:4px">{i+1:02d}</div></div><div style="padding:24px 32px;display:flex;flex-direction:column;justify-content:center"><div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:8px">{strip_hanja(tt)}</div><p style="font-size:13.5px;line-height:1.85;color:var(--t70);margin:0">{strip_hanja(dc)}</p></div></div>'
-        return f'<section class="sec alt" id="why"><div style="max-width:1000px;margin:0 auto"><div class="rv" style="margin-bottom:40px"><div class="tag-line">수강 이유</div><h2 class="sec-h2 st">{t}</h2><p class="sec-sub">{s}</p></div>{rh}</div></section>'
-
-    elif v == 3:
-        for i,(ic,tt,dc) in enumerate(safe_r):
-            line_html = f'<div style="width:2px;flex:1;background:var(--bd);margin-top:8px;min-height:40px"></div>' if i < len(safe_r)-1 else ''
-            rh += f'<div class="rv d{min(i+1,4)}" style="display:grid;grid-template-columns:56px 1fr;gap:20px;margin-bottom:28px"><div style="display:flex;flex-direction:column;align-items:center"><div style="width:56px;height:56px;border-radius:50%;background:var(--c1);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--on-c1, var(--bg));flex-shrink:0">{ic}</div>{line_html}</div><div style="padding-top:12px"><div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:8px">{strip_hanja(tt)}</div><p style="font-size:13.5px;line-height:1.85;color:var(--t70)">{strip_hanja(dc)}</p></div></div>'
-        return f'<section class="sec" id="why"><div style="max-width:800px;margin:0 auto"><div class="rv" style="margin-bottom:48px"><div class="tag-line">수강 이유</div><h2 class="sec-h2 st">{t}</h2><p class="sec-sub">{s}</p></div>{rh}</div></section>'
-    elif v == 4:
-        # ★ 신규: 참고 이미지 스타일 — 풀와이드 배경색 반전 블록
-        for i, (ic, tt, dc) in enumerate(safe_r):
-            is_dark_block = i % 2 == 0
-            bg = "var(--bg2)" if is_dark_block else "var(--bg3)"
-            border_l = f"border-left:4px solid var(--c1);" if not is_dark_block else ""
-            rh += (
-                f'<div class="rv" style="padding:clamp(40px,5vw,64px) clamp(28px,6vw,80px);'
-                f'background:{bg};position:relative;overflow:hidden;margin-bottom:2px">'
-                # 배경 번호 장식
-                f'<div style="position:absolute;right:clamp(20px,4vw,60px);top:50%;'
-                f'transform:translateY(-50%);font-family:var(--fh);'
-                f'font-size:clamp(80px,12vw,160px);font-weight:900;'
-                f'color:var(--c1);opacity:.06;line-height:1;pointer-events:none">{i+1:02d}</div>'
-                # 본문
-                f'<div style="max-width:1100px;margin:0 auto;display:grid;'
-                f'grid-template-columns:240px 1fr;gap:clamp(24px,4vw,60px);align-items:center;'
-                f'position:relative;z-index:1">'
-                # 왼쪽: 아이콘 + 제목
-                f'<div style="text-align:center">'
-                f'<div style="font-size:clamp(44px,5vw,64px);margin-bottom:16px;'
-                f'filter:drop-shadow(0 4px 12px rgba(0,0,0,.2))">{ic}</div>'
-                f'<div style="font-family:var(--fh);font-size:clamp(16px,2vw,22px);'
-                f'font-weight:900;color:var(--text);line-height:1.2;{border_l}'
-                f'padding:8px 0">{strip_hanja(tt)}</div>'
-                f'</div>'
-                # 오른쪽: 설명
-                f'<div>'
-                f'<div style="width:32px;height:3px;background:var(--c1);margin-bottom:14px"></div>'
-                f'<p style="font-size:clamp(14px,1.5vw,17px);line-height:2;'
-                f'color:var(--t70);font-weight:500">{strip_hanja(dc)}</p>'
-                f'</div>'
-                f'</div></div>'
-            )
-        return (
-            f'<section id="why" style="padding:0">'
-            f'<div class="rv" style="padding:clamp(48px,6vw,72px) clamp(28px,6vw,80px);'
-            f'text-align:center;background:var(--bg)">'
-            f'<div class="tag-line" style="justify-content:center">수강 이유</div>'
-            f'<h2 class="sec-h2 st" style="text-align:center">{t}</h2>'
-            f'<p class="sec-sub" style="text-align:center;margin:0 auto">{s}</p>'
-            f'</div>'
-            f'{rh}'
-            f'</section>'
-        )
-    elif v == 5:
-        # ★ 잡지형 — 첫 번째 이유만 풀와이드, 나머지는 하단 2열
-        first = safe_r[0] if safe_r else ("🎯","핵심","설명")
-        rest  = safe_r[1:]
-        rest_html = "".join(
-            f'<div class="rv d{min(i+2,4)}" style="padding:28px;background:var(--bg3);'
-            f'border-radius:var(--r,4px);border:1px solid var(--bd)">'
-            f'<div style="font-size:32px;margin-bottom:12px">{ic}</div>'
-            f'<div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:8px">{strip_hanja(tt)}</div>'
-            f'<p style="font-size:13px;line-height:1.85;color:var(--t70);margin:0">{strip_hanja(dc)}</p>'
-            f'</div>'
-            for i,(ic,tt,dc) in enumerate(rest)
-        )
-        return (
-            f'<section id="why" style="padding:0">'
-            # 풀와이드 첫 번째 이유
-            f'<div style="padding:clamp(64px,8vw,100px) clamp(28px,6vw,80px);'
-            f'background:var(--c1);position:relative;overflow:hidden">'
-            f'<div style="position:absolute;right:-60px;top:-60px;width:400px;height:400px;'
-            f'border-radius:50%;background:rgba(255,255,255,.06);pointer-events:none"></div>'
-            f'<div style="max-width:900px;margin:0 auto;position:relative;z-index:1">'
-            f'<div style="font-size:64px;margin-bottom:20px">{first[0]}</div>'
-            f'<div style="font-family:var(--fh);font-size:clamp(24px,3.5vw,40px);font-weight:900;'
-            f'color:#fff;margin-bottom:16px">{strip_hanja(first[1])}</div>'
-            f'<p style="font-size:clamp(15px,1.6vw,18px);line-height:1.9;color:rgba(255,255,255,.82);'
-            f'max-width:640px">{strip_hanja(first[2])}</p>'
+    for i, (ic, tt, dc) in enumerate(safe_r):
+        # 짝수/홀수에 따라 왼쪽, 오른쪽으로 쏠리게 비대칭 배치
+        align_self = "flex-start" if i % 2 == 0 else "flex-end"
+        margin_offset = "margin-top: -40px;" if i > 0 else "" # 카드가 서로 살짝 겹치게(Overlap)
+        
+        rh += (
+            f'<div class="rv d{min(i+1,4)}" style="align-self:{align_self}; {margin_offset} '
+            f'width: clamp(300px, 80%, 700px); position:relative; z-index:{i+2};">'
+            
+            # 뒤에 깔리는 거대한 숫자
+            f'<div style="position:absolute; top:-60px; left:-30px; font-family:var(--fh); '
+            f'font-size:180px; font-weight:900; color:var(--c1); opacity:0.1; line-height:1; '
+            f'pointer-events:none; z-index:-1;">{i+1:02d}</div>'
+            
+            # 실제 카드 내용 (유리 질감 + 강한 그림자)
+            f'<div style="background:var(--bg3); padding:40px; border-radius:0; '
+            f'border:2px solid var(--bd); box-shadow: 20px 20px 0px rgba(0,0,0,0.15);">'
+            f'<div style="font-size:50px; margin-bottom:20px; filter:drop-shadow(0 4px 10px rgba(0,0,0,0.2))">{ic}</div>'
+            f'<div style="font-family:var(--fh); font-size:clamp(22px, 3vw, 36px); font-weight:900; '
+            f'color:var(--text); margin-bottom:16px; word-break:keep-all;">{strip_hanja(tt)}</div>'
+            f'<p style="font-size:clamp(15px, 1.8vw, 18px); line-height:1.9; color:var(--t70); '
+            f'margin:0; font-weight:500;">{strip_hanja(dc)}</p>'
             f'</div></div>'
-            # 나머지 2열 그리드
-            f'<div style="padding:clamp(40px,5vw,60px) clamp(28px,6vw,80px);background:var(--bg2)">'
-            f'<div style="max-width:900px;margin:0 auto;'
-            f'display:grid;grid-template-columns:repeat({min(len(rest),2)},1fr);gap:16px">'
-            f'{rest_html}</div></div>'
-            f'</section>'
         )
 
-    elif v == 6:
-        # ★ 수평 타임라인 — 화살표로 연결된 단계 흐름
-        rh = ""
-        for i,(ic,tt,dc) in enumerate(safe_r):
-            arrow = (f'<div style="display:flex;align-items:center;color:var(--c1);'
-                     f'font-size:24px;font-weight:900;flex-shrink:0;padding:0 8px">→</div>'
-                     if i < len(safe_r)-1 else "")
-            rh += (
-                f'<div style="display:flex;align-items:stretch;flex:1;min-width:200px">'
-                f'<div class="rv d{min(i+1,4)}" style="flex:1;padding:28px 24px;'
-                f'background:var(--bg3);border-radius:var(--r,4px);border:1px solid var(--bd);'
-                f'display:flex;flex-direction:column;align-items:flex-start">'
-                f'<div style="font-size:36px;margin-bottom:14px">{ic}</div>'
-                f'<div style="font-size:11px;font-weight:800;color:var(--c1);'
-                f'letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px">0{i+1}</div>'
-                f'<div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:10px">{strip_hanja(tt)}</div>'
-                f'<p style="font-size:13px;line-height:1.8;color:var(--t70);margin:0;flex:1">{strip_hanja(dc)}</p>'
-                f'</div></div>'
-                + arrow
-            )
-        return (
-            f'<section class="sec" id="why">'
-            f'<div style="max-width:1200px;margin:0 auto">'
-            f'<div class="rv" style="text-align:center;margin-bottom:48px">'
-            f'<div class="tag-line" style="justify-content:center">수강 이유</div>'
-            f'<h2 class="sec-h2 st" style="text-align:center">{t}</h2>'
-            f'<p class="sec-sub" style="text-align:center;margin:0 auto">{s}</p></div>'
-            f'<div style="display:flex;align-items:stretch;gap:0;flex-wrap:nowrap;overflow-x:auto">'
-            f'{rh}</div></div></section>'
-        )
-    else:
-        for i,(ic,tt,dc) in enumerate(safe_r):
-            alt_bg = 'background:var(--bg3)' if i%2==0 else 'background:var(--bg2)'
-            rh += f'<div class="rv d{min(i+1,4)}" style="display:grid;grid-template-columns:100px 1fr;border:1px solid var(--bd);border-radius:var(--r,4px);margin-bottom:12px;overflow:visible"><div style="display:flex;flex-direction:column;align-items:center;justify-content:center;{alt_bg};padding:20px 12px;border-right:1px solid var(--bd);border-radius:var(--r,4px) 0 0 var(--r,4px)"><div style="font-family:var(--fh);font-size:36px;font-weight:900;color:var(--c1);opacity:.4">{i+1:02d}</div><div style="font-size:24px;margin-top:6px">{ic}</div></div><div style="padding:20px 24px"><div style="font-size:clamp(14px,1.4vw,17px);font-weight:800;margin-bottom:8px;color:var(--text)">{strip_hanja(tt)}</div><p style="font-size:13px;line-height:1.85;color:var(--t70);margin:0">{strip_hanja(dc)}</p></div></div>'
-        return f'<section class="sec" id="why"><div style="display:grid;grid-template-columns:1fr 1.6fr;gap:60px;align-items:start;max-width:1200px;margin:0 auto"><div class="rv" style="position:sticky;top:60px"><div class="tag-line">수강 이유</div><h2 class="sec-h2 st">{t}</h2><p class="sec-sub">{s}</p><div style="padding:20px 24px;background:var(--c1);border-radius:var(--r,4px)"><div style="font-family:var(--fh);font-size:48px;font-weight:900;color:var(--on-c1, var(--bg));line-height:1">{len(safe_r)}</div><div style="font-size:12px;color:var(--on-c1, var(--bg));opacity:0.8;margin-top:4px;font-weight:700">가지 핵심 이유</div></div></div><div class="rv d1">{rh}</div></div></section>'
+    return (
+        f'<section class="sec" id="why" style="position:relative; overflow:hidden; padding: 120px 20px;">'
+        # 흐르는 마키 텍스트
+        f'<div class="marquee-container"><div class="marquee-content">{bg_text}{bg_text}</div></div>'
+        f'<div style="max-width:1000px; margin:0 auto; position:relative; z-index:2;">'
+        f'<div class="rv" style="margin-bottom:80px; text-align:center;">'
+        f'<div class="tag-line" style="justify-content:center;">수강 이유</div>'
+        f'<h2 style="font-family:\'Black Han Sans\',var(--fh); font-size:clamp(36px,5vw,72px); '
+        f'font-weight:900; color:var(--text); letter-spacing:-0.05em; line-height:1.1;">{t}</h2>'
+        f'<p class="sec-sub" style="margin: 20px auto 0; font-size:18px;">{s}</p></div>'
+        # 비대칭 겹침 레이아웃 시작
+        f'<div style="display:flex; flex-direction:column; gap:40px;">{rh}</div>'
+        f'</div></section>'
+    )
 
 def sec_curriculum(d, cp, T):
     t = strip_hanja(cp.get("curriculumTitle", f"{d['purpose_label']} 커리큘럼"))
