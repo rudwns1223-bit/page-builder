@@ -3685,14 +3685,14 @@ def build_html(secs: list) -> str:
 # UI CSS (사이드바 + 메인)
 # ══════════════════════════════════════════════════════
 st.markdown("""<style>
-[data-testid="stSidebar"]{background:#07080F;border-right:1px solid #161A28;}
-[data-testid="stSidebar"] label,[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] {background:#07080F; border-right:1px solid #161A28;}
+[data-testid="stSidebar"] label, [data-testid="stSidebar"] p,
 [data-testid="stSidebar"] span:not(.stCheckbox span),
-[data-testid="stSidebar"] .stCaption{color:#8A9AB8!important;font-size:12px!important;}
-[data-testid="stSidebar"] h3{color:#E0E8F8!important;font-size:16px!important;font-weight:800!important;}
-[data-testid="stSidebar"] hr{border-color:#171D2F!important;}
+[data-testid="stSidebar"] .stCaption {color:#8A9AB8 !important; font-size:12px !important;}
+[data-testid="stSidebar"] h3 {color:#E0E8F8 !important; font-size:16px !important; font-weight:800 !important;}
+[data-testid="stSidebar"] hr {border-color:#171D2F !important;}
 
-/* 🌟 입력창 글씨 및 드롭다운 완벽 해결 🌟 */
+/* 🌟 1. 입력창 글씨 하얗게 보이게 만들기 🌟 */
 [data-testid="stSidebar"] input, 
 [data-testid="stSidebar"] textarea, 
 [data-testid="stSidebar"] div[data-baseweb="select"] > div {
@@ -3702,12 +3702,31 @@ st.markdown("""<style>
     border: 1px solid #343C58 !important;
     border-radius: 6px !important;
 }
-/* 드롭다운 메뉴(클릭시 나오는 창) 다크 모드 */
-ul[data-baseweb="menu"] { background-color: #1A2038 !important; border: 1px solid #343C58 !important; }
-li[data-baseweb="option"] { color: #FFFFFF !important; }
-li[data-baseweb="option"]:hover { background-color: #232A40 !important; }
+[data-testid="stSidebar"] input::placeholder,
+[data-testid="stSidebar"] textarea::placeholder {
+    color: #8A9AB8 !important;
+    -webkit-text-fill-color: #8A9AB8 !important;
+}
 
-/* 멀티셀렉트(섹션 순서) 태그 UI 세련되게 고치기 */
+/* 🌟 2. 드롭다운(클릭시 나오는 팝업 리스트) UI 완벽 해결 🌟 */
+div[data-baseweb="popover"] > div {
+    background-color: #1A2038 !important;
+    border: 1px solid #343C58 !important;
+}
+ul[role="listbox"] {
+    background-color: #1A2038 !important;
+}
+li[role="option"] {
+    color: #FFFFFF !important;
+    background-color: transparent !important;
+    font-size: 13px !important;
+}
+li[role="option"]:hover, li[role="option"][aria-selected="true"] {
+    background-color: #232A40 !important;
+    color: #FF6B35 !important;
+}
+
+/* 🌟 3. 멀티셀렉트(섹션 순서) 태그 칩 세련되게 고치기 🌟 */
 span[data-baseweb="tag"] {
   background-color: #232A40 !important;
   color: #FFFFFF !important;
@@ -3716,15 +3735,18 @@ span[data-baseweb="tag"] {
   padding: 4px 10px !important;
   font-size: 12px !important;
 }
+span[data-baseweb="tag"] svg {
+  fill: #8A9AB8 !important;
+}
 
-.stButton>button{border-radius:6px!important;font-weight:700!important;
-  border:1px solid #232A40!important;background:#0D1220!important;color:#8A9AB8!important;
-  transition:all .15s!important;font-size:12px!important;}
-.stButton>button:hover{background:#161E38!important;color:#C0CDE8!important;border-color:#343C58!important;}
-.stButton>button[kind="primary"]{background:linear-gradient(135deg,#FF6B35,#E84393)!important;
-  color:#fff!important;border:none!important;font-size:13px!important;}
-.sec-hdr{font-size:9.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
-  color:#3A4868;padding:10px 16px 5px;}
+.stButton>button {border-radius:6px !important; font-weight:700 !important;
+  border:1px solid #232A40 !important; background:#0D1220 !important; color:#8A9AB8 !important;
+  transition:all .15s !important; font-size:12px !important;}
+.stButton>button:hover {background:#161E38 !important; color:#C0CDE8 !important; border-color:#343C58 !important;}
+.stButton>button[kind="primary"] {background:linear-gradient(135deg,#FF6B35,#E84393) !important;
+  color:#fff !important; border:none !important; font-size:13px !important;}
+.sec-hdr {font-size:9.5px; font-weight:800; letter-spacing:.14em; text-transform:uppercase;
+  color:#3A4868; padding:10px 16px 5px;}
 </style>""", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════
@@ -4002,15 +4024,18 @@ with st.sidebar:
     st.markdown('<div class="sec-hdr">🎭 카피 어조 (AI 페르소나)</div>', unsafe_allow_html=True)
     tone_options = list(COPY_TONES.keys())
     
-    # 라디오 버튼 대신 셀렉트박스로 변경하여 공간 절약 및 깔끔한 UI 확보
+    # 🌟 [에러 방지 안전장치] 옛날 데이터가 남아있어서 리스트에 없으면 첫 번째 값으로 초기화 🌟
+    if st.session_state.copy_tone not in tone_options:
+        st.session_state.copy_tone = tone_options[0]
+        
     selected_tone = st.selectbox("어조 선택", tone_options,
         index=tone_options.index(st.session_state.copy_tone),
         label_visibility="collapsed")
         
     if selected_tone != st.session_state.copy_tone:
         st.session_state.copy_tone = selected_tone
+        st.rerun()
         
-    # 선택한 어조의 설명을 캡션으로 보여줌
     st.info(COPY_TONES[st.session_state.copy_tone], icon="💡")
     st.divider()
     st.markdown('<div class="sec-hdr">👤 강사 정보</div>', unsafe_allow_html=True)
