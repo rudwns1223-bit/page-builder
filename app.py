@@ -55,14 +55,13 @@ if not st.session_state.api_key:
 GROQ_URL    = "https://api.groq.com/openai/v1/chat/completions"
 # 기존 COPY_TONES 딕셔너리를 아래로 교체 (83행)
 COPY_TONES = {
-    "🔥 강렬·도발": "어조: 직접적·도전적. 수험생의 현실 안일함을 정면으로 찌름. 문장은 짧고 끊어쳐야 함.",
-    "🤝 친근·공감": "어조: 선배 느낌. 학생의 고민을 먼저 말해주는 방식. 따뜻하지만 구체적 상황 묘사.",
-    "💎 프리미엄·권위": "어조: 절제된 고급 브랜드 톤. 수식어 최소화, 사실과 결과 중심.",
-    "😎 쿨·MZ": "어조: 트렌디하고 간결. 설명하지 말고 결과만 쿨하게 던질 것.",
-    "📖 차분·신뢰": "어조: 전문적·데이터 중심. 숫자, 패턴, 출제 원리 기반의 근거 제시형.",
-    # --- 여기서부터 파격적인 신규 어조 ---
-    "💥 팩트폭력 (독설)": "어조: 피도 눈물도 없는 차가운 팩트 폭력. 감정적 위로 절대 금지. '아직도 정신 못 차렸습니까?' 같은 차갑고 논리적인 독설로 학생을 압도할 것.",
-    "🔮 사이비 교주 (광기)": "어조: 학생을 홀리는 듯한 극단적이고 맹신적인 문체. 오직 이 강의만이 구원이라는 오만함과 확신. 감탄문과 극단적인 단어(구원, 파멸, 절대 등)를 적극 사용할 것."
+    "✨ 압도적·카리스마": "어조: 절대적인 확신과 카리스마. 수험생의 현실 안일함을 차가운 팩트로 찌름. 문장은 짧고 압도적이어야 함. 예) '아직도 감으로 공부해?', '남은 시간이 없어요'",
+    "🤝 철학적·감동": "어조: 선배 같은 따뜻함과 깊은 철학. 학생의 본질적인 고민을 어루만지고 감동을 주는 방식. 상황 묘사보다 감정적 울림 중심.",
+    "💎 프리미엄·신뢰": "어조: 고급 브랜드처럼 절제된 톤. 수식어를 최소화하고 오직 압도적인 결과와 사실로 승부. 숫자를 세련되게 활용.",
+    "😎 힙·MZ": "어조: 트렌디하고 감각적. 설명하지 않고 결과와 이미지로만 멋을 내는 방식. 예) '말해 뭐해? 결과가 증명해'",
+    "📖 논리적·분석": "어조: 전문적이고 데이터 중심. 출제 패턴, 숫자, 논리적 근거로 차분하게 설득.",
+    "🔥 독설·팩폭": "어조: 피도 눈물도 없는 차가운 독설. 감정적 위로 절대 금지. '이래서 네가 안 돼' 식의 차가운 논리로 정신 차리게 함.",
+    "🔮 광기·구원": "어조: 학생을 홀리는 듯한 극단적이고 맹신적인 문체. 이 강의만이 유일한 구원이라는 오만함과 확신. 감탄문과 극단적인 단어 사용."
 }
 GROQ_MODELS = [
     "llama-3.3-70b-versatile",          # 메인 (기존 유지)
@@ -976,80 +975,40 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
     inst_ctx = _get_instructor_context()
     variation_hint = get_copy_variation()
 
-    # ★ 핵심 추가: 테마 선언문 먼저 생성
     theme_decl = gen_theme_declaration(ctx, ptype)
     declaration = theme_decl.get("declaration", ctx)
     core_keyword = theme_decl.get("core_keyword", "")
     forbidden = "·".join(theme_decl.get("forbidden_phrases", [])[:3])
     
-    # 세션에도 저장 (gen_section에서도 쓸 수 있게)
     st.session_state["_theme_declaration"] = theme_decl
     
+    # 🌟 스키마에서 글자수 제한을 완전히 해제하여 파격적 문구 유도 🌟
     schemas = {
-        "신규 커리큘럼": '{"bannerSub":"10자이내","bannerTitle":"20자이내","brandTagline":"페이지 컨셉을 관통하는 브랜드 문구 1문장","bannerLead":"60-90자 수험생 고민을 찌르는 리드","bannerTags":["키워드1","키워드2","키워드3"],"ctaCopy":"10자이내","ctaTitle":"CTA 제목","ctaSub":"30자이내","ctaBadge":"15자이내","statBadges":[],"introTitle":"20자이내","introDesc":"80-120자 강사만의 차별점","introBio":"강사 학습법 포함 60자이내","introBadges":[],"whyTitle":"20자이내","whySub":"30자이내","whyReasons":[["이모지","12자제목","60자 구체적 설명"],["이모지","12자","60자"],["이모지","12자","60자"]],"curriculumTitle":"20자이내","curriculumSub":"30자이내","curriculumSteps":[["01","8자제목","학생 입장에서 50자 이상 설명","기간"],["02","8자","50자 이상","기간"],["03","8자","50자 이상","기간"],["04","8자","50자 이상","기간"]],"targetTitle":"20자이내","targetItems":["이런 학생을 대상으로 하는지 40자 상황 묘사","항목2 40자","항목3 40자","항목4 40자"],"reviews":[["생생한 인용문 50-70자","이름","변화뱃지"],["50-70자 인용문","이름","뱃지"],["50-70자 인용문","이름","뱃지"]],"faqs":[["구체적 질문15자","명쾌한 답변 50자이상"],["질문","50자 답변"],["질문","50자 답변"]],"videoTitle":"영상 섹션 제목 20자","videoSub":"40자 설명","videoTag":"OFFICIAL TRAILER","baTitle":"수강 전/후 비교 제목","baSub":"30자","baBeforeItems":["수강 전 학생 고민 40자","고민2 40자","고민3 40자"],"baAfterItems":["수강 후 변화 40자","변화2 40자","변화3 40자"],"methodTitle":"학습법 시각화 제목","methodSub":"30자","methodSteps":[{"step":"STEP 01","label":"단계명","desc":"45자이상"},{"step":"STEP 02","label":"단계명","desc":"45자이상"},{"step":"STEP 03","label":"단계명","desc":"45자이상"}],"pkgTitle":"구성 안내 제목","pkgSub":"30자","packages":[{"icon":"📗","name":"구성명","desc":"구성 설명 40자이상","badge":"필수"},{"icon":"📖","name":"구성명","desc":"40자이상","badge":"포함"},{"icon":"🎯","name":"구성명","desc":"40자이상","badge":"포함"},{"icon":"💬","name":"구성명","desc":"40자이상","badge":"특전"}]}',
-        "이벤트": '{"bannerSub":"10자","bannerTitle":"20자","brandTagline":"이벤트 분위기를 담은 한 문장","bannerLead":"60-80자 긴박감 있는 리드","bannerTags":["이벤트특징1","이벤트특징2","이벤트특징3"],"ctaCopy":"10자","ctaTitle":"CTA","ctaSub":"30자","ctaBadge":"15자","statBadges":[],"eventTitle":"20자","eventDesc":"50자이상","eventDetails":[["📅","이벤트 기간","날짜"],["🎯","대상","값"],["💰","혜택","값"]],"benefitsTitle":"20자","eventBenefits":[{"icon":"이모지","title":"혜택명","desc":"50자이상","badge":"8자","no":"01"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"02"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"03"}],"deadlineTitle":"20자","deadlineMsg":"70자 긴박감","reviews":[["50-70자 구체적 인용문","이름","뱃지"],["인용문","이름","뱃지"],["인용문","이름","뱃지"]]}',
-        "기획전": '{"festHeroTitle":"20자","festHeroCopy":"30자","festHeroSub":"50자이상","brandTagline":"기획전 분위기를 담은 한 문장","festHeroStats":[["수치","라벨"],["수치","라벨"],["수치","라벨"],["수치","라벨"]],"festLineupTitle":"20자","festLineupSub":"40자","festLineup":[{"name":"강사명","tag":"분야8자","tagline":"40자","badge":"8자","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지","emoji":"이모지"}],"festBenefitsTitle":"20자","festBenefits":[{"icon":"이모지","title":"혜택명","desc":"50자이상","badge":"8자","no":"01"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"02"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"03"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"04"}],"festCtaTitle":"CTA제목","festCtaSub":"50자이상"}',
+        "신규 커리큘럼": '{"bannerSub":"과목의 본질을 찌르는 철학적 한 마디","bannerTitle":"기존의 틀을 부수는 파격적인 메인 카피 (자유 길이)","brandTagline":"학생의 심장을 때리는 강력한 한 문장","bannerLead":"뻔한 위로가 아닌, 현 상황의 뼈를 때리는 팩트폭력 리드문 (충분히 길게)","bannerTags":["키워드1","키워드2","키워드3"],"ctaCopy":"망설임을 없애는 행동 유도어","ctaTitle":"강력한 CTA 제목","ctaSub":"지금 안 하면 손해라는 식의 서브 문구","ctaBadge":"15자이내","statBadges":[],"introTitle":"강사의 절대적 권위를 보여주는 제목","introDesc":"왜 이 강의를 들어야만 하는지, 압도적 차이를 날카롭게 서술 (자유 길이)","introBio":"강사 시그니처 1문장","introBadges":[],"whyTitle":"파격적 제목","whySub":"30자이내","whyReasons":[["이모지","직설적인 짧은 제목","학생이 읽고 아차 싶을 만큼 뼈 때리는 구체적 이유와 해결책 서술 (최소 80자 이상, 길이 자유)"],["이모지","제목","서술"],["이모지","제목","서술"]],"curriculumTitle":"20자이내","curriculumSub":"30자이내","curriculumSteps":[["01","단계명","이 시기에 학생들이 하는 착각과, 이 단계가 그걸 어떻게 부수고 점수를 만드는지 서술","기간"],["02","단계","서술","기간"],["03","단계","서술","기간"],["04","단계","서술","기간"]],"targetTitle":"이런 학생이라면 반드시 들어라","targetItems":["구체적인 절망적 상황 묘사 1","상황 묘사 2","상황 묘사 3","상황 묘사 4"],"reviews":[["진짜 학생이 흥분해서 쓴 것 같은 매우 길고 구체적인 후기","이름","변화뱃지"],["후기","이름","뱃지"],["후기","이름","뱃지"]],"faqs":[["질문","답변"]],"videoTitle":"영상 제목","videoSub":"설명","videoTag":"OFFICIAL TRAILER","baTitle":"수강 전/후 비교","baSub":"30자","baBeforeItems":["수강 전 절망 상황 1","상황 2","상황 3"],"baAfterItems":["수강 후 압도적 변화 1","변화 2","변화 3"],"methodTitle":"시그니처 학습법","methodSub":"30자","methodSteps":[{"step":"STEP 01","label":"단계명","desc":"설명"},{"step":"STEP 02","label":"단계명","desc":"설명"},{"step":"STEP 03","label":"단계명","desc":"설명"}],"pkgTitle":"구성 안내","pkgSub":"30자","packages":[{"icon":"📗","name":"구성명","desc":"설명","badge":"필수"}]}',
+        "이벤트": '{"bannerSub":"10자","bannerTitle":"틀을 깨는 이벤트 제목","brandTagline":"이벤트 분위기를 담은 한 문장","bannerLead":"참여하지 않으면 손해라는 긴박감 넘치는 리드","bannerTags":["이벤트특징1","이벤트특징2","이벤트특징3"],"ctaCopy":"행동 유도","ctaTitle":"CTA","ctaSub":"서브문구","ctaBadge":"15자","statBadges":[],"eventTitle":"20자","eventDesc":"50자이상","eventDetails":[["📅","이벤트 기간","날짜"],["🎯","대상","값"],["💰","혜택","값"]],"benefitsTitle":"20자","eventBenefits":[{"icon":"이모지","title":"혜택명","desc":"50자이상","badge":"8자","no":"01"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"02"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"03"}],"deadlineTitle":"20자","deadlineMsg":"70자 긴박감","reviews":[["50-70자 구체적 인용문","이름","뱃지"],["인용문","이름","뱃지"],["인용문","이름","뱃지"]]}',
+        "기획전": '{"festHeroTitle":"파격적인 기획전 제목","festHeroCopy":"30자","festHeroSub":"50자이상","brandTagline":"기획전 분위기를 담은 한 문장","festHeroStats":[["수치","라벨"],["수치","라벨"],["수치","라벨"],["수치","라벨"]],"festLineupTitle":"20자","festLineupSub":"40자","festLineup":[{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지","emoji":"이모지"}],"festBenefitsTitle":"20자","festBenefits":[{"icon":"이모지","title":"혜택명","desc":"50자이상","badge":"8자","no":"01"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"02"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"03"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"04"}],"festCtaTitle":"CTA제목","festCtaSub":"50자이상"}',
     }
 
     purpose_specific_rule = ""
     if ptype == "이벤트":
-        purpose_specific_rule = (
-            "⚠️ [!!! 가장 중요한 이벤트 페이지 절대 규칙 !!!]\n"
-            f"1. 제목뿐만 아니라 **모든 섹션(eventTitle, eventDesc, eventBenefits 등)**을 반드시 다음 사용자가 입력한 맥락을 최우선으로 반영해 작성하세요: '{ctx}'\n"
-            "2. 'KISS Logic'이나 강사의 정규 커리큘럼 명칭은 어울리지 않으니 **절대 포함하지 마세요**.\n"
-            "3. bannerTags는 과목(어법, 빈칸)이 아니라, 이벤트 전용 혜택 단어(예: 기간한정, 전원증정, 모의고사 등)로 3개 작성하세요.\n"
-        )
+        purpose_specific_rule = "⚠️ 제목뿐만 아니라 모든 섹션(eventTitle, eventDesc, eventBenefits 등)을 반드시 맥락을 최우선으로 반영해 작성. 강사의 정규 커리큘럼 명칭 절대 금지."
     elif ptype == "기획전":
-        purpose_specific_rule = (
-            "⚠️ [기획전 페이지 절대 규칙]\n"
-            f"1. 제목(bannerTitle)은 반드시 다음 사용자가 입력한 맥락을 바탕으로 작성하세요: '{ctx}'\n"
-        )
+        purpose_specific_rule = "⚠️ 제목(bannerTitle)은 반드시 맥락을 바탕으로 작성."
     else:
-        purpose_specific_rule = "⚠️ [신규 커리큘럼 규칙]\n1. 강사의 대표 강좌명이나 맥락을 기반으로 제목을 작성하세요."
+        purpose_specific_rule = "⚠️ 강사의 대표 강좌명이나 맥락을 기반으로 제목을 작성."
 
     tone_instruction = COPY_TONES.get(st.session_state.copy_tone, "")
     
-    # 강좌명 워드플레이 힌트 자동 생성
-    def _make_wordplay_hint(label: str) -> str:
-        if not label:
-            return ""
-        parts = []
-        import re as _re
-        eng_words = _re.findall(r"[A-Za-z']{2,}", label)
-        kor_words = _re.findall(r"[가-힣]{2,}", label)
-        MEANING_MAP = {
-            "KEY": "열쇠", "STEP": "단계", "SAVE": "구원/저장", "KISS": "간결함",
-            "SCHEMA": "구조/회로", "LOGIC": "논리", "ALL": "전부",
-            "KICE": "수능출제진", "START": "출발", "BLOCK": "블록",
-            "ANATOMY": "해부", "GORITHM": "알고리즘", "READ": "독해",
-            "CIRCLE": "원형/순환", "SYNTAX": "구문", "VIC": "승리",
-        }
-        hints = []
-        for w in eng_words:
-            wu = w.upper().replace("'","")
-            for key, meaning in MEANING_MAP.items():
-                if key in wu:
-                    hints.append(f"'{w}' = {meaning} 활용 가능")
-        if hints:
-            parts.append(f"강좌명 '{label}'의 워드플레이 힌트: {', '.join(hints[:3])}")
-        parts.append(f"bannerTitle과 brandTagline에 강좌명 '{label}'의 의미/발음/약자를 반드시 활용할 것")
-        return "\n".join(parts)
-    
-    wordplay_hint = _make_wordplay_hint(plabel)
-    
-    prompt = f"""대한민국 최고 수능 교육 랜딩페이지 카피라이터.
-
-{FEW_SHOT_EXAMPLES}
+    prompt = f"""당신은 Apple과 Samsung의 런칭 페이지를 기획하는 업계 최고 수준의 브랜드 마케터입니다.
+단순히 정보를 나열하지 마세요. 수험생의 심장을 울리고, 압도적인 카리스마와 깊은 철학이 느껴지는 최고급 카피를 창조해야 합니다.
 
 ===문구 생성 지침===
-위 예시는 스타일 참고용입니다. 절대 베끼지 말고 [페이지 맥락]을 최우선으로 반영하여 창작하세요.
 {variation_hint}
 
-# ★★★ 이 페이지의 테마 선언문 (가장 중요) ★★★
-# 배너부터 CTA까지 모든 섹션은 반드시 이 방향 안에서 작동해야 합니다:
+# ★★★ 이 페이지의 테마 선언문 ★★★
 {declaration}
-# 핵심 키워드: [{core_keyword}] — 이 단어가 자연스럽게 녹아있어야 함
-# 이 단어들은 이 페이지에서 절대 쓰지 마시오: {forbidden}
+# 핵심 키워드: [{core_keyword}]
+# 절대 쓰지 말아야 할 진부한 클리셰: {forbidden}, 최고의, 체계적인, 합리적인, 실력 향상
 
 ===강사 정보===
 {inst_ctx}
@@ -1059,31 +1018,16 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
 목적: {ptype} | 대상: {tgt} | 브랜드: {plabel}
 카피 어조: {tone_instruction}
 
-===강좌명 워드플레이 지침===
-{wordplay_hint}
-
-{purpose_specific_rule}
-
 ===문구 품질 기준===
-1. 사용자가 입력한 [맥락]이 특정 강좌가 아닌 '게이트웨이'나 '기초/입문' 등이라면, 'KISS Logic' 같은 강사의 기존 특정 커리큘럼명을 억지로 끼워 넣지 마세요. 무조건 [맥락]과 [브랜드]를 최우선으로 작성할 것.
-2. 현대적 직접적 어조 — "체계적", "최고의" 같은 올드한 표현 금지
-3. 수험생이 지금 느끼는 구체적 고민을 정확히 찌르는 문구
-4. 실제처럼 들리는 수강평 (등급 변화, 학습법 언급 포함), 반드시 50자 이상
-5. 수치(만족도%, 합격생수) 절대 금지 — statBadges:[], introBadges:[]
-6. 한자 절대 금지. 확인되지 않은 수치(%) 지어내지 말 것.
-7. ⚠️ 반드시 한국어로만 작성. 영어·독일어·기타 외국어 단어가 섞이면 안 됨 (강사 고유명사 제외)
-8. curriculumSteps 설명은 반드시 50자 이상 — 이 단계가 왜 필요한지, 어떻게 달라지는지 학생 입장에서 서술
-9. targetItems는 반드시 40자 이상 — 학생의 구체적인 상황과 고민을 담을 것
-10. ⚠️ "교수" 절대 금지 — 직함은 반드시 "선생님" 또는 "강사"만 사용
-11. ⚠️ 확인되지 않은 정보(학력, 소속, 경력 등) 절대 지어내지 말 것 — 제공된 강사 정보에 있는 내용만 사용
-12. bannerLead·introDesc·ctaSub·whyReasons 설명·curriculumSteps 설명은 반드시 충분히 길고 임팩트 있게 작성.
-13. whyReasons 3개의 아이콘·제목은 서로 완전히 다른 관점이어야 함
-14. brandTagline: 페이지의 컨셉/무드를 담은 독창적 한 문장.
-15. ⚠️ [가장 중요한 규칙] 사용자가 '페이지 맥락'에 특정 내용을 적었다면, 예시('KISS Logic' 등)나 기본 강사 정보보다 그 맥락을 1순위로 반영하여 제목과 내용을 작성해야 합니다.
-16. bannerTags는 해당 목적(커리큘럼 특징 또는 이벤트 혜택)에 맞는 짧은 키워드로 3~4개 생성.
+1. 모든 문구의 길이 제한(예: 12자 이내)을 무시하세요. 감정을 흔들 수 있다면 짧고 굵게, 혹은 서사적으로 길게 작성하세요.
+2. 학생이 겪고 있는 고통과 실패를 정확하고 직설적으로 묘사하세요.
+3. 숫자를 활용하여 데이터 기반의 프리미엄 신뢰감을 주세요. (만족도% 등 지어내지 않는 선에서 기간, 문항 수 등 활용)
+4. '교수' 절대 금지. 반드시 '선생님' 또는 '강사'.
+5. 반드시 순수 한국어로 작성 (강사 고유명사 제외).
 
 JSON만 반환:
 {schemas.get(ptype, schemas['신규 커리큘럼'])}"""
+    
     return safe_json(call_ai(prompt, max_tokens=3500))
 
 SEC_LAYOUT_VARIANTS = {
@@ -1851,6 +1795,43 @@ body.light-mode #mode-toggle{background:rgba(240,240,235,.9)!important;border-co
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
 }
+/* 사이드바 가독성 및 UI 개선 (이미지 0, 2, 3 해결) */
+/* 1. 입력 필드 텍스트 색상 해결 */
+[data-testid="stSidebar"] input,
+[data-testid="stSidebar"] select,
+[data-testid="stSidebar"] textarea,
+[data-testid="stSidebar"] div[data-baseweb="select"] > div > div,
+[data-testid="stSidebar"] div[data-baseweb="input"] input,
+[data-testid="stSidebar"] div[data-baseweb="textarea"] textarea,
+[data-testid="stSidebar"] .stMarkdown h1,
+[data-testid="stSidebar"] .stMarkdown p {
+    color: white !important;
+}
+/* 입력 필드 플레이스홀더(안내 문구) 색상 */
+[data-testid="stSidebar"] div[data-baseweb="select"] > div > div > div,
+[data-testid="stSidebar"] div[data-baseweb="input"] input::placeholder {
+  color: rgba(255,255,255,0.6) !important;
+}
+
+/* 2. 멀티셀렉트(섹션 ON/OFF) 태그 UI 세련되게 고치기 */
+[data-testid="stSidebar"] div[data-baseweb="select"] > div > div > span[data-baseweb="tag"] {
+  background-color: #161E38 !important;
+  color: #C0CDE8 !important;
+  border: 1px solid #343C58 !important;
+  border-radius: 4px !important;
+  padding: 4px 8px !important;
+  font-size: 11px !important;
+}
+[data-testid="stSidebar"] div[data-baseweb="select"] > div > div > span[data-baseweb="tag"] svg {
+  fill: #8A9AB8 !important;
+}
+[data-testid="stSidebar"] div[data-baseweb="select"] > div > div > span[data-baseweb="tag"]:hover {
+  background-color: #232A40 !important;
+}
+[data-testid="stSidebar"] div[data-baseweb="select"] > div {
+  background-color: #090D1C !important;
+  border-color: #1A2038 !important;
+}
 """
 
 
@@ -1917,110 +1898,47 @@ def sec_banner(d, cp, T):
     sub   = strip_hanja(cp.get("bannerSub", d["subject"]+" 완성"))
     title = strip_hanja(cp.get("bannerTitle", d["purpose_label"]))
     lead  = strip_hanja(cp.get("bannerLead", f"{d['target']}을 위한 커리큘럼"))
-    tagline = strip_hanja(cp.get("brandTagline", ""))
     cta   = strip_hanja(cp.get("ctaCopy", "수강신청하기"))
-    stats = cp.get("statBadges", [])
-    
-    # 💡 고집스러운 빈칸추론 고정 키워드 완전 삭제!
-    raw_tags = cp.get("bannerTags", [])
-    if not raw_tags:  # AI가 태그를 못 만들었을 때의 안전장치
-        if d.get("purpose_type") == "이벤트":
-            raw_tags = ["기간 한정", "특별 혜택", "이벤트"]
-        else:
-            raw_tags = ["수능 대비", "핵심 요약", "성적 향상"]
-    kws = [strip_hanja(str(k)) for k in raw_tags][:4]
     
     bg_url= cp.get("bg_photo_url", "")
     hs    = T.get("heroStyle", "typographic")
     s     = _bg_vars(bg_url, T["dark"])
     dark  = T["dark"]
 
-    kh = "".join(f'<span style="font-size:9px;font-weight:800;padding:5px 14px;border-radius:var(--r-btn,4px);color:{s["c1c"]};border:1px solid {s["bdc"]};margin:2px;letter-spacing:.1em">{k}</span>' for k in kws)
-    sh = "".join(f'<div><div style="font-family:var(--fh);font-size:clamp(20px,3vw,30px);font-weight:900;color:{s["c1c"]}">{sv}</div><div style="font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.5);margin-top:2px">{sl}</div></div>' for sv,sl in stats) if stats else ""
-    inst = f'<div style="display:inline-flex;align-items:center;gap:8px;margin-top:20px;padding:6px 16px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:var(--r-btn,4px)"><span style="font-size:11px;color:rgba(255,255,255,.75);font-weight:600">{d["name"]} 선생님</span></div>' if d["name"] and bg_url else ""
-
-    # ── 레이아웃 1: TYPOGRAPHIC ────────────
-    if hs == "typographic":
-        deco_word = title[:3] if title else sub[:3]
+    # 🌟 1. 타이포그래피 / 브루탈 레이아웃 (힙하고 압도적인 스타일) 🌟
+    if hs in ["typographic", "billboard"]:
+        bg_text = f"{title} " * 5
         text_col = "#fff" if (dark or bg_url) else "var(--text)"
-        t70_col  = "rgba(255,255,255,.7)" if (dark or bg_url) else "var(--t70)"
         accent_col = s["c1c"] if bg_url else "var(--c1)"
+        
         return (
-            f'<section id="hero" style="position:relative;min-height:100vh;overflow:hidden;{s["hero_bg"]};display:flex;flex-direction:column;justify-content:flex-end">'
+            f'<section id="hero" style="position:relative; min-height:100vh; overflow:hidden; {s["hero_bg"]}; display:flex; flex-direction:column; justify-content:center; text-align:center;">'
             + s["overlay"]
-            + f'<div style="position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(to top,rgba(0,0,0,.92) 0%,rgba(0,0,0,.25) 50%,transparent 100%);z-index:1;pointer-events:none"></div>'
-            + f'<div style="position:absolute;top:-0.05em;right:-0.05em;font-family:\'Black Han Sans\',var(--fh);font-size:40vw;font-weight:900;line-height:0.85;color:var(--c1);opacity:.06;pointer-events:none;overflow:hidden;z-index:1;user-select:none">{deco_word}</div>'
-            + f'<div style="position:relative;z-index:2;padding:clamp(60px,8vw,100px) clamp(40px,7vw,100px);max-width:min(1000px,100%)">'
-            + f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:28px"><div style="width:36px;height:3px;background:{accent_col}"></div><span style="font-size:9.5px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:{accent_col}">{sub}</span></div>'
-            + f'<h1 style="font-family:\'Black Han Sans\',var(--fh);font-size:clamp(52px,8vw,140px);font-weight:900;line-height:.88;letter-spacing:-.03em;word-break:keep-all;overflow-wrap:break-word;color:{text_col};margin-bottom:20px" class="st">{title}</h1>'
-            + (f'<div style="font-size:clamp(15px,1.7vw,20px);font-style:italic;font-weight:300;color:{accent_col};margin-bottom:18px;line-height:1.5;opacity:.9">{tagline}</div>' if tagline else "")
-            + f'<p style="font-size:clamp(14px,1.6vw,17px);line-height:1.9;color:{t70_col};max-width:520px;padding-left:18px;border-left:3px solid {accent_col};margin-bottom:28px">{lead}</p>'
-            + f'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:28px">{kh}</div>'
-            + inst
-            + f'<div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:24px">'
-            + f'<a class="btn-p" href="#cta" style="font-size:15px;padding:16px 40px">{cta} →</a>'
-            + f'</div>'
-            + (f'<div style="display:flex;gap:36px;margin-top:40px;padding-top:24px;border-top:1px solid {s["top_brd"]}">{sh}</div>' if sh else "")
+            # 뒤에 흐르는 거대한 텍스트 (Marquee)
+            + f'<div class="marquee-container"><div class="marquee-content">{bg_text}{bg_text}</div></div>'
+            + f'<div style="position:relative; z-index:2; padding:0 20px; max-width:1200px; margin:0 auto;">'
+            + f'<div style="display:inline-block; font-size:12px; font-weight:800; letter-spacing:0.2em; color:{accent_col}; border:2px solid {accent_col}; padding:8px 24px; border-radius:50px; margin-bottom:30px;">{sub}</div>'
+            + f'<h1 style="font-family:\'Black Han Sans\', var(--fh); font-size:clamp(50px, 8vw, 130px); font-weight:900; line-height:1.05; letter-spacing:-0.05em; color:{text_col}; margin-bottom:30px; word-break:keep-all;">{title}</h1>'
+            + f'<p style="font-size:clamp(16px, 2vw, 22px); line-height:1.8; color:rgba(255,255,255,0.8) if {dark} else var(--t70); max-width:800px; margin:0 auto 50px; font-weight:600;">{lead}</p>'
+            + f'<a href="#cta" style="display:inline-block; background:{accent_col}; color:var(--bg); padding:20px 50px; font-size:18px; font-weight:900; font-family:var(--fh); text-decoration:none; border-radius:0; box-shadow: 10px 10px 0px rgba(0,0,0,0.3); transition:transform 0.2s;">{cta} →</a>'
             + '</div></section>'
         )
 
-    # ── 레이아웃 2: CINEMATIC ──────────────────────
-    elif hs == "cinematic":
-        return (
-            f'<section id="hero" style="position:relative;min-height:100vh;overflow:hidden;{s["hero_bg"]};display:flex;flex-direction:column;justify-content:flex-end">'
-            + s["overlay"]
-            + f'<div style="position:absolute;inset:0;background:linear-gradient(160deg,transparent 30%,rgba(0,0,0,.85) 100%);z-index:1;pointer-events:none"></div>'
-            + f'<div style="position:relative;z-index:2;padding:80px clamp(40px,7vw,100px) 80px;display:grid;grid-template-columns:1fr 340px;gap:60px;align-items:flex-end">'
-            + f'<div>'
-            + f'<div style="display:inline-flex;align-items:center;gap:10px;margin-bottom:24px;padding:5px 18px;border:1.5px solid var(--c1);border-radius:var(--r-btn,2px)">'
-            + f'<span style="font-size:10px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--c1)">{sub}</span></div>'
-            + f'<h1 style="font-family:var(--fh);font-size:clamp(40px,6.5vw,96px);font-weight:900;line-height:.92;letter-spacing:-.04em;color:#fff;margin-bottom:16px" class="st">{title}</h1>'
-            + f'<p style="font-size:15px;line-height:2;color:rgba(255,255,255,.72);max-width:480px;border-left:3px solid var(--c1);padding-left:20px;margin-bottom:32px">{lead}</p>'
-            + f'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:28px">{kh}</div>'
-            + f'<a class="btn-p" href="#cta" style="font-size:15px;padding:16px 44px">{cta} →</a>'
-            + f'</div>'
-            + f'<div style="padding:28px;background:rgba(0,0,0,.7);{s["blur"]};border:1px solid rgba(255,255,255,.12);border-radius:var(--r,4px)">'
-            + f'<div style="font-family:var(--fh);font-size:11px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--c1);margin-bottom:16px">INFO</div>'
-            + "".join(f'<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.1)"><span style="font-size:11px;color:rgba(255,255,255,.5)">{l}</span><span style="font-size:12px;font-weight:700;color:#fff">{v}</span></div>' for l,v in [["대상",d["target"]],["과목",d["subject"]]])
-            + f'</div></div></section>'
-        )
-
-    # ── 레이아웃 3: BILLBOARD ─────
-    elif hs == "billboard":
-        bg_col = "var(--bg)"
-        title_parts = title.split()
-        line1 = title_parts[0] if title_parts else title
-        line2 = " ".join(title_parts[1:]) if len(title_parts) > 1 else ""
-        return (
-            f'<section id="hero" style="min-height:100vh;background:{bg_col};position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:center;padding:80px clamp(40px,7vw,100px)">'
-            + f'<div style="position:relative;z-index:1">'
-            + f'<div style="display:flex;align-items:center;gap:12px;margin-bottom:32px"><div style="width:48px;height:4px;background:var(--c1)"></div><span style="font-size:9.5px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--c1)">{sub}</span></div>'
-            + f'<div style="font-family:var(--fh);font-size:clamp(56px,9vw,140px);font-weight:900;line-height:.88;letter-spacing:-.05em;color:var(--text);margin-bottom:4px" class="st">{line1}</div>'
-            + (f'<div style="font-family:var(--fh);font-size:clamp(56px,9vw,140px);font-weight:900;line-height:.88;letter-spacing:-.05em;color:transparent;-webkit-text-stroke:2px var(--c1);">{line2}</div>' if line2 else "")
-            + f'<div style="display:flex;align-items:center;gap:32px;margin-top:40px;padding-top:32px;border-top:2px solid var(--c1)">'
-            + f'<p style="font-size:14px;line-height:1.9;color:var(--t70);max-width:380px">{lead}</p>'
-            + f'<div style="display:flex;flex-direction:column;gap:10px;flex-shrink:0">'
-            + f'<a class="btn-p" href="#cta" style="font-size:15px;padding:16px 44px">{cta} →</a>'
-            + f'<div style="display:flex;gap:5px;flex-wrap:wrap">{kh}</div></div>'
-            + f'</div></div></section>'
-        )
-
-    # ── 기타 통합 (에디토리얼, 스플릿 등) ────────
+    # 🌟 2. 에디토리얼 / 애플 스타일 (여백의 미와 고급스러움) 🌟
     else:
+        text_col = "#fff" if dark else "var(--text)"
+        sub_col = "rgba(255,255,255,0.6)" if dark else "var(--t45)"
+        
         return (
-            f'<section id="hero" style="position:relative;min-height:100vh;overflow:hidden;{s["hero_bg"]};display:flex;flex-direction:column;justify-content:flex-end">'
+            f'<section id="hero" style="position:relative; min-height:90vh; overflow:hidden; {s["hero_bg"]}; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center;">'
             + s["overlay"]
-            + f'<div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.9) 0%,rgba(0,0,0,.1) 60%,transparent 100%);z-index:1;pointer-events:none"></div>'
-            + f'<div style="position:relative;z-index:2;padding:clamp(48px,6vw,80px) clamp(36px,6vw,88px);max-width:900px">'
-            + f'<div style="display:inline-flex;align-items:center;gap:9px;background:rgba(255,255,255,.12);{s["blur"]};padding:6px 18px;border-radius:100px;margin-bottom:22px;border:1px solid rgba(255,255,255,.2)">'
-            + f'<span style="font-size:10px;font-weight:800;color:#fff;letter-spacing:.14em;text-transform:uppercase">{sub}</span></div>'
-            + f'<h1 style="font-family:var(--fh);font-size:clamp(36px,5vw,80px);font-weight:900;line-height:.95;letter-spacing:-.04em;color:#fff;margin-bottom:20px" class="st">{title}</h1>'
-            + f'<p style="font-size:clamp(13px,1.5vw,16px);line-height:1.9;color:rgba(255,255,255,.78);max-width:500px;margin-bottom:28px;padding-left:18px;border-left:3px solid #fff">{lead}</p>'
-            + f'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:28px">{kh}</div>'
-            + f'<a class="btn-p" href="#cta" style="font-size:15px;padding:16px 44px">{cta} →</a>'
-            + f'</div></section>'
+            + f'<div style="position:relative; z-index:2; padding:0 20px; max-width:1000px; margin:0 auto;">'
+            + f'<div style="font-size:14px; font-weight:700; letter-spacing:0.15em; color:{sub_col}; margin-bottom:20px; text-transform:uppercase;">{sub}</div>'
+            + f'<h1 style="font-family:var(--fh); font-size:clamp(40px, 6vw, 90px); font-weight:900; line-height:1.15; letter-spacing:-0.03em; color:{text_col}; margin-bottom:24px; word-break:keep-all;">{title}</h1>'
+            + f'<p style="font-size:clamp(16px, 1.8vw, 20px); line-height:1.8; color:rgba(255,255,255,0.7) if {dark} else var(--t70); max-width:700px; margin:0 auto 40px; font-weight:500;">{lead}</p>'
+            + f'<a href="#cta" style="display:inline-block; background:var(--text); color:var(--bg); padding:16px 44px; font-size:16px; font-weight:700; border-radius:50px; text-decoration:none; transition:opacity 0.2s;">{cta}</a>'
+            + '</div></section>'
         )
-
 
 def sec_intro(d, cp, T):
     """강좌 핵심 소개 — 짧고 임팩트 있는 강좌 요약 섹션"""
@@ -2108,40 +2026,40 @@ def sec_why(d, cp, T):
     for i, (ic, tt, dc) in enumerate(safe_r):
         # 짝수/홀수에 따라 왼쪽, 오른쪽으로 쏠리게 비대칭 배치
         align_self = "flex-start" if i % 2 == 0 else "flex-end"
-        margin_offset = "margin-top: -40px;" if i > 0 else "" # 카드가 서로 살짝 겹치게(Overlap)
+        margin_offset = "margin-top: -60px;" if i > 0 else "" # 카드가 서로 살짝 겹치게(Overlap)
         
         rh += (
             f'<div class="rv d{min(i+1,4)}" style="align-self:{align_self}; {margin_offset} '
-            f'width: clamp(300px, 80%, 700px); position:relative; z-index:{i+2};">'
+            f'width: clamp(300px, 80%, 750px); position:relative; z-index:{i+2};">'
             
             # 뒤에 깔리는 거대한 숫자
-            f'<div style="position:absolute; top:-60px; left:-30px; font-family:var(--fh); '
-            f'font-size:180px; font-weight:900; color:var(--c1); opacity:0.1; line-height:1; '
+            f'<div style="position:absolute; top:-80px; left:-40px; font-family:var(--fh); '
+            f'font-size: clamp(120px, 15vw, 220px); font-weight:900; color:var(--c1); opacity:0.12; line-height:1; '
             f'pointer-events:none; z-index:-1;">{i+1:02d}</div>'
             
-            # 실제 카드 내용 (유리 질감 + 강한 그림자)
-            f'<div style="background:var(--bg3); padding:40px; border-radius:0; '
-            f'border:2px solid var(--bd); box-shadow: 20px 20px 0px rgba(0,0,0,0.15);">'
-            f'<div style="font-size:50px; margin-bottom:20px; filter:drop-shadow(0 4px 10px rgba(0,0,0,0.2))">{ic}</div>'
-            f'<div style="font-family:var(--fh); font-size:clamp(22px, 3vw, 36px); font-weight:900; '
-            f'color:var(--text); margin-bottom:16px; word-break:keep-all;">{strip_hanja(tt)}</div>'
-            f'<p style="font-size:clamp(15px, 1.8vw, 18px); line-height:1.9; color:var(--t70); '
+            # 실제 카드 내용 (고급스러운 유리 질감 + 깊은 그림자)
+            f'<div style="background:var(--bg3); padding:40px 50px; border-radius:12px; '
+            f'border:1px solid var(--bd); box-shadow: 0 30px 60px rgba(0,0,0,0.18), 0 10px 20px rgba(0,0,0,0.1);"> '
+            f'<div style="font-size: clamp(36px, 4vw, 56px); margin-bottom:24px; filter:drop-shadow(0 4px 12px rgba(0,0,0,0.25))">{ic}</div>'
+            f'<div style="font-family:var(--fh); font-size: clamp(24px, 3.5vw, 40px); font-weight:900; '
+            f'color:var(--text); margin-bottom:20px; word-break:keep-all;">{strip_hanja(tt)}</div>'
+            f'<p style="font-size: clamp(16px, 1.8vw, 19px); line-height:1.95; color:var(--t70); '
             f'margin:0; font-weight:500;">{strip_hanja(dc)}</p>'
             f'</div></div>'
         )
 
     return (
-        f'<section class="sec" id="why" style="position:relative; overflow:hidden; padding: 120px 20px;">'
+        f'<section class="sec" id="why" style="position:relative; overflow:hidden; padding: 160px 20px;">'
         # 흐르는 마키 텍스트
         f'<div class="marquee-container"><div class="marquee-content">{bg_text}{bg_text}</div></div>'
-        f'<div style="max-width:1000px; margin:0 auto; position:relative; z-index:2;">'
-        f'<div class="rv" style="margin-bottom:80px; text-align:center;">'
-        f'<div class="tag-line" style="justify-content:center;">수강 이유</div>'
-        f'<h2 style="font-family:\'Black Han Sans\',var(--fh); font-size:clamp(36px,5vw,72px); '
+        f'<div style="max-width:1100px; margin:0 auto; position:relative; z-index:2;">'
+        f'<div class="rv" style="margin-bottom:100px; text-align:center;">'
+        f'<div class="tag-line" style="justify-content:center; margin-bottom:20px;">수강 이유</div>'
+        f'<h2 style="font-family:\'Black Han Sans\',var(--fh); font-size:clamp(40px, 6vw, 80px); '
         f'font-weight:900; color:var(--text); letter-spacing:-0.05em; line-height:1.1;">{t}</h2>'
-        f'<p class="sec-sub" style="margin: 20px auto 0; font-size:18px;">{s}</p></div>'
+        f'<p class="sec-sub" style="margin: 24px auto 0; font-size:clamp(17px, 2vw, 20px);">{s}</p></div>'
         # 비대칭 겹침 레이아웃 시작
-        f'<div style="display:flex; flex-direction:column; gap:40px;">{rh}</div>'
+        f'<div style="display:flex; flex-direction:column; gap:60px;">{rh}</div>'
         f'</div></section>'
     )
 
@@ -3796,65 +3714,42 @@ st.markdown("""<style>
 [data-testid="stSidebar"] .stCaption{color:#8A9AB8!important;font-size:12px!important;}
 [data-testid="stSidebar"] h3{color:#E0E8F8!important;font-size:16px!important;font-weight:800!important;}
 [data-testid="stSidebar"] hr{border-color:#171D2F!important;}
+
+/* 🌟 입력창 글씨 안보이는 문제 완벽 해결 🌟 */
+[data-testid="stSidebar"] input, 
+[data-testid="stSidebar"] textarea, 
+[data-testid="stSidebar"] div[data-baseweb="select"] > div {
+    background-color: #1A2038 !important; /* 입력창 배경을 살짝 밝게 */
+    color: #FFFFFF !important;
+    -webkit-text-fill-color: #FFFFFF !important; /* 강제 흰색 글씨 */
+    border: 1px solid #343C58 !important;
+    border-radius: 6px !important;
+    font-size: 13px !important;
+}
+[data-testid="stSidebar"] input::placeholder,
+[data-testid="stSidebar"] textarea::placeholder {
+    color: #8A9AB8 !important;
+    -webkit-text-fill-color: #8A9AB8 !important;
+}
+
+/* 멀티셀렉트(섹션 순서) 태그 UI 세련되게 고치기 */
+span[data-baseweb="tag"] {
+  background-color: #232A40 !important;
+  color: #FFFFFF !important;
+  border: 1px solid #343C58 !important;
+  border-radius: 4px !important;
+  padding: 4px 10px !important;
+  font-size: 12px !important;
+}
+
 .stButton>button{border-radius:6px!important;font-weight:700!important;
   border:1px solid #232A40!important;background:#0D1220!important;color:#8A9AB8!important;
   transition:all .15s!important;font-size:12px!important;}
 .stButton>button:hover{background:#161E38!important;color:#C0CDE8!important;border-color:#343C58!important;}
 .stButton>button[kind="primary"]{background:linear-gradient(135deg,#FF6B35,#E84393)!important;
   color:#fff!important;border:none!important;font-size:13px!important;}
-[data-testid="stSidebar"] .stButton>button[kind="primary"]{
-  background:linear-gradient(135deg,#FF4500,#FF1493,#7B2FFF)!important;
-  color:#fff!important;font-weight:800!important;
-  box-shadow:0 0 22px rgba(255,69,0,.5)!important;
-  animation:pulse-btn 2.5s ease-in-out infinite!important;}
-@keyframes pulse-btn{0%,100%{box-shadow:0 0 22px rgba(255,69,0,.5)}50%{box-shadow:0 0 32px rgba(255,20,147,.75)}}
-div[data-testid="stMetric"]{background:#090D1C;border:1px solid #1A2038;border-radius:10px;padding:14px;}
-div[data-testid="stMetric"] label{color:#4A5870!important;font-size:11px!important;}
-div[data-testid="stMetric"] div{color:#E0E8F8!important;font-weight:700!important;}
-[data-testid="stSidebar"] input,[data-testid="stSidebar"] textarea,
-[data-testid="stSidebar"] select{background:#090D1C!important;border:1px solid #1A2038!important;
-  color:#C0CDE8!important;border-radius:6px!important;font-size:12px!important;}
-[data-testid="stSidebar"] input::placeholder,
-[data-testid="stSidebar"] textarea::placeholder{
- color:rgba(160,180,220,0.55)!important;}
-.stMainBlockContainer{background:#0A0C14;color:#E0E8F8;}
-.stMainBlockContainer p,.stMainBlockContainer span,
-.stMainBlockContainer label,.stMainBlockContainer div{color:#B8C8E0;}
-.stMainBlockContainer h1,.stMainBlockContainer h2,
-.stMainBlockContainer h3,.stMainBlockContainer h4{color:#E0E8F8!important;}
-.stMarkdown{color:#B8C8E0!important;}
-.stSuccess{background:rgba(52,211,153,.08)!important;border:1px solid rgba(52,211,153,.2)!important;}
-.stInfo{background:rgba(99,102,241,.08)!important;border:1px solid rgba(99,102,241,.2)!important;}
-.stError{background:rgba(248,113,113,.08)!important;border:1px solid rgba(248,113,113,.2)!important;}
 .sec-hdr{font-size:9.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
   color:#3A4868;padding:10px 16px 5px;}
-/* 테마 버튼 선택 하이라이트 */
-.stButton>button[kind="primary"][data-theme]{
-  outline:2px solid var(--c1)!important;}
-  @media(max-width:768px){
-  [data-testid="stHorizontalBlock"]{flex-direction:column!important;}
-  .stMetric{margin-bottom:8px;}
-  iframe{min-height:600px!important;}
-}
-/* 멀티셀렉트(섹션 순서) 태그 UI 세련되게 고치기 */
-span[data-baseweb="tag"] {
-  background-color: #161E38 !important;
-  color: #C0CDE8 !important;
-  border: 1px solid #343C58 !important;
-  border-radius: 4px !important;
-  padding: 4px 8px !important;
-  font-size: 11px !important;
-}
-span[data-baseweb="tag"] svg {
-  fill: #8A9AB8 !important;
-}
-span[data-baseweb="tag"]:hover {
-  background-color: #232A40 !important;
-}
-div[data-baseweb="select"] > div {
-  background-color: #090D1C !important;
-  border-color: #1A2038 !important;
-}
 </style>""", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════
