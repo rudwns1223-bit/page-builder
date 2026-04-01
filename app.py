@@ -1889,80 +1889,56 @@ def _bg_vars(bg_url, dark):
 
 
 def sec_banner(d, cp, T):
-    sub   = strip_hanja(cp.get("bannerSub", d["subject"]+" 완성"))
-    title = strip_hanja(cp.get("bannerTitle", d["purpose_label"]))
-    lead  = strip_hanja(cp.get("bannerLead", f"{d['target']}을 위한 커리큘럼"))
-    cta   = strip_hanja(cp.get("ctaCopy", "수강신청하기"))
-    bg_url= cp.get("bg_photo_url", "")
+    sub    = strip_hanja(cp.get("bannerSub", d["subject"]+" 완성"))
+    title  = strip_hanja(cp.get("bannerTitle", d["purpose_label"]))
+    lead   = strip_hanja(cp.get("bannerLead", f"{d['target']}을 위한 커리큘럼"))
+    cta    = strip_hanja(cp.get("ctaCopy", "수강신청하기"))
+    bg_url = cp.get("bg_photo_url", "")
     
-    # 🌟 재생성 시 디자인을 바꾸는 핵심 코드!
-    v = (st.session_state.layout_seed % 3) + 1 
+    # 테마 설정값 가져오기
+    dark = T.get("dark", True)
+    text_col = "#fff" if dark else "var(--text)"
+    
+    # 레이아웃 시드에 따른 분기 (v1: 마키/배경형, v2: 좌우분할, v3: 포스터)
+    v = (st.session_state.get("layout_seed", 0) % 3) + 1 
 
-    if v == 1: # 스타일 1: 글자가 흐르는 배경형
+    if v == 1: # 스타일 1: 마키 애니메이션 배경형
         return f'''
         <section id="hero" style="position:relative; min-height:90vh; overflow:hidden; background:var(--bg); display:flex; align-items:center; justify-content:center;">
             <div class="marquee-container"><div class="marquee-content">{title} {title}</div></div>
-            <div class="rv" style="position:relative; z-index:2; text-align:center;">
-                <h1 style="font-family:var(--fh); font-size:120px; color:var(--text);">{title}</h1>
-                <p style="font-size:24px; color:var(--c1); font-weight:800;">{lead}</p>
-                <a href="#cta" class="btn-p" style="margin-top:30px;">{cta} →</a>
+            <div class="rv" style="position:relative; z-index:2; text-align:center; padding:20px;">
+                <div style="display:inline-block; font-size:12px; font-weight:800; letter-spacing:0.2em; color:var(--c1); border:2px solid var(--c1); padding:8px 24px; border-radius:50px; margin-bottom:30px;">{sub}</div>
+                <h1 style="font-family:'Black Han Sans', var(--fh); font-size:clamp(50px, 8vw, 120px); color:{text_col}; line-height:1.1;">{title}</h1>
+                <p style="font-size:clamp(16px, 2vw, 24px); color:var(--c1); font-weight:800; margin-top:20px;">{lead}</p>
+                <a href="#cta" class="btn-p" style="margin-top:40px; padding:18px 45px; font-size:18px;">{cta} →</a>
             </div>
         </section>
-        
-        return (
-            f'<section id="hero" style="position:relative; min-height:100vh; overflow:hidden; {bg_style}; display:flex; flex-direction:column; justify-content:center; text-align:center;">'
-            + overlay +
-            f'<div class="marquee-container"><div class="marquee-content">{bg_text}{bg_text}</div></div>'
-            f'<div style="position:relative; z-index:2; padding:0 20px; max-width:1200px; margin:0 auto;">'
-            f'<div style="display:inline-block; font-size:12px; font-weight:800; letter-spacing:0.2em; color:var(--c1); border:2px solid var(--c1); padding:8px 24px; border-radius:50px; margin-bottom:30px;">{sub}</div>'
-            f'<h1 style="font-family:\'Black Han Sans\', var(--fh); font-size:clamp(60px, 8vw, 150px); font-weight:900; line-height:1.05; letter-spacing:-0.05em; color:{text_col}; margin-bottom:30px; word-break:keep-all;">{title}</h1>'
-            f'<p style="font-size:clamp(16px, 2vw, 22px); line-height:1.8; color:rgba(255,255,255,0.8) if {dark} else var(--t70); max-width:800px; margin:0 auto 50px; font-weight:600;">{lead}</p>'
-            f'<a href="#cta" style="display:inline-block; background:var(--c1); color:var(--bg); padding:20px 50px; font-size:18px; font-weight:900; font-family:var(--fh); text-decoration:none; box-shadow: 10px 10px 0px rgba(0,0,0,0.3); transition:transform 0.2s;">{cta} →</a>'
-            f'</div></section>'
-        )
+        '''
 
     elif v == 2: # 스타일 2: 깔끔한 좌우 분할형
+        bg_img_style = f"background:url('{bg_url}') center/cover;" if bg_url else "background:var(--bg3);"
         return f'''
         <section id="hero" style="display:grid; grid-template-columns:1fr 1.2fr; min-height:90vh; background:var(--bg2);">
-            <div style="padding:80px; display:flex; flex-direction:column; justify-content:center;">
-                <h1 class="rv" style="font-size:80px; color:var(--text); line-height:1.1;">{title}</h1>
-                <p class="rv" style="font-size:20px; color:var(--t70); margin:30px 0;">{lead}</p>
-                <a href="#cta" class="btn-p" style="width:fit-content;">{cta}</a>
+            <div style="padding:clamp(40px, 5vw, 80px); display:flex; flex-direction:column; justify-content:center;">
+                <div class="tag-line">{sub}</div>
+                <h1 class="rv" style="font-family:var(--fh); font-size:clamp(40px, 6vw, 80px); color:var(--text); line-height:1.1; margin-bottom:20px;">{title}</h1>
+                <p class="rv" style="font-size:clamp(15px, 1.5vw, 20px); color:var(--t70); margin-bottom:40px;">{lead}</p>
+                <a href="#cta" class="btn-p" style="width:fit-content; padding:15px 40px;">{cta}</a>
             </div>
-            <div style="background:url('{bg_url}') center/cover;"></div>
+            <div style="{bg_img_style}"></div>
         </section>
-        
-        return (
-            f'<section id="hero" style="position:relative; min-height:90vh; display:flex; align-items:center; justify-content:center; text-align:center; overflow:hidden; {bg_style}">'
-            + overlay +
-            f'<div class="rv" style="position:relative; z-index:2; max-width:1200px; padding: 20px;">'
-            f'<h3 style="font-family:var(--fh); font-size:clamp(14px, 2vw, 20px); font-weight:800; color:var(--c1); letter-spacing:0.3em; margin-bottom:30px; text-transform:uppercase;">{sub}</h3>'
-            f'<h1 style="font-family:var(--fh); font-size:clamp(50px, 9vw, 140px); font-weight:900; color:{text_color}; line-height:1.05; letter-spacing:-0.05em; margin-bottom:40px; word-break:keep-all;">{title}</h1>'
-            f'<p style="font-size:clamp(16px, 2.2vw, 26px); color:rgba(255,255,255,0.7) if {dark} else var(--t70); font-weight:500; line-height:1.7; max-width:800px; margin:0 auto 60px; word-break:keep-all;">{lead}</p>'
-            f'<a href="#cta" style="display:inline-block; background:var(--c1); color:var(--bg); padding:20px 60px; border-radius:50px; font-size:clamp(16px, 2vw, 20px); font-weight:900; font-family:var(--fh); text-decoration:none; box-shadow: 0 10px 30px rgba(0,0,0,0.3); transition: transform 0.2s;">{cta}</a>'
-            f'</div></section>'
-        )
+        '''
 
-   else: # 스타일 3: 포스터 스타일
+    else: # 스타일 3: 강렬한 센터 포스터 스타일
         return f'''
-        <section id="hero" style="padding:150px 20px; background:var(--c1); color:var(--bg); text-align:center;">
-            <div class="rv" style="border:5px solid var(--bg); padding:60px 20px;">
-                <h1 style="font-size:100px;">{title}</h1>
-                <p style="font-size:26px; opacity:0.9;">{lead}</p>
+        <section id="hero" style="position:relative; padding:150px 20px; background:var(--c1); color:var(--bg); text-align:center; min-height:90vh; display:flex; align-items:center; justify-content:center;">
+            <div class="rv" style="border:5px solid var(--bg); padding:clamp(40px, 5vw, 80px) 20px; width:100%; max-width:1000px;">
+                <div style="font-size:16px; font-weight:900; letter-spacing:0.3em; margin-bottom:20px;">{sub}</div>
+                <h1 style="font-family:'Black Han Sans', var(--fh); font-size:clamp(50px, 9vw, 130px); margin-bottom:30px;">{title}</h1>
+                <p style="font-size:clamp(18px, 2vw, 28px); opacity:0.9; font-weight:600;">{lead}</p>
+                <a href="#cta" style="display:inline-block; margin-top:50px; background:var(--bg); color:var(--c1); padding:20px 60px; font-weight:900; text-decoration:none; border-radius:var(--r-btn);"> {cta} </a>
             </div>
         </section>
-        
-        return (
-            f'<section id="hero" style="position:relative; min-height:90vh; display:flex; align-items:center; overflow:hidden; {bg_style}">'
-            + overlay +
-            f'<div class="rv-left" style="position:relative; z-index:2; padding: 100px clamp(20px, 5vw, 80px); width:100%; max-width:1400px; margin:0 auto;">'
-            f'<div style="display:inline-block; font-size:14px; font-weight:800; color:var(--bg); background:var(--c1); padding:6px 16px; margin-bottom:24px;">{sub}</div>'
-            f'<h1 style="font-family:var(--fh); font-size:clamp(45px, 7vw, 110px); font-weight:900; color:{text_color}; line-height:1.1; letter-spacing:-0.03em; margin-bottom:30px; word-break:keep-all; text-align:left;">{title}</h1>'
-            f'<div style="width:60px; height:4px; background:var(--c1); margin-bottom:30px;"></div>'
-            f'<p style="font-size:clamp(15px, 1.8vw, 22px); color:rgba(255,255,255,0.7) if {dark} else var(--t70); font-weight:500; line-height:1.8; max-width:600px; margin-bottom:50px; text-align:left;">{lead}</p>'
-            f'<div style="text-align:left;"><a href="#cta" style="display:inline-block; background:transparent; border:2px solid var(--c1); color:{text_color}; padding:16px 40px; font-size:16px; font-weight:800; text-decoration:none; transition: all 0.2s;" onmouseover="this.style.background=\'var(--c1)\'; this.style.color=\'var(--bg)\'" onmouseout="this.style.background=\'transparent\'; this.style.color=\'{text_color}\'">{cta} →</a></div>'
-            f'</div></section>'
-        )
         
 def sec_intro(d, cp, T):
     label   = st.session_state.get("purpose_label", d["purpose_label"])
