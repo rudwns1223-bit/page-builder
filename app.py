@@ -978,24 +978,15 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
     theme_decl = gen_theme_declaration(ctx, ptype)
     declaration = theme_decl.get("declaration", ctx)
     core_keyword = theme_decl.get("core_keyword", "")
-    forbidden = "·".join(theme_decl.get("forbidden_phrases", [])[:3])
     
     st.session_state["_theme_declaration"] = theme_decl
     
-    # 🌟 스키마에서 글자수 제한을 완전히 해제하여 파격적 문구 유도 🌟
+    # 🌟 이모지 완전 삭제, 고급화 🌟
     schemas = {
-        "신규 커리큘럼": '{"bannerSub":"과목의 본질을 찌르는 철학적 한 마디","bannerTitle":"기존의 틀을 부수는 파격적인 메인 카피 (자유 길이)","brandTagline":"학생의 심장을 때리는 강력한 한 문장","bannerLead":"뻔한 위로가 아닌, 현 상황의 뼈를 때리는 팩트폭력 리드문 (충분히 길게)","bannerTags":["키워드1","키워드2","키워드3"],"ctaCopy":"망설임을 없애는 행동 유도어","ctaTitle":"강력한 CTA 제목","ctaSub":"지금 안 하면 손해라는 식의 서브 문구","ctaBadge":"15자이내","statBadges":[],"introTitle":"강사의 절대적 권위를 보여주는 제목","introDesc":"왜 이 강의를 들어야만 하는지, 압도적 차이를 날카롭게 서술 (자유 길이)","introBio":"강사 시그니처 1문장","introBadges":[],"whyTitle":"파격적 제목","whySub":"30자이내","whyReasons":[["이모지","직설적인 짧은 제목","학생이 읽고 아차 싶을 만큼 뼈 때리는 구체적 이유와 해결책 서술 (최소 80자 이상, 길이 자유)"],["이모지","제목","서술"],["이모지","제목","서술"]],"curriculumTitle":"20자이내","curriculumSub":"30자이내","curriculumSteps":[["01","단계명","이 시기에 학생들이 하는 착각과, 이 단계가 그걸 어떻게 부수고 점수를 만드는지 서술","기간"],["02","단계","서술","기간"],["03","단계","서술","기간"],["04","단계","서술","기간"]],"targetTitle":"이런 학생이라면 반드시 들어라","targetItems":["구체적인 절망적 상황 묘사 1","상황 묘사 2","상황 묘사 3","상황 묘사 4"],"reviews":[["진짜 학생이 흥분해서 쓴 것 같은 매우 길고 구체적인 후기","이름","변화뱃지"],["후기","이름","뱃지"],["후기","이름","뱃지"]],"faqs":[["질문","답변"]],"videoTitle":"영상 제목","videoSub":"설명","videoTag":"OFFICIAL TRAILER","baTitle":"수강 전/후 비교","baSub":"30자","baBeforeItems":["수강 전 절망 상황 1","상황 2","상황 3"],"baAfterItems":["수강 후 압도적 변화 1","변화 2","변화 3"],"methodTitle":"시그니처 학습법","methodSub":"30자","methodSteps":[{"step":"STEP 01","label":"단계명","desc":"설명"},{"step":"STEP 02","label":"단계명","desc":"설명"},{"step":"STEP 03","label":"단계명","desc":"설명"}],"pkgTitle":"구성 안내","pkgSub":"30자","packages":[{"icon":"📗","name":"구성명","desc":"설명","badge":"필수"}]}',
-        "이벤트": '{"bannerSub":"10자","bannerTitle":"틀을 깨는 이벤트 제목","brandTagline":"이벤트 분위기를 담은 한 문장","bannerLead":"참여하지 않으면 손해라는 긴박감 넘치는 리드","bannerTags":["이벤트특징1","이벤트특징2","이벤트특징3"],"ctaCopy":"행동 유도","ctaTitle":"CTA","ctaSub":"서브문구","ctaBadge":"15자","statBadges":[],"eventTitle":"20자","eventDesc":"50자이상","eventDetails":[["📅","이벤트 기간","날짜"],["🎯","대상","값"],["💰","혜택","값"]],"benefitsTitle":"20자","eventBenefits":[{"icon":"이모지","title":"혜택명","desc":"50자이상","badge":"8자","no":"01"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"02"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"03"}],"deadlineTitle":"20자","deadlineMsg":"70자 긴박감","reviews":[["50-70자 구체적 인용문","이름","뱃지"],["인용문","이름","뱃지"],["인용문","이름","뱃지"]]}',
-        "기획전": '{"festHeroTitle":"파격적인 기획전 제목","festHeroCopy":"30자","festHeroSub":"50자이상","brandTagline":"기획전 분위기를 담은 한 문장","festHeroStats":[["수치","라벨"],["수치","라벨"],["수치","라벨"],["수치","라벨"]],"festLineupTitle":"20자","festLineupSub":"40자","festLineup":[{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지","emoji":"이모지"},{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지","emoji":"이모지"}],"festBenefitsTitle":"20자","festBenefits":[{"icon":"이모지","title":"혜택명","desc":"50자이상","badge":"8자","no":"01"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"02"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"03"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"04"}],"festCtaTitle":"CTA제목","festCtaSub":"50자이상"}',
+        "신규 커리큘럼": '{"bannerSub":"과목의 본질을 찌르는 15자 이내","bannerTitle":"기존 틀을 부수는 파격적인 메인 카피 (자유 길이)","brandTagline":"영문 슬로건 한 문장","bannerLead":"뻔한 위로가 아닌 현 상황을 찌르는 팩트폭력 리드문","bannerTags":["키워드1","키워드2","키워드3"],"ctaCopy":"망설임을 없애는 단어","ctaTitle":"강력한 CTA 제목","ctaSub":"지금 안 하면 손해라는 서브 문구","ctaBadge":"10자이내","introTitle":"강사의 절대적 권위 제목","introDesc":"왜 이 강의를 들어야만 하는지 날카롭게 서술 (길게)","introBio":"시그니처 1문장","whyTitle":"파격적 제목","whySub":"30자이내","whyReasons":[["01","직설적인 짧은 제목","학생이 읽고 아차 싶을 만큼 뼈 때리는 구체적 이유와 해결책 서술 (최소 80자 이상)"],["02","제목","서술"],["03","제목","서술"]],"curriculumTitle":"20자이내","curriculumSub":"30자이내","curriculumSteps":[["01","단계명","이 시기에 학생들이 하는 착각과, 이 단계가 그걸 어떻게 부수고 점수를 만드는지 서술","기간"],["02","단계","서술","기간"],["03","단계","서술","기간"],["04","단계","서술","기간"]],"targetTitle":"이런 학생이라면 반드시 들어라","targetItems":["구체적인 절망적 상황 묘사 1","상황 묘사 2","상황 묘사 3","상황 묘사 4"],"reviews":[["진짜 학생이 흥분해서 쓴 것 같은 매우 길고 구체적인 후기","이름","변화뱃지"],["후기","이름","뱃지"],["후기","이름","뱃지"]],"videoTitle":"영상 제목","videoSub":"설명","videoTag":"OFFICIAL TRAILER"}',
+        "이벤트": '{"bannerSub":"10자","bannerTitle":"틀을 깨는 이벤트 제목","brandTagline":"이벤트 분위기 한 문장","bannerLead":"참여하지 않으면 손해라는 긴박감 리드","bannerTags":["이벤트특징1","이벤트특징2","이벤트특징3"],"ctaCopy":"행동 유도","ctaTitle":"CTA","ctaSub":"서브문구","ctaBadge":"15자","eventTitle":"20자","eventDesc":"50자이상","eventDetails":[["일정","날짜"],["대상","값"],["혜택","값"]],"benefitsTitle":"20자","eventBenefits":[{"no":"01","title":"혜택명","desc":"50자이상","badge":"8자"},{"no":"02","title":"혜택명","desc":"50자","badge":"8자"},{"no":"03","title":"혜택명","desc":"50자","badge":"8자"}],"deadlineTitle":"20자","deadlineMsg":"70자 긴박감"}',
+        "기획전": '{"festHeroTitle":"파격적인 기획전 제목","festHeroCopy":"30자","festHeroSub":"50자이상","brandTagline":"분위기 문장","festHeroStats":[["수치","라벨"],["수치","라벨"]],"festLineupTitle":"20자","festLineupSub":"40자","festLineup":[{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지"},{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지"}],"festBenefitsTitle":"20자","festBenefits":[{"no":"01","title":"혜택명","desc":"50자이상","badge":"8자"},{"no":"02","title":"혜택명","desc":"50자","badge":"8자"}],"festCtaTitle":"CTA제목","festCtaSub":"50자이상"}'
     }
-
-    purpose_specific_rule = ""
-    if ptype == "이벤트":
-        purpose_specific_rule = "⚠️ 제목뿐만 아니라 모든 섹션(eventTitle, eventDesc, eventBenefits 등)을 반드시 맥락을 최우선으로 반영해 작성. 강사의 정규 커리큘럼 명칭 절대 금지."
-    elif ptype == "기획전":
-        purpose_specific_rule = "⚠️ 제목(bannerTitle)은 반드시 맥락을 바탕으로 작성."
-    else:
-        purpose_specific_rule = "⚠️ 강사의 대표 강좌명이나 맥락을 기반으로 제목을 작성."
 
     tone_instruction = COPY_TONES.get(st.session_state.copy_tone, "")
     
@@ -1004,28 +995,20 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
 
 ===문구 생성 지침===
 {variation_hint}
-
-# ★★★ 이 페이지의 테마 선언문 ★★★
-{declaration}
-# 핵심 키워드: [{core_keyword}]
-# 절대 쓰지 말아야 할 진부한 클리셰: {forbidden}, 최고의, 체계적인, 합리적인, 실력 향상
+# 이 페이지의 핵심 키워드: [{core_keyword}]
+# 방향성: {declaration}
+# 절대 금지어: 이모지(절대 쓰지 말 것), 최고의, 체계적인, 합리적인, 실력 향상, 교수
 
 ===강사 정보===
 {inst_ctx}
 
-===페이지 정보===
-맥락: "{ctx if ctx else '이벤트/기획전 안내'}"
-목적: {ptype} | 대상: {tgt} | 브랜드: {plabel}
-카피 어조: {tone_instruction}
-
 ===문구 품질 기준===
-1. 모든 문구의 길이 제한(예: 12자 이내)을 무시하세요. 감정을 흔들 수 있다면 짧고 굵게, 혹은 서사적으로 길게 작성하세요.
-2. 학생이 겪고 있는 고통과 실패를 정확하고 직설적으로 묘사하세요.
-3. 숫자를 활용하여 데이터 기반의 프리미엄 신뢰감을 주세요. (만족도% 등 지어내지 않는 선에서 기간, 문항 수 등 활용)
-4. '교수' 절대 금지. 반드시 '선생님' 또는 '강사'.
-5. 반드시 순수 한국어로 작성 (강사 고유명사 제외).
+1. 모든 문구의 길이 제한을 무시하세요. 감정을 흔들 수 있다면 아주 짧거나, 서사적으로 길게 작성하세요.
+2. 이모지(😊, 🎯 등)는 절대 사용하지 마세요. 오직 텍스트의 무게감으로 승부하세요.
+3. 숫자를 활용하여 데이터 기반의 프리미엄 신뢰감을 주세요.
+4. 반드시 순수 한국어로 작성 (강사 고유명사 제외).
 
-JSON만 반환:
+JSON만 반환 (마크다운 금지):
 {schemas.get(ptype, schemas['신규 커리큘럼'])}"""
     
     return safe_json(call_ai(prompt, max_tokens=3500))
@@ -1999,80 +1982,85 @@ def sec_why(d, cp, T):
     t = strip_hanja(cp.get('whyTitle', '이 강의가 필요한 이유'))
     s = strip_hanja(cp.get('whySub', f"{d['subject']} 1등급의 비결"))
     reasons = cp.get('whyReasons', [])
+    
     safe_r = []
     for it in reasons:
         if isinstance(it, (list, tuple)) and len(it) >= 3:
             safe_r.append((str(it[0]), str(it[1]), str(it[2])))
         elif isinstance(it, dict):
-            safe_r.append((it.get('icon','✦'), it.get('title',''), it.get('desc','')))
+            safe_r.append((it.get('no','01'), it.get('title',''), it.get('desc','')))
 
-    # 🌟 테마(Concept)에 따라 결정되는 안정적인 3가지 레이아웃 🌟
+    # 🌟 메가스터디/대성마이맥 프리미엄 스타일 (이모지 없음, 라인과 숫자 강조) 🌟
     concept_hash = sum(ord(c) for c in st.session_state.concept)
     v = (concept_hash % 3) + 1
 
-    if v == 1: # [스타일 1: 거대 숫자 + 비대칭 겹침 (Brutal)]
+    if v == 1: # [스타일 1: 거대 배경 숫자 + 다크 매거진 스타일]
         bg_text = f"{t} " * 10
         rh = ""
-        for i, (ic, tt, dc) in enumerate(safe_r):
+        for i, (no, tt, dc) in enumerate(safe_r):
             align_self = "flex-start" if i % 2 == 0 else "flex-end"
-            margin_top = "margin-top: -60px;" if i > 0 else "" 
+            margin_top = "margin-top: -30px;" if i > 0 else "" 
             rh += (
-                f'<div class="rv d{min(i+1,4)}" style="align-self:{align_self}; {margin_top} width: clamp(300px, 80%, 750px); position:relative; z-index:{i+2};">'
-                f'<div style="position:absolute; top:-80px; left:-40px; font-family:var(--fh); font-size: clamp(120px, 15vw, 220px); font-weight:900; color:var(--c1); opacity:0.12; line-height:1; pointer-events:none; z-index:-1;">{i+1:02d}</div>'
-                f'<div style="background:var(--bg3); padding:40px 50px; border-radius:12px; border:1px solid var(--bd); box-shadow: 0 30px 60px rgba(0,0,0,0.18);">'
-                f'<div style="font-size: clamp(36px, 4vw, 56px); margin-bottom:24px;">{ic}</div>'
-                f'<div style="font-family:var(--fh); font-size: clamp(24px, 3.5vw, 40px); font-weight:900; color:var(--text); margin-bottom:20px;">{strip_hanja(tt)}</div>'
-                f'<p style="font-size: clamp(16px, 1.8vw, 19px); line-height:1.95; color:var(--t70); margin:0;">{strip_hanja(dc)}</p>'
+                f'<div class="rv d{min(i+1,4)}" style="align-self:{align_self}; {margin_top} width: clamp(300px, 85%, 750px); position:relative; z-index:{i+2};">'
+                # 뒤에 깔리는 거대한 투명 숫자
+                f'<div style="position:absolute; top:-70px; left:-30px; font-family:var(--fh); font-size: clamp(150px, 18vw, 250px); font-weight:900; color:var(--c1); opacity:0.08; line-height:1; pointer-events:none; z-index:-1;">{i+1:02d}</div>'
+                # 카드 본체 (이모지 대신 심플한 라인 디자인)
+                f'<div style="background:var(--bg3); padding:50px 60px; border-radius:0; border-top: 4px solid var(--c1); box-shadow: 20px 20px 0px rgba(0,0,0,0.2);">'
+                f'<div style="font-family:var(--fh); font-size: 16px; color:var(--c1); letter-spacing:0.2em; font-weight:800; margin-bottom:16px;">POINT {i+1:02d}</div>'
+                f'<div style="font-family:var(--fh); font-size: clamp(28px, 3.5vw, 42px); font-weight:900; color:var(--text); margin-bottom:24px; word-break:keep-all; line-height:1.2;">{strip_hanja(tt)}</div>'
+                f'<p style="font-size: clamp(16px, 1.8vw, 20px); line-height:1.9; color:var(--t70); margin:0; font-weight:500;">{strip_hanja(dc)}</p>'
                 f'</div></div>'
             )
         return (
-            f'<section class="sec" id="why" style="position:relative; overflow:hidden; padding: 160px 20px;">'
+            f'<section class="sec" id="why" style="position:relative; overflow:hidden; padding: 180px 20px;">'
             f'<div class="marquee-container"><div class="marquee-content">{bg_text}{bg_text}</div></div>'
             f'<div style="max-width:1100px; margin:0 auto; position:relative; z-index:2;">'
-            f'<div class="rv" style="margin-bottom:100px; text-align:center;">'
-            f'<div class="tag-line" style="justify-content:center;">수강 이유</div>'
-            f'<h2 style="font-family:var(--fh); font-size:clamp(40px, 6vw, 80px); font-weight:900; color:var(--text); letter-spacing:-0.05em;">{t}</h2>'
-            f'<p class="sec-sub" style="margin: 24px auto 0; font-size:18px;">{s}</p></div>'
+            f'<div class="rv" style="margin-bottom:120px; text-align:center;">'
+            f'<div class="tag-line" style="justify-content:center; font-size:14px; letter-spacing:0.3em;">WHY CHOOSE US</div>'
+            f'<h2 style="font-family:\'Black Han Sans\',var(--fh); font-size:clamp(40px, 6vw, 80px); font-weight:900; color:var(--text); letter-spacing:-0.05em; margin-top:20px;">{t}</h2>'
+            f'<p class="sec-sub" style="margin: 24px auto 0; font-size:20px; color:var(--c1); font-weight:700;">{s}</p></div>'
             f'<div style="display:flex; flex-direction:column; gap:60px;">{rh}</div>'
             f'</div></section>'
         )
 
-    elif v == 2: # [스타일 2: 세로 정렬 카드]
+    elif v == 2: # [스타일 2: 애플 스타일 세로 정렬 (Clean & Minimal)]
         rh = ""
-        for i, (ic, tt, dc) in enumerate(safe_r):
+        for i, (no, tt, dc) in enumerate(safe_r):
             rh += (
-                f'<div class="rv d{min(i+1,4)}" style="display:flex; gap:30px; align-items:flex-start; padding:40px; background:var(--bg3); border:1px solid var(--bd); border-radius:24px; margin-bottom:20px;">'
-                f'<div style="width:80px; height:80px; border-radius:50%; background:var(--c1); display:flex; align-items:center; justify-content:center; font-size:36px; flex-shrink:0;">{ic}</div>'
-                f'<div><h3 style="font-family:var(--fh); font-size:clamp(22px, 3vw, 32px); font-weight:900; color:var(--text); margin-bottom:16px;">{strip_hanja(tt)}</h3>'
-                f'<p style="font-size:16px; color:var(--t70); line-height:1.8; margin:0;">{strip_hanja(dc)}</p></div>'
+                f'<div class="rv d{min(i+1,4)}" style="display:flex; gap:40px; align-items:flex-start; padding:50px 0; border-bottom:1px solid var(--bd);">'
+                f'<div style="font-family:var(--fh); font-size:60px; font-weight:900; color:var(--c1); line-height:1; flex-shrink:0;">{i+1:02d}.</div>'
+                f'<div><h3 style="font-family:var(--fh); font-size:clamp(26px, 3.5vw, 40px); font-weight:900; color:var(--text); margin-bottom:20px; letter-spacing:-0.03em;">{strip_hanja(tt)}</h3>'
+                f'<p style="font-size:clamp(16px, 1.8vw, 20px); color:var(--t70); line-height:1.85; margin:0; font-weight:500;">{strip_hanja(dc)}</p></div>'
                 f'</div>'
             )
         return (
-            f'<section class="sec alt" id="why" style="padding: 120px 20px;">'
+            f'<section class="sec alt" id="why" style="padding: 160px 20px;">'
             f'<div style="max-width:900px; margin:0 auto;">'
-            f'<div class="rv" style="text-align:left; margin-bottom:60px; padding-bottom:30px; border-bottom:2px solid var(--c1);">'
-            f'<div class="tag-line">{s}</div>'
-            f'<h2 style="font-family:var(--fh); font-size:clamp(36px, 5vw, 64px); font-weight:900; color:var(--text); letter-spacing:-0.03em;">{t}</h2>'
-            f'</div>{rh}</div></section>'
+            f'<div class="rv" style="text-align:left; margin-bottom:80px;">'
+            f'<div class="tag-line" style="font-size:13px;">{s}</div>'
+            f'<h2 style="font-family:var(--fh); font-size:clamp(45px, 6vw, 75px); font-weight:900; color:var(--text); letter-spacing:-0.04em; margin-top:16px;">{t}</h2>'
+            f'</div><div style="border-top:2px solid var(--c1);">{rh}</div></div></section>'
         )
 
-    else: # [스타일 3: 다크 3열 그리드 (Compact & Clean)]
+    else: # [스타일 3: 프리미엄 3열 그리드 (구분선 강조)]
         rh = ""
-        for i, (ic, tt, dc) in enumerate(safe_r):
+        for i, (no, tt, dc) in enumerate(safe_r):
             rh += (
-                f'<div class="rv d{min(i+1,4)}" style="padding:40px 30px; background:var(--bg2); border-top:4px solid var(--c1); border-radius:4px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">'
-                f'<div style="font-size:48px; margin-bottom:20px;">{ic}</div>'
-                f'<h3 style="font-family:var(--fh); font-size:24px; font-weight:900; color:var(--text); margin-bottom:16px; line-height:1.3;">{strip_hanja(tt)}</h3>'
-                f'<p style="font-size:15px; color:var(--t70); line-height:1.7; margin:0;">{strip_hanja(dc)}</p>'
+                f'<div class="rv d{min(i+1,4)}" style="padding:40px; background:transparent; border:1px solid var(--bd); position:relative;">'
+                f'<div style="width:40px; height:4px; background:var(--c1); margin-bottom:30px;"></div>'
+                f'<div style="font-family:var(--fh); font-size:14px; font-weight:800; color:var(--c1); margin-bottom:16px; letter-spacing:0.1em;">REASON 0{i+1}</div>'
+                f'<h3 style="font-family:var(--fh); font-size:clamp(22px, 2.5vw, 28px); font-weight:900; color:var(--text); margin-bottom:24px; line-height:1.4;">{strip_hanja(tt)}</h3>'
+                f'<p style="font-size:16px; color:var(--t70); line-height:1.8; margin:0;">{strip_hanja(dc)}</p>'
                 f'</div>'
             )
         return (
-            f'<section class="sec" id="why" style="padding: 120px 20px;">'
+            f'<section class="sec" id="why" style="padding: 160px 20px; background:var(--bg2);">'
             f'<div style="max-width:1200px; margin:0 auto;">'
-            f'<div class="rv" style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:20px; margin-bottom:60px;">'
-            f'<div><div class="tag-line">WHY THIS CLASS</div><h2 style="font-family:var(--fh); font-size:clamp(32px, 4vw, 56px); font-weight:900; color:var(--text);">{t}</h2></div>'
-            f'<p style="font-size:16px; color:var(--t70); max-width:400px; text-align:right;">{s}</p>'
-            f'</div><div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:20px;">{rh}</div>'
+            f'<div class="rv" style="display:flex; flex-direction:column; align-items:center; text-align:center; margin-bottom:80px;">'
+            f'<div class="tag-line" style="margin-bottom:20px;">WHY THIS CLASS</div>'
+            f'<h2 style="font-family:var(--fh); font-size:clamp(36px, 5vw, 64px); font-weight:900; color:var(--text);">{t}</h2>'
+            f'<p style="font-size:18px; color:var(--t70); margin-top:20px;">{s}</p>'
+            f'</div><div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:30px;">{rh}</div>'
             f'</div></section>'
         )
 
@@ -3502,7 +3490,7 @@ st.markdown("""<style>
 [data-testid="stSidebar"] h3 {color:#E0E8F8 !important; font-size:16px !important; font-weight:800 !important;}
 [data-testid="stSidebar"] hr {border-color:#171D2F !important;}
 
-/* 🌟 1. 입력창 글씨 하얗게 보이게 만들기 🌟 */
+/* 입력창 글씨 하얗게 보이게 만들기 */
 [data-testid="stSidebar"] input, 
 [data-testid="stSidebar"] textarea, 
 [data-testid="stSidebar"] div[data-baseweb="select"] > div {
@@ -3518,11 +3506,12 @@ st.markdown("""<style>
     -webkit-text-fill-color: #8A9AB8 !important;
 }
 
-/* 🌟 2. 드롭다운(클릭시 나오는 팝업 리스트) UI 완벽 해결 🌟 */
+/* 드롭다운(팝업) UI 완벽 해결 */
 div[data-baseweb="popover"],
 div[data-baseweb="popover"] > div,
 div[data-baseweb="popover"] ul {
     background-color: #1A2038 !important;
+    border-color: #343C58 !important;
 }
 div[data-baseweb="popover"] li {
     color: #FFFFFF !important;
@@ -3535,27 +3524,22 @@ div[data-baseweb="popover"] li[aria-selected="true"] {
     color: #FFFFFF !important;
 }
 
-/* 🌟 3. 멀티셀렉트(섹션 순서) 태그 칩 세련되게 고치기 🌟 */
+/* 멀티셀렉트(섹션 순서) 태그 칩 */
 span[data-baseweb="tag"] {
   background-color: #232A40 !important;
   color: #FFFFFF !important;
   border: 1px solid #343C58 !important;
   border-radius: 6px !important;
   padding: 4px 10px !important;
-  font-size: 12px !important;
-}
-span[data-baseweb="tag"] svg {
-  fill: #8A9AB8 !important;
 }
 
 .stButton>button {border-radius:6px !important; font-weight:700 !important;
   border:1px solid #232A40 !important; background:#0D1220 !important; color:#8A9AB8 !important;
   transition:all .15s !important; font-size:12px !important;}
-.stButton>button:hover {background:#161E38 !important; color:#C0CDE8 !important; border-color:#343C58 !important;}
+.stButton>button:hover {background:#161E38 !important; color:#C0CDE8 !important;}
 .stButton>button[kind="primary"] {background:linear-gradient(135deg,#FF6B35,#E84393) !important;
-  color:#fff !important; border:none !important; font-size:13px !important;}
-.sec-hdr {font-size:9.5px; font-weight:800; letter-spacing:.14em; text-transform:uppercase;
-  color:#3A4868; padding:10px 16px 5px;}
+  color:#fff !important; border:none !important;}
+.sec-hdr {font-size:9.5px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:#3A4868; padding:10px 16px 5px;}
 </style>""", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════
