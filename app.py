@@ -47,7 +47,7 @@ if not st.session_state.api_key:
         if not st.session_state.pixabay_key:
             st.session_state.pixabay_key = st.secrets.get("PIXABAY_API_KEY", "")
     except Exception:
-        pass
+        passise last_err or Exception("모든 모델
 
 # ══════════════════════════════════════════════════════
 # 상수
@@ -779,37 +779,55 @@ def build_bg_url(mood: str) -> str:
 def call_ai(prompt: str, system: str = "", max_tokens: int = 2000) -> str:
     key = st.session_state.api_key.strip()
     if not key:
-        raise ValueError("API 키가 없습니다. 사이드바에서 gsk_... 키를 입력해주세요.")
-    messages = []
-    sys_parts = [system] if system else []
-    sys_parts.append("Return ONLY valid JSON. No markdown. No extra text. Never use Chinese characters. Write everything in Korean only.")
-    messages.append({"role":"system","content":"\n\n".join(sys_parts)})
-    messages.append({"role":"user","content":prompt})
+        raise ValueError("API 키가 없습니다. 사이드바에서 Gemini API 키를 입력해주세요.")
+
+    # 가장 빠르고 똑똑하며, 무료 제공량이 넉넉한 Gemini 1.5 Flash 모델 사용
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
+    
+    # 구글 제미나이에게 JSON 양식을 강제하고 창의성을 최대로 끌어올림
+    full_prompt = f"{system}\n\n{prompt}\n\n[중요] 반드시 JSON 형식으로만 답변하세요. 마크다운이나 추가 설명은 절대 금지합니다."
+    
+    headers = {"Content-Type": "application/json"}
+    data = {
+        "contents": [{"parts": [{"text": full_prompt}]}],
+        "generationConfig": {
+            "temperature": 0.9, # 창의성 (파격적인 문구를 위해 높게 설정)
+            "maxOutputTokens": max_tokens,
+            "responseMimeType": "application/json" # 에러를 완벽하게 막아주는 구글의 JSON 모드
+        }
+    }
+    
     last_err = None
-    for model in GROQ_MODELS:
+    # 🌟 Groq 때처럼 안정성을 위해 최대 3번 재시도하는 안전장치 부활 🌟
+    for attempt in range(3):
         try:
-            resp = requests.post(
-                GROQ_URL,
-                headers={"Authorization":f"Bearer {key}","Content-Type":"application/json"},
-                json={"model":model,"messages":messages,"max_tokens":max_tokens,"temperature":0.75},
-                timeout=60,
-            )
-        except Exception as e:
-            last_err = Exception(f"네트워크 오류: {e}"); continue
-        if resp.status_code == 401:
-            raise Exception("🔑 API 키 오류 — console.groq.com에서 확인해주세요.")
-        if resp.status_code == 429:
-            last_err = Exception(f"⏳ 한도 초과 ({model})"); time.sleep(2); continue
-        if not resp.ok:
-            try: msg = resp.json().get("error",{}).get("message",resp.text[:150])
-            except Exception: msg = resp.text[:150]
-            last_err = Exception(f"HTTP {resp.status_code}: {msg}"); continue
-        try:
-            text = resp.json()["choices"][0]["message"]["content"]
-            if text and text.strip(): return text
-        except Exception as e:
-            last_err = Exception(f"응답 파싱 실패: {e}"); continue
-    raise last_err or Exception("모든 모델 실패")
+            resp = requests.post(url, headers=headers, json=data, timeout=60)
+            
+            # 1분당 15회 제한(무료 한도)에 걸렸을 경우 10초 대기 후 재시도
+            if resp.status_code == 429:
+                last_err = Exception("⏳ 1분당 무료 요청 횟수를 초과했습니다. 10초 후 다시 시도합니다...")
+                time.sleep(10)
+                continue
+                
+            if not resp.ok:
+                err_msg = resp.json().get("error", {}).get("message", resp.text[:150])
+                last_err = Exception(f"API 오류 ({resp.status_code}): {err_msg}")
+                time.sleep(2)
+                continue
+                
+            result = resp.json()
+            # 제미나이 응답에서 텍스트만 쏙 뽑아내기
+            text = result.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+            
+            if text and text.strip():
+                return text
+                
+        except requests.exceptions.RequestException as e:
+            last_err = Exception(f"네트워크 오류가 발생했습니다: {e}")
+            time.sleep(3)
+            
+    # 3번 다 실패하면 최종 에러 메시지 띄우기
+    raise last_err or Exception("모든 재시도에 실패했습니다. 잠시 후 다시 시도해주세요.")
 
 # ══════════════════════════════════════════════════════
 # AI 생성 함수
@@ -981,13 +999,20 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
     
     st.session_state["_theme_declaration"] = theme_decl
     
-    # 🌟 이모지 완전 삭제, 고급화 🌟
-    # 🌟 메인 카피는 무조건 짧게, 리드는 강렬하게 🌟
+    # 🌟 메인 카피는 짧게, 이모지 완전 삭제(01, 02로 대체), 고급화 🌟
     schemas = {
-        "신규 커리큘럼": '{"bannerSub":"과목의 본질을 찌르는 10자 이내","bannerTitle":"15자 이내의 아주 짧고 압도적인 단어/구 (절대 길게 쓰지 마세요)","brandTagline":"영문 슬로건 한 문장","bannerLead":"뻔한 위로가 아닌 현 상황을 찌르는 팩트폭력 리드문","bannerTags":["키워드1","키워드2","키워드3"],"ctaCopy":"망설임을 없애는 단어","ctaTitle":"강력한 CTA 제목","ctaSub":"지금 안 하면 손해라는 서브 문구","ctaBadge":"10자이내","introTitle":"강사의 절대적 권위 제목","introDesc":"왜 이 강의를 들어야만 하는지 날카롭게 서술 (길게)","introBio":"시그니처 1문장","whyTitle":"파격적 제목","whySub":"30자이내","whyReasons":[["01","직설적인 짧은 제목","학생이 읽고 아차 싶을 만큼 뼈 때리는 구체적 이유와 해결책 서술 (최소 80자 이상)"],["02","제목","서술"],["03","제목","서술"]],"curriculumTitle":"20자이내","curriculumSub":"30자이내","curriculumSteps":[["01","단계명","이 시기에 학생들이 하는 착각과, 이 단계가 그걸 어떻게 부수고 점수를 만드는지 서술","기간"],["02","단계","서술","기간"],["03","단계","서술","기간"],["04","단계","서술","기간"]],"targetTitle":"이런 학생이라면 반드시 들어라","targetItems":["구체적인 절망적 상황 묘사 1","상황 묘사 2","상황 묘사 3","상황 묘사 4"],"reviews":[["진짜 학생이 흥분해서 쓴 것 같은 매우 길고 구체적인 후기","이름","변화뱃지"],["후기","이름","뱃지"],["후기","이름","뱃지"]],"videoTitle":"영상 제목","videoSub":"설명","videoTag":"OFFICIAL TRAILER"}',
+        "신규 커리큘럼": '{"bannerSub":"과목 본질을 찌르는 15자 이내","bannerTitle":"15자 이내의 아주 짧고 압도적인 단어/구 (절대 길게 쓰지 말것)","brandTagline":"영문 슬로건 한 문장","bannerLead":"뻔한 위로가 아닌 현 상황을 찌르는 팩트폭력 리드문 (길게)","bannerTags":["키워드1","키워드2","키워드3"],"ctaCopy":"망설임을 없애는 단어","ctaTitle":"강력한 CTA 제목","ctaSub":"지금 안 하면 손해라는 서브 문구","ctaBadge":"10자이내","introTitle":"강사의 절대적 권위 제목","introDesc":"왜 이 강의를 들어야만 하는지 날카롭게 서술 (길게)","introBio":"시그니처 1문장","whyTitle":"파격적 제목","whySub":"30자이내","whyReasons":[["01","직설적인 짧은 제목","학생이 읽고 아차 싶을 만큼 뼈 때리는 구체적 이유와 해결책 서술 (최소 80자 이상)"],["02","제목","서술"],["03","제목","서술"]],"curriculumTitle":"20자이내","curriculumSub":"30자이내","curriculumSteps":[["01","단계명","이 시기에 학생들이 하는 착각과 이 단계가 그걸 어떻게 부수는지 서술","기간"],["02","단계","서술","기간"],["03","단계","서술","기간"],["04","단계","서술","기간"]],"targetTitle":"이런 학생이라면 반드시 들어라","targetItems":["구체적인 절망적 상황 묘사 1","상황 묘사 2","상황 묘사 3","상황 묘사 4"],"reviews":[["진짜 학생이 흥분해서 쓴 것 같은 매우 길고 구체적인 후기","이름","변화뱃지"],["후기","이름","뱃지"],["후기","이름","뱃지"]],"faqs":[["질문","답변"]],"videoTitle":"영상 제목","videoSub":"설명","videoTag":"OFFICIAL TRAILER"}',
         "이벤트": '{"bannerSub":"10자","bannerTitle":"15자 이내의 짧고 파격적인 이벤트 제목","brandTagline":"이벤트 분위기 한 문장","bannerLead":"참여하지 않으면 손해라는 긴박감 리드","bannerTags":["이벤트특징1","이벤트특징2","이벤트특징3"],"ctaCopy":"행동 유도","ctaTitle":"CTA","ctaSub":"서브문구","ctaBadge":"15자","eventTitle":"20자","eventDesc":"50자이상","eventDetails":[["일정","날짜"],["대상","값"],["혜택","값"]],"benefitsTitle":"20자","eventBenefits":[{"no":"01","title":"혜택명","desc":"50자이상","badge":"8자"},{"no":"02","title":"혜택명","desc":"50자","badge":"8자"},{"no":"03","title":"혜택명","desc":"50자","badge":"8자"}],"deadlineTitle":"20자","deadlineMsg":"70자 긴박감"}',
         "기획전": '{"festHeroTitle":"15자 이내의 강렬한 기획전 제목","festHeroCopy":"30자","festHeroSub":"50자이상","brandTagline":"분위기 문장","festHeroStats":[["수치","라벨"],["수치","라벨"]],"festLineupTitle":"20자","festLineupSub":"40자","festLineup":[{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지"},{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지"}],"festBenefitsTitle":"20자","festBenefits":[{"no":"01","title":"혜택명","desc":"50자이상","badge":"8자"},{"no":"02","title":"혜택명","desc":"50자","badge":"8자"}],"festCtaTitle":"CTA제목","festCtaSub":"50자이상"}'
     }
+
+    purpose_specific_rule = ""
+    if ptype == "이벤트":
+        purpose_specific_rule = "⚠️ 제목뿐만 아니라 모든 섹션을 맥락 기반으로 작성. 강사 정규 커리큘럼 명칭 쓰지 말 것."
+    elif ptype == "기획전":
+        purpose_specific_rule = "⚠️ 제목은 반드시 맥락을 바탕으로 작성."
+    else:
+        purpose_specific_rule = "⚠️ 강사의 대표 강좌명이나 맥락을 기반으로 작성."
 
     tone_instruction = COPY_TONES.get(st.session_state.copy_tone, "")
     
@@ -996,18 +1021,18 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
 
 ===문구 생성 지침===
 {variation_hint}
-# 이 페이지의 핵심 키워드: [{core_keyword}]
 # 방향성: {declaration}
-# 절대 금지어: 이모지(절대 쓰지 말 것), 최고의, 체계적인, 합리적인, 실력 향상, 교수
+# 절대 금지어: 이모지(절대 쓰지 말 것!), 최고의, 체계적인, 합리적인, 실력 향상, 교수
 
-===강사 정보===
+===강사/페이지 정보===
 {inst_ctx}
+목적: {ptype} | 대상: {tgt} | 브랜드: {plabel}
+카피 어조: {tone_instruction}
 
 ===문구 품질 기준===
-1. 모든 문구의 길이 제한을 무시하세요. 감정을 흔들 수 있다면 아주 짧거나, 서사적으로 길게 작성하세요.
-2. 이모지(😊, 🎯 등)는 절대 사용하지 마세요. 오직 텍스트의 무게감으로 승부하세요.
-3. 숫자를 활용하여 데이터 기반의 프리미엄 신뢰감을 주세요.
-4. 반드시 순수 한국어로 작성 (강사 고유명사 제외).
+1. 제목(Title)은 무조건 15자 이내로 파격적이고 짧게 끊어치세요.
+2. 설명(Desc/Lead)은 길이 제한 없이, 학생의 고통을 직설적으로 찌르고 서사적으로 길게 쓰세요.
+3. 이모지(😊, 🎯 등)는 절대로 쓰지 마세요. 오직 텍스트의 무게감으로 승부하세요.
 
 JSON만 반환 (마크다운 금지):
 {schemas.get(ptype, schemas['신규 커리큘럼'])}"""
@@ -1253,9 +1278,9 @@ def gen_section(sec_id: str) -> dict:
     inst_ctx = _get_instructor_context()
     ptype = st.session_state.purpose_type
 
-    # 🌟 부분 재생성 시에도 메인 카피는 짧게 유지 🌟
+    # 🌟 부분 재생성용 스키마 (메인 카피 짧게, 이모지 삭제) 🌟
     schemas = {
-        "banner": '{"bannerSub":"10자","bannerTitle":"15자 이내의 아주 짧고 압도적인 단어/구","brandTagline":"컨셉을 담은 브랜드 한 문장","bannerLead":"60-90자 수험생이 공감하는 구체적 리드","bannerTags":["키워드1","키워드2","키워드3"],"ctaCopy":"10자","statBadges":[]}',
+        "banner": '{"bannerSub":"15자이내","bannerTitle":"15자 이내의 아주 짧고 압도적인 단어/구 (절대 길게 금지)","brandTagline":"영문 슬로건","bannerLead":"뻔한 위로가 아닌 현 상황 팩트폭력 (길게)","bannerTags":["키워드1","키워드2","키워드3"],"ctaCopy":"10자","statBadges":[]}',
         "intro":  '{"introTitle":"20자","introDesc":"80-120자 강사 철학과 차별점","introBio":"강사 학습법 포함 60자","introBadges":[]}',
         "why":    '{"whyTitle":"20자","whySub":"30자","whyReasons":[["01","직설적인 짧은 제목","학생 입장에서 구체적 설명 최소 80자"],["02","12자","80자"],["03","12자","80자"]]}',
         "curriculum": '{"curriculumTitle":"20자","curriculumSub":"30자","curriculumSteps":[["01","8자","이 단계 통해 무엇이 달라지는지 50자 이상 설명","기간"],["02","8자","50자 이상","기간"],["03","8자","50자 이상","기간"],["04","8자","50자 이상","기간"]]}',
@@ -1264,11 +1289,11 @@ def gen_section(sec_id: str) -> dict:
         "faq":    '{"faqs":[["15자 구체적 질문","명쾌한 답변 50자이상"],["질문","50자 이상 답변"],["질문","50자 이상 답변"]]}',
         "cta":    '{"ctaTitle":"CTA제목","ctaSub":"40자이상 수강신청 동기부여 문구","ctaCopy":"10자","ctaBadge":"15자"}',
         "event_overview": '{"eventTitle":"20자","eventDesc":"50자이상 이벤트 핵심 설명","eventDetails":[["📅","이벤트 기간","날짜"],["🎯","대상","값"],["💰","혜택","값"]]}',
-        "event_benefits": '{"benefitsTitle":"20자","eventBenefits":[{"icon":"이모지","title":"혜택명","desc":"50자이상 혜택 설명","badge":"8자","no":"01"},{"icon":"이모지","title":"혜택명","desc":"50자이상","badge":"8자","no":"02"},{"icon":"이모지","title":"혜택명","desc":"50자이상","badge":"8자","no":"03"}]}',
+        "event_benefits": '{"benefitsTitle":"20자","eventBenefits":[{"no":"01","title":"혜택명","desc":"50자이상 혜택 설명","badge":"8자"},{"no":"02","title":"혜택명","desc":"50자이상","badge":"8자"},{"no":"03","title":"혜택명","desc":"50자이상","badge":"8자"}]}',
         "event_deadline": '{"deadlineTitle":"마감 제목 15자","deadlineMsg":"70자이상 긴박감 있는 마감 안내 문구, 학생 심리 자극","ctaCopy":"10자"}',
         "fest_hero":     '{"festHeroTitle":"20자","festHeroCopy":"30자","festHeroSub":"50자이상","brandTagline":"기획전 분위기 한 문장","festHeroStats":[["수치","라벨"],["수치","라벨"]]}',
-        "fest_lineup":   '{"festLineupTitle":"20자","festLineupSub":"40자","festLineup":[{"name":"강사명","tag":"8자","tagline":"40자 소개","badge":"8자","emoji":"이모지"},{"name":"강사명","tag":"8자","tagline":"40자","badge":"8자","emoji":"이모지"},{"name":"강사명","tag":"8자","tagline":"40자","badge":"8자","emoji":"이모지"},{"name":"강사명","tag":"8자","tagline":"40자","badge":"8자","emoji":"이모지"}]}',
-        "fest_benefits": '{"festBenefitsTitle":"20자","festBenefits":[{"icon":"이모지","title":"혜택명","desc":"50자이상","badge":"8자","no":"01"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"02"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"03"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"04"}]}',
+        "fest_lineup":   '{"festLineupTitle":"20자","festLineupSub":"40자","festLineup":[{"name":"강사명","tag":"8자","tagline":"40자 소개","badge":"8자"},{"name":"강사명","tag":"8자","tagline":"40자","badge":"8자"},{"name":"강사명","tag":"8자","tagline":"40자","badge":"8자"},{"name":"강사명","tag":"8자","tagline":"40자","badge":"8자"}]}',
+        "fest_benefits": '{"festBenefitsTitle":"20자","festBenefits":[{"no":"01","title":"혜택명","desc":"50자이상","badge":"8자"},{"no":"02","title":"혜택명","desc":"50자","badge":"8자"},{"no":"03","title":"혜택명","desc":"50자","badge":"8자"},{"no":"04","title":"혜택명","desc":"50자","badge":"8자"}]}',
         "fest_cta":      '{"festCtaTitle":"CTA 제목 20자","festCtaSub":"50자이상 통합신청 동기부여 문구"}',
         "video":         '{"videoTitle":"영상 섹션 제목 20자","videoSub":"영상 설명 40자","videoTag":"OFFICIAL TRAILER","videoUrl":""}',
         "before_after":  '{"baTitle":"수강 전후 비교 제목 20자","baSub":"30자 서브","baBeforeItems":["수강 전 학생이 겪는 구체적 문제 40자","문제2 40자","문제3 40자"],"baAfterItems":["수강 후 달라지는 점 40자","변화2 40자","변화3 40자"]}',
@@ -1279,7 +1304,7 @@ def gen_section(sec_id: str) -> dict:
     purpose_specific_rule = ""
     if sec_id == "banner":
         if ptype == "이벤트":
-            purpose_specific_rule = "⚠️ [!!! 절대 규칙 !!!] 제목에 'KISS Logic' 등 강좌명을 절대 쓰지 마세요. 이벤트 성격(예: 3월 학평 특강, 기대평)에 맞는 제목만 출력하세요. bannerTags는 이벤트용 단어(기간한정, 무료제공 등)로 작성하세요."
+            purpose_specific_rule = "⚠️ 제목에 'KISS Logic' 등 강좌명을 절대 쓰지 마세요."
 
     sec_name = SEC_LABELS.get(sec_id, sec_id)
     schema = schemas.get(sec_id, '{"title":"제목","desc":"설명"}')
@@ -1288,29 +1313,25 @@ def gen_section(sec_id: str) -> dict:
     declaration = theme_decl.get("declaration", "")
     core_keyword = theme_decl.get("core_keyword", "")
 
-    declaration_hint = f"# ★ 이 섹션도 반드시 아래 방향으로 작성하세요:\n{declaration}\n# 핵심 키워드 [{core_keyword}]가 자연스럽게 녹아있어야 합니다." if declaration else ""
+    declaration_hint = f"# ★ 이 섹션도 반드시 아래 방향으로 작성하세요:\n{declaration}\n# 핵심 키워드 [{core_keyword}]" if declaration else ""
 
-    # 🌟 매번 누를 때마다 파격적인 프롬프트를 생성 🌟
     variation_hint = get_copy_variation()
 
-    prompt = f"""당신은 대한민국 최고 수준의 1타 강사 프로모션 카피라이터입니다. "{sec_name}" 섹션만 새롭게 생성하세요.
+    prompt = f"""당신은 업계 최고 수준의 브랜드 마케터입니다. "{sec_name}" 섹션만 새롭게 생성하세요.
 {declaration_hint}
-
 {variation_hint}
-
 {inst_ctx}
 과목: {st.session_state.subject} | 브랜드: {st.session_state.purpose_label}
 카피 어조: {COPY_TONES.get(st.session_state.copy_tone, "")}
 
 {purpose_specific_rule}
 
-=== 🚨 극단적 다양성 및 이모지 규칙 (가장 중요!) 🚨 ===
-1. 흔하고 뻔한 이모지(🎯, ⚡, 💡, 📚, 📈, 📖)는 절대로, 절대로 쓰지 마세요!!
-2. 대신 맥락에 맞고 시선을 끄는 파격적인 이모지(예: 🌪️, 🧩, 🚀, 🔨, 🧭, 🩸, 🦅, 🌊, 🗝️, 🪐, 🌋 등)를 무조건 사용하세요.
-3. 재생성할 때마다 문장 구조와 단어를 완전히 새롭게 비틀어야 합니다. (명령형, 단답형, 질문형 섞어서 사용)
-4. 한자 금지, 수치 지어내기 절대 금지. "교수" 금지.
+=== 🚨 극단적 다양성 및 이모지 금지 규칙 🚨 ===
+1. 흔하고 뻔한 이모지(🎯, ⚡, 💡, 📚, 📈, 📖)는 절대로 쓰지 마세요. 텍스트로만 승부하세요.
+2. 재생성할 때마다 완전히 새로운 관점과 문장 구조(명령형, 단답형 등)를 시도하세요.
+3. 배너/섹션 제목은 무조건 15자 이내로 짧게! 설명은 길고 직설적으로.
 
-아래 JSON 형식만 반환. 마크다운 금지:
+JSON만 반환. 마크다운 금지:
 {schema}"""
 
     last_err = None
@@ -1889,7 +1910,7 @@ def sec_banner(d, cp, T):
     bg_url= cp.get("bg_photo_url", "")
     dark  = T["dark"]
     
-    # 🌟 핵심: 문구(글자)가 바뀔 때마다 레이아웃이 3가지 중 하나로 랜덤하게 변함 🌟
+    # 🌟 문구가 바뀌면(재생성 누르면) 레이아웃도 1,2,3번 중 하나로 자동 변신 🌟
     text_hash = sum(ord(c) for c in title + lead)
     v = (text_hash % 3) + 1
 
@@ -1950,41 +1971,20 @@ def sec_intro(d, cp, T):
     tagline = strip_hanja(cp.get("brandTagline", ""))
     desc    = strip_hanja(cp.get("introDesc", f"{label}이 특별한 이유가 있습니다."))
 
-    reasons = cp.get("whyReasons", [])
-    points  = []
-    for r in reasons[:3]:
-        if isinstance(r, (list, tuple)) and len(r) >= 3:
-            points.append((str(r[0]), str(r[1]), str(r[2])))
-    if not points:
-        points = [("🎯", "핵심만 담았다", f"{label} 한 강좌로 {subj} 완성"),("⚡", "즉시 적용된다", "배운 내용을 바로 실전에 적용"),("📈", "결과가 달라진다", "수강 후 성적 변화 체감")]
-
-    point_html = "".join(
-        f'<div class="rv d{i+1}" style="flex:1;min-width:180px;padding:28px 24px;background:var(--bg3);border-radius:var(--r,4px);border:1px solid var(--bd);border-top:3px solid var(--c1)">'
-        f'<div style="font-size:34px;margin-bottom:14px">{ic}</div>'
-        f'<div style="font-family:var(--fh);font-size:15px;font-weight:800;color:var(--text);margin-bottom:8px">{strip_hanja(tt)}</div>'
-        f'<p style="font-size:13px;line-height:1.8;color:var(--t70);margin:0">{strip_hanja(dc)}</p>'
-        f'</div>'
-        for i, (ic, tt, dc) in enumerate(points)
-    )
-
-    tagline_html = f'<div style="padding:22px 28px;background:var(--c1);border-radius:var(--r,4px);margin-bottom:20px"><p style="font-size:clamp(15px,1.6vw,18px);font-style:italic;font-weight:700;color:#fff;line-height:1.6;margin:0">"{tagline}"</p></div>' if tagline else ""
-
     return (
-        f'<section class="sec" id="intro"><div style="max-width:1100px;margin:0 auto">'
-        f'<div class="rv" style="display:grid;grid-template-columns:1fr 1.8fr;gap:60px;align-items:center;padding-bottom:40px;border-bottom:2px solid var(--bd);margin-bottom:40px">'
-        f'<div><div class="tag-line">{subj} 강좌 소개</div>'
-        f'<h2 style="font-family:var(--fh);font-size:clamp(28px,4vw,52px);font-weight:900;line-height:1.05;color:var(--text);margin-bottom:14px">{label}</h2>'
-        f'<div style="display:flex;align-items:center;gap:8px;margin-top:16px"><span style="font-size:10px;font-weight:800;background:var(--c1);color:#fff;padding:4px 14px;border-radius:var(--r-btn,100px)">{subj}</span><span style="font-size:10px;font-weight:700;color:var(--t45)">{d["target"]}</span></div></div>'
-        f'<div>{tagline_html}<p style="font-size:15px;line-height:2;color:var(--t70)">{desc}</p></div></div>'
-        f'<div style="display:flex;gap:16px;flex-wrap:wrap">{point_html}</div>'
-        f'</div></section>'
+        f'<section class="sec" id="intro"><div style="max-width:1000px;margin:0 auto;text-align:center;">'
+        f'<div class="rv" style="margin-bottom:60px;">'
+        f'<div class="tag-line" style="justify-content:center;">{subj} 강좌 소개</div>'
+        f'<h2 style="font-family:var(--fh);font-size:clamp(28px,4vw,52px);font-weight:900;line-height:1.2;color:var(--text);margin-bottom:20px;">"{tagline}"</h2>'
+        f'<div style="width:40px;height:3px;background:var(--c1);margin:0 auto 30px;"></div>'
+        f'<p style="font-size:clamp(16px,1.8vw,20px);line-height:2;color:var(--t70);font-weight:500;">{desc}</p>'
+        f'</div></div></section>'
     )
 
 def sec_why(d, cp, T):
     t = strip_hanja(cp.get('whyTitle', '이 강의가 필요한 이유'))
     s = strip_hanja(cp.get('whySub', f"{d['subject']} 1등급의 비결"))
     reasons = cp.get('whyReasons', [])
-    
     safe_r = []
     for it in reasons:
         if isinstance(it, (list, tuple)) and len(it) >= 3:
@@ -1992,7 +1992,7 @@ def sec_why(d, cp, T):
         elif isinstance(it, dict):
             safe_r.append((it.get('no','01'), it.get('title',''), it.get('desc','')))
 
-    # 🌟 글자가 바뀔 때마다 레이아웃이 3가지 중 하나로 랜덤하게 변함 🌟
+    # 🌟 문구가 바뀔 때마다 레이아웃이 3가지 중 하나로 랜덤 변신 🌟
     text_hash = sum(ord(c) for c in t + s)
     v = (text_hash % 3) + 1
 
@@ -2004,11 +2004,9 @@ def sec_why(d, cp, T):
             margin_top = "margin-top: -30px;" if i > 0 else "" 
             rh += (
                 f'<div class="rv d{min(i+1,4)}" style="align-self:{align_self}; {margin_top} width: clamp(300px, 85%, 750px); position:relative; z-index:{i+2};">'
-                # 뒤에 깔리는 거대한 투명 숫자
-                f'<div style="position:absolute; top:-70px; left:-30px; font-family:var(--fh); font-size: clamp(150px, 18vw, 250px); font-weight:900; color:var(--c1); opacity:0.08; line-height:1; pointer-events:none; z-index:-1;">{i+1:02d}</div>'
-                # 카드 본체 (이모지 대신 심플한 라인 디자인)
+                f'<div style="position:absolute; top:-70px; left:-30px; font-family:var(--fh); font-size: clamp(150px, 18vw, 250px); font-weight:900; color:var(--c1); opacity:0.08; line-height:1; pointer-events:none; z-index:-1;">{no if no else f"0{i+1}"}</div>'
                 f'<div style="background:var(--bg3); padding:50px 60px; border-radius:0; border-top: 4px solid var(--c1); box-shadow: 20px 20px 0px rgba(0,0,0,0.2);">'
-                f'<div style="font-family:var(--fh); font-size: 16px; color:var(--c1); letter-spacing:0.2em; font-weight:800; margin-bottom:16px;">POINT {i+1:02d}</div>'
+                f'<div style="font-family:var(--fh); font-size: 16px; color:var(--c1); letter-spacing:0.2em; font-weight:800; margin-bottom:16px;">POINT {no if no else f"0{i+1}"}</div>'
                 f'<div style="font-family:var(--fh); font-size: clamp(28px, 3.5vw, 42px); font-weight:900; color:var(--text); margin-bottom:24px; word-break:keep-all; line-height:1.2;">{strip_hanja(tt)}</div>'
                 f'<p style="font-size: clamp(16px, 1.8vw, 20px); line-height:1.9; color:var(--t70); margin:0; font-weight:500;">{strip_hanja(dc)}</p>'
                 f'</div></div>'
@@ -2030,7 +2028,7 @@ def sec_why(d, cp, T):
         for i, (no, tt, dc) in enumerate(safe_r):
             rh += (
                 f'<div class="rv d{min(i+1,4)}" style="display:flex; gap:40px; align-items:flex-start; padding:50px 0; border-bottom:1px solid var(--bd);">'
-                f'<div style="font-family:var(--fh); font-size:60px; font-weight:900; color:var(--c1); line-height:1; flex-shrink:0;">{i+1:02d}.</div>'
+                f'<div style="font-family:var(--fh); font-size:60px; font-weight:900; color:var(--c1); line-height:1; flex-shrink:0;">{no if no else f"0{i+1}"}.</div>'
                 f'<div><h3 style="font-family:var(--fh); font-size:clamp(26px, 3.5vw, 40px); font-weight:900; color:var(--text); margin-bottom:20px; letter-spacing:-0.03em;">{strip_hanja(tt)}</h3>'
                 f'<p style="font-size:clamp(16px, 1.8vw, 20px); color:var(--t70); line-height:1.85; margin:0; font-weight:500;">{strip_hanja(dc)}</p></div>'
                 f'</div>'
@@ -2050,7 +2048,7 @@ def sec_why(d, cp, T):
             rh += (
                 f'<div class="rv d{min(i+1,4)}" style="padding:40px; background:transparent; border:1px solid var(--bd); position:relative;">'
                 f'<div style="width:40px; height:4px; background:var(--c1); margin-bottom:30px;"></div>'
-                f'<div style="font-family:var(--fh); font-size:14px; font-weight:800; color:var(--c1); margin-bottom:16px; letter-spacing:0.1em;">REASON 0{i+1}</div>'
+                f'<div style="font-family:var(--fh); font-size:14px; font-weight:800; color:var(--c1); margin-bottom:16px; letter-spacing:0.1em;">REASON {no if no else f"0{i+1}"}</div>'
                 f'<h3 style="font-family:var(--fh); font-size:clamp(22px, 2.5vw, 28px); font-weight:900; color:var(--text); margin-bottom:24px; line-height:1.4;">{strip_hanja(tt)}</h3>'
                 f'<p style="font-size:16px; color:var(--t70); line-height:1.8; margin:0;">{strip_hanja(dc)}</p>'
                 f'</div>'
