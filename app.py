@@ -1993,17 +1993,22 @@ def sec_why(d, cp, T):
     v = (text_hash % 3) + 1
     rh = ""
 
-    if v == 1:
+    if v == 1: # 스타일 1: 거대 배경 숫자 + 다크 매거진 스타일
         bg_text = f"{t} " * 10
         for i, (no, tt, dc) in enumerate(safe_r):
             align_self = "flex-start" if i % 2 == 0 else "flex-end"
             margin_top = "margin-top: -30px;" if i > 0 else "" 
             
-            # 에러 방지를 위해 번호를 미리 문자열로 만듭니다.
-            idx_str = f"{i+1:02d}" 
+            # 1. 숫자를 문자열로 미리 변환 (숫자 에러 방지)
+            idx_str = f"{i+1:02d}"
+            # 2. z-index 계산 (중괄호 충돌 방지)
+            z_idx = i + 2
             
+            # rh에 추가할 때 f''' 대신 '''(일반 멀티라인)를 쓰고 .format()을 쓰면 중괄호 충돌이 없습니다.
+            # 하지만 f-string을 유지하려면 CSS의 { }를 {{ }}로 써야 합니다.
+            # 아래는 가장 안전하게 수정된 f-string 버전입니다.
             rh += f'''
-<div class="rv d{min(i+1,4)}" style="align-self:{align_self}; {margin_top} width: clamp(300px, 85%, 750px); position:relative; z-index:{i+2};">
+<div class="rv d{min(i+1,4)}" style="align-self:{align_self}; {margin_top} width: clamp(300px, 85%, 750px); position:relative; z-index:{z_idx};">
     <div style="position:absolute; top:-70px; left:-30px; font-family:var(--fh); font-size: clamp(150px, 18vw, 250px); font-weight:900; color:var(--c1); opacity:0.08; line-height:1; pointer-events:none; z-index:-1;">{idx_str}</div>
     <div style="background:var(--bg3); padding:50px 60px; border-radius:0; border-top: 4px solid var(--c1); box-shadow: 20px 20px 0px rgba(0,0,0,0.2);">
         <div style="font-family:var(--fh); font-size: 16px; color:var(--c1); letter-spacing:0.2em; font-weight:800; margin-bottom:16px;">POINT {idx_str}</div>
