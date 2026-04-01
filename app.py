@@ -2028,9 +2028,12 @@ def sec_why(d, cp, T):
 
     elif v == 2: # 스타일 2: 애플 스타일 세로 정렬
         for i, (no, tt, dc) in enumerate(safe_r):
+            # 에러 방지를 위해 번호를 미리 문자열로 만듭니다.
+            idx_str = f"{i+1:02d}"
+            
             rh += f'''
             <div class="rv d{min(i+1,4)}" style="display:flex; gap:40px; align-items:flex-start; padding:50px 0; border-bottom:1px solid var(--bd);">
-                <div style="font-family:var(--fh); font-size:60px; font-weight:900; color:var(--c1); line-height:1; flex-shrink:0;">{i+1:02d}.</div>
+                <div style="font-family:var(--fh); font-size:60px; font-weight:900; color:var(--c1); line-height:1; flex-shrink:0;">{idx_str}.</div>
                 <div>
                     <h3 style="font-family:var(--fh); font-size:clamp(26px, 3.5vw, 40px); font-weight:900; color:var(--text); margin-bottom:20px; letter-spacing:-0.03em;">{strip_hanja(tt)}</h3>
                     <p style="font-size:clamp(16px, 1.8vw, 20px); color:var(--t70); line-height:1.85; margin:0; font-weight:500;">{strip_hanja(dc)}</p>
