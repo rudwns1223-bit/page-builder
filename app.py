@@ -2786,6 +2786,7 @@ def sec_custom(d, cp, T):
                 <p style="font-size:12.5px;line-height:1.9;color:var(--t70)">{it_desc}</p>
             </div>
             '''
+            
         # f-string 밖에서 미리 문자열을 완성하여 합칩니다.
         cols = f"repeat({min(len(items),3)}, 1fr)"
         body = f'<div style="display:grid;grid-template-columns:{cols};gap:14px" class="rv d1">{ih}</div>'
