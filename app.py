@@ -1280,6 +1280,9 @@ def gen_section(sec_id: str) -> dict:
     if sec_id == "banner":
         if ptype == "이벤트":
             purpose_specific_rule = "⚠️ [!!! 절대 규칙 !!!] 제목에 'KISS Logic' 등 강좌명을 절대 쓰지 마세요. 이벤트 성격(예: 3월 학평 특강, 기대평)에 맞는 제목만 출력하세요. bannerTags는 이벤트용 단어(기간한정, 무료제공 등)로 작성하세요."
+    user_course_info = st.session_state.get("course_info", "")
+    target_directive = f"\n[⚠️ 절대 규칙]: 강사의 기존 시그니처 커리큘럼(예: KISS Logic 등)을 무작정 섞어 쓰지 마세요. 사용자가 입력한 맥락({st.session_state.purpose_label})과 강좌정보({user_course_info})에만 100% 집중하세요. 특히 '구성 안내(package)'나 '커리큘럼' 생성 시, 추상적인 강좌명을 나열하지 말고 '본교재', '워크북', '모의고사', '학습 Q&A' 같은 구체적인 실물/서비스 위주로 작성하세요."
+    purpose_specific_rule += target_directive
 
     sec_name = SEC_LABELS.get(sec_id, sec_id)
     schema = schemas.get(sec_id, '{"title":"제목","desc":"설명"}')
@@ -3162,35 +3165,40 @@ def sec_method(d, cp, T):
 
 
 def sec_package(d, cp, T):
-    """구매 패키지 섹션 — OVS 스타일 교재/패키지 안내"""
+    """구매 패키지 섹션 — 세련된 다단 그리드(Bento Box) 스타일"""
     t    = strip_hanja(cp.get("pkgTitle",   f"{d['purpose_label']} 구성 안내"))
     sub  = strip_hanja(cp.get("pkgSub",     "지금 신청하면 아래 구성이 모두 포함됩니다"))
     pkgs = cp.get("packages",[
-        {"icon":"📗","name":"강의 수강권","desc":f"{d['purpose_label']} 전체 강의 무제한 수강","badge":"필수"},
-        {"icon":"📖","name":"PDF 교재","desc":"핵심 이론·기출 정리 PDF 파일 제공","badge":"포함"},
-        {"icon":"🎯","name":"실전 모의고사","desc":"단계별 실전 모의고사 3회분 제공","badge":"포함"},
-        {"icon":"💬","name":"질문 게시판","desc":"강사 직접 답변 질문 게시판 무제한 이용","badge":"특전"},
+        {"icon":"📗","name":"본교재 (KEY STEP)","desc":"최신 기출 트렌드가 완벽히 반영된 메인 교재","badge":"필수"},
+        {"icon":"📝","name":"워크북 (복습용)","desc":"수업 내용을 체화하고 약점을 보완하는 복습 과제장","badge":"포함"},
+        {"icon":"🎯","name":"실전 하프 모의고사","desc":"매주 실전 감각을 극대화하는 미니 모의고사 3회분","badge":"포함"},
+        {"icon":"💬","name":"1:1 밀착 Q&A","desc":"연구진이 직접 답변하는 프라이빗 질문 게시판","badge":"특전"},
     ])
+    
+    # 🌟 레이아웃을 2단 그리드 카드 형태로 고급스럽게 변경
     ph = "".join(
-        f'<div class="rv d{min(i+1,4)}" style="display:flex;gap:16px;align-items:center;padding:18px 22px;border:1px solid var(--bd);border-radius:var(--r,4px);background:var(--bg);margin-bottom:8px">'
-        f'<div style="font-size:32px;flex-shrink:0">{p.get("icon","📦") if isinstance(p,dict) else "📦"}</div>'
-        f'<div style="flex:1">'
-        f'<div style="font-family:var(--fh);font-size:15px;font-weight:700;color:var(--text);margin-bottom:3px" class="st">{strip_hanja(str(p.get("name","") if isinstance(p,dict) else p))}</div>'
-        f'<p style="font-size:12.5px;line-height:1.7;color:var(--t70);margin:0">{strip_hanja(str(p.get("desc","") if isinstance(p,dict) else ""))}</p>'
+        f'<div class="card rv d{min(i+1,4)}" style="display:flex; flex-direction:column; justify-content:space-between; padding:32px; background:{"var(--bg)" if i%2!=0 else "var(--bg3)"}; border:1px solid var(--bd); border-radius:var(--r, 8px); height:100%; transition:transform 0.3s, box-shadow 0.3s;">'
+        f'<div>'
+        f'<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px;">'
+        f'<div style="font-size:42px; line-height:1; filter:drop-shadow(0 4px 6px rgba(0,0,0,0.1));">{p.get("icon","📦") if isinstance(p,dict) else "📦"}</div>'
+        + (lambda _b: f'<span style="font-size:11px; font-weight:800; background:{"var(--c1)" if _b=="필수" else "transparent"}; color:{"#fff" if _b=="필수" else "var(--t70)"}; padding:6px 14px; border-radius:var(--r-btn,100px); border:1.5px solid {"var(--c1)" if _b=="필수" else "var(--bd)"}; letter-spacing:0.05em;">{_b}</span>')(strip_hanja(str(p.get("badge","포함") if isinstance(p,dict) else "포함"))) +
         f'</div>'
-        + (lambda _b: f'<span style="flex-shrink:0;font-size:10px;font-weight:800;background:{"var(--c1)" if _b=="필수" else "var(--bg3)"};color:{"#fff" if _b=="필수" else "var(--c1)"};padding:5px 14px;border-radius:var(--r-btn,100px);border:1.5px solid var(--c1)">{_b}</span>')(strip_hanja(str(p.get("badge","포함") if isinstance(p,dict) else "포함")))
-        + f'</div>'
+        f'<h3 style="font-family:var(--fh); font-size:20px; font-weight:900; color:var(--text); margin-bottom:12px; letter-spacing:-0.02em;">{strip_hanja(str(p.get("name","") if isinstance(p,dict) else p))}</h3>'
+        f'<p style="font-size:14px; line-height:1.75; color:var(--t70); margin:0; word-break:keep-all;">{strip_hanja(str(p.get("desc","") if isinstance(p,dict) else ""))}</p>'
+        f'</div>'
+        f'</div>'
         for i, p in enumerate(pkgs)
     )
+    
     return (
-        f'<section class="sec" id="package">'
-        f'<div style="max-width:900px;margin:0 auto">'
-        f'<div class="rv" style="text-align:center;margin-bottom:36px">'
-        f'<div class="tag-line" style="justify-content:center">구성 안내</div>'
+        f'<section class="sec alt" id="package">'
+        f'<div style="max-width:1100px; margin:0 auto;">'
+        f'<div class="rv" style="text-align:center; margin-bottom:56px;">'
+        f'<div class="tag-line" style="justify-content:center">패키지 구성</div>'
         f'<h2 class="sec-h2 st" style="text-align:center">{t}</h2>'
-        f'<p class="sec-sub" style="text-align:center">{sub}</p>'
+        f'<p class="sec-sub" style="text-align:center; margin:0 auto">{sub}</p>'
         f'</div>'
-        f'<div class="rv d1">{ph}</div>'
+        f'<div class="rv d1" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:20px;">{ph}</div>'
         f'</div></section>'
     )
 
