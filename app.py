@@ -3506,10 +3506,11 @@ def sec_instructor_philosophy(d, cp, T):
     if ptype == "신규 커리큘럼" and purpose_label:
         # 신규 커리큘럼이면 강의 브랜드명(강좌명)을 핵심 공식으로 사용
         method_flow = purpose_label
-    elif sig:
-        method_flow = " → ".join(sig[:3])
+    elif methods: # <--- 💡 여기에 있던 'sig' 오타를 'methods'로 고쳤습니다!
+        method_flow = " → ".join(methods[:3])
     else:
         method_flow = f"{d['subject']} 완성"
+        
     return (
         f'<section class="sec" id="instructor-philosophy" '
         f'style="background:var(--bg);overflow:hidden;position:relative">'
