@@ -2155,12 +2155,12 @@ def sec_why(d, cp, T):
             f'<div class="bento-grid">{rh}</div>'
             f'</div></section>'
         )
-            f'<div style="width:40px; height:4px; background:var(--c1); margin-bottom:30px;"></div>'
-            f'<div style="font-family:var(--fh); font-size:14px; font-weight:800; color:var(--c1); margin-bottom:16px; letter-spacing:0.1em;">REASON 0{i+1}</div>'
-            f'<h3 style="font-family:var(--fh); font-size:clamp(22px, 2.5vw, 28px); font-weight:900; color:var(--text); margin-bottom:24px; line-height:1.4;">{strip_hanja(tt)}</h3>'
-            f'<p style="font-size:16px; color:var(--t70); line-height:1.8; margin:0;">{strip_hanja(dc)}</p>'
-            f'</div>'
-        )
+                f'<div style="width:40px; height:4px; background:var(--c1); margin-bottom:30px;"></div>'
+                f'<div style="font-family:var(--fh); font-size:14px; font-weight:800; color:var(--c1); margin-bottom:16px; letter-spacing:0.1em;">REASON 0{i+1}</div>'
+                f'<h3 style="font-family:var(--fh); font-size:clamp(22px, 2.5vw, 28px); font-weight:900; color:var(--text); margin-bottom:24px; line-height:1.4;">{strip_hanja(tt)}</h3>'
+                f'<p style="font-size:16px; color:var(--t70); line-height:1.8; margin:0;">{strip_hanja(dc)}</p>'
+                f'</div>'
+            )
         return (
             f'<section class="sec" id="why" style="padding: 160px 20px; background:var(--bg2);">'
             f'<div style="max-width:1200px; margin:0 auto;">'
