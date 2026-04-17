@@ -1697,6 +1697,24 @@ p{line-height:1.9}
 .sec-sub{font-size:14px;line-height:1.9;color:var(--t70);margin-bottom:36px;
   max-width:560px;word-break:keep-all;overflow-wrap:break-word}
 
+/* ✅ 신규: 스티키 스태킹 컨테이너 */
+.sticky-stack{
+  display:flex;
+  flex-direction:column;
+  gap:0;
+}
+.sticky-card{
+  position:sticky;
+  top:80px;
+  z-index:1;
+  margin-bottom:16px;
+  transition:transform .3s, box-shadow .3s;
+}
+.sticky-card:nth-child(1){top:80px; z-index:10;}
+.sticky-card:nth-child(2){top:96px; z-index:9;}
+.sticky-card:nth-child(3){top:112px; z-index:8;}
+.sticky-card:nth-child(4){top:128px; z-index:7;}
+
 /* -- 카드 -- */
 .card{background:var(--bg);border:1px solid var(--bd);border-radius:var(--r,4px);
   padding:24px;transition:transform .25s,box-shadow .25s}
@@ -1707,6 +1725,26 @@ p{line-height:1.9}
   font-weight:900;line-height:1;opacity:.035;color:var(--c1);pointer-events:none;
   user-select:none;z-index:0}
 
+/* ✅ 신규: 타이포그래피 워터마크 */
+.typo-watermark{
+  position:absolute;
+  font-family:var(--fh);
+  font-size:clamp(80px,15vw,220px);
+  font-weight:900;
+  line-height:1;
+  opacity:0.03;
+  color:var(--c1);
+  pointer-events:none;
+  user-select:none;
+  z-index:0;
+  white-space:nowrap;
+  letter-spacing:-.05em;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  text-transform:uppercase;
+}
+
 /* -- 형광 강조 텍스트 -- */
 .highlight{background:var(--c1);color:#fff;padding:0 6px;display:inline}
 
@@ -1716,7 +1754,20 @@ p{line-height:1.9}
   color:transparent;
   font-family:var(--fh);
 }
-
+/* ✅ 신규: 벤토박스 레이아웃 */
+.bento-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  grid-template-rows:auto;
+  gap:16px;
+}
+.bento-wide{grid-column:span 2;}
+.bento-tall{grid-row:span 2;}
+.bento-full{grid-column:1/-1;}
+@media(max-width:768px){
+  .bento-grid{grid-template-columns:1fr!important;}
+  .bento-wide,.bento-tall,.bento-full{grid-column:auto!important;grid-row:auto!important;}
+}
 /* -- 반응형 그리드 안전장치 -- */
 @media(max-width:900px){
   .sec{padding:clamp(48px,8vw,72px) clamp(20px,5vw,40px)}
@@ -1754,6 +1805,26 @@ body.light-mode #site-nav{background:rgba(245,245,240,.92)!important}
 body.light-mode #site-nav a{color:rgba(10,10,10,.65)!important}
 body.light-mode #site-nav a:hover{color:#0A0A0A!important}
 body.light-mode #mode-toggle{background:rgba(240,240,235,.9)!important;border-color:rgba(0,0,0,.15)!important}
+
+/* ✅ 신규: 텍스트 리빌(Reveal) 애니메이션 */
+.reveal-wrap{
+  overflow:hidden;
+  display:inline-block;
+}
+.reveal-text{
+  display:inline-block;
+  transform:translateY(110%);
+  opacity:0;
+  transition:transform 1s cubic-bezier(.16,1,.3,1), opacity .6s ease;
+}
+.reveal-text.on{
+  transform:translateY(0);
+  opacity:1;
+}
+.reveal-text.d1{transition-delay:.1s}
+.reveal-text.d2{transition-delay:.25s}
+.reveal-text.d3{transition-delay:.4s}
+.reveal-text.d4{transition-delay:.55s}
 
 /* -- 텍스트 마키(Marquee) 애니메이션 -- */
 .marquee-container {
@@ -1905,7 +1976,9 @@ def sec_banner(d, cp, T):
             f'<div class="marquee-container"><div class="marquee-content">{bg_text}{bg_text}</div></div>'
             f'<div style="position:relative; z-index:2; padding:0 20px; max-width:1200px; margin:0 auto;">'
             f'<div style="display:inline-block; font-size:12px; font-weight:800; letter-spacing:0.2em; color:var(--c1); border:2px solid var(--c1); padding:8px 24px; border-radius:50px; margin-bottom:30px;">{sub}</div>'
-            f'<h1 style="font-family:\'Black Han Sans\', var(--fh); font-size:clamp(60px, 8vw, 150px); font-weight:900; line-height:1.05; letter-spacing:-0.05em; color:{text_col}; margin-bottom:30px; word-break:keep-all;">{title}</h1>'
+            f'<div class="reveal-wrap">'
+            f'<h1 class="reveal-text d1" style="font-family:\'Black Han Sans\', var(--fh); font-size:clamp(60px, 8vw, 150px); font-weight:900; line-height:1.05; letter-spacing:-0.05em; color:{text_col}; margin-bottom:30px; word-break:keep-all;">{title}</h1>'
+            f'</div>'
             f'<p style="font-size:clamp(16px, 2vw, 22px); line-height:1.8; color:rgba(255,255,255,0.8) if {dark} else var(--t70); max-width:800px; margin:0 auto 50px; font-weight:600;">{lead}</p>'
             f'<a href="#cta" style="display:inline-block; background:var(--c1); color:var(--bg); padding:20px 50px; font-size:18px; font-weight:900; font-family:var(--fh); text-decoration:none; box-shadow: 10px 10px 0px rgba(0,0,0,0.3); transition:transform 0.2s;">{cta} →</a>'
             f'</div></section>'
@@ -2013,8 +2086,11 @@ def sec_why(d, cp, T):
                 f'<p style="font-size: clamp(16px, 1.8vw, 20px); line-height:1.9; color:var(--t70); margin:0; font-weight:500;">{strip_hanja(dc)}</p>'
                 f'</div></div>'
             )
+        # 핵심 영문 키워드 추출 (워터마크용)
+        wm_text = t[:10].upper().replace(' ','') if t else 'WHY'
         return (
             f'<section class="sec" id="why" style="position:relative; overflow:hidden; padding: 180px 20px;">'
+            f'<div class="typo-watermark">{wm_text}</div>'
             f'<div class="marquee-container"><div class="marquee-content">{bg_text}{bg_text}</div></div>'
             f'<div style="max-width:1100px; margin:0 auto; position:relative; z-index:2;">'
             f'<div class="rv" style="margin-bottom:120px; text-align:center;">'
@@ -2044,11 +2120,41 @@ def sec_why(d, cp, T):
             f'</div><div style="border-top:2px solid var(--c1);">{rh}</div></div></section>'
         )
 
-    else: # [스타일 3: 프리미엄 3열 그리드 (구분선 강조)]
+    else: # [스타일 3: 벤토박스 비대칭 그리드]
         rh = ""
+        # 벤토박스 패턴: 첫 카드는 2칸, 나머지는 1칸
+        BENTO_PATTERNS = ["bento-wide", "", "bento-tall", ""]
         for i, (no, tt, dc) in enumerate(safe_r):
+            bento_cls = BENTO_PATTERNS[i % len(BENTO_PATTERNS)]
+            accent_h = "6px" if i == 0 else "3px"
             rh += (
-                f'<div class="rv d{min(i+1,4)}" style="padding:40px; background:transparent; border:1px solid var(--bd); position:relative;">'
+                f'<div class="rv d{min(i+1,4)} {bento_cls}" '
+                f'style="padding:{"48px 40px" if i==0 else "32px 28px"}; '
+                f'background:{"var(--bg2)" if i%2==0 else "var(--bg3)"}; '
+                f'border:1px solid var(--bd); position:relative; overflow:hidden;">'
+                f'<div style="position:absolute;top:0;left:0;right:0;height:{accent_h};background:var(--c1)"></div>'
+                f'<div style="font-family:var(--fh); font-size:{"20px" if i==0 else "14px"}; '
+                f'font-weight:800; color:var(--c1); margin:8px 0 16px; letter-spacing:0.1em;">REASON 0{i+1}</div>'
+                f'<h3 style="font-family:var(--fh); '
+                f'font-size:clamp({"24px,3vw,36px" if i==0 else "18px,2.2vw,24px"}); '
+                f'font-weight:900; color:var(--text); margin-bottom:20px; line-height:1.3;">'
+                f'{strip_hanja(tt)}</h3>'
+                f'<p style="font-size:{"16px" if i==0 else "14px"}; color:var(--t70); line-height:1.85; margin:0;">'
+                f'{strip_hanja(dc)}</p>'
+                f'</div>'
+            )
+        return (
+            f'<section class="sec" id="why" style="padding:160px 20px; background:var(--bg2);">'
+            f'<div style="max-width:1200px; margin:0 auto;">'
+            f'<div class="rv" style="text-align:center; margin-bottom:80px;">'
+            f'<div class="tag-line" style="justify-content:center;">WHY THIS CLASS</div>'
+            f'<h2 style="font-family:var(--fh); font-size:clamp(36px,5vw,64px); '
+            f'font-weight:900; color:var(--text);">{t}</h2>'
+            f'<p style="font-size:18px; color:var(--t70); margin-top:20px;">{s}</p>'
+            f'</div>'
+            f'<div class="bento-grid">{rh}</div>'
+            f'</div></section>'
+        )
                 f'<div style="width:40px; height:4px; background:var(--c1); margin-bottom:30px;"></div>'
                 f'<div style="font-family:var(--fh); font-size:14px; font-weight:800; color:var(--c1); margin-bottom:16px; letter-spacing:0.1em;">REASON 0{i+1}</div>'
                 f'<h3 style="font-family:var(--fh); font-size:clamp(22px, 2.5vw, 28px); font-weight:900; color:var(--text); margin-bottom:24px; line-height:1.4;">{strip_hanja(tt)}</h3>'
@@ -2080,7 +2186,40 @@ def sec_curriculum(d, cp, T):
 
     if v == 1:
         for i, step in enumerate(steps):
-            sh += f'<div class="rv d{min(i+1,4)}" style="display:flex;gap:20px;align-items:flex-start;padding:20px 0;border-bottom:1px solid var(--bd)"><div style="flex-shrink:0;width:40px;height:40px;border-radius:var(--r-btn,4px);background:var(--c1);display:flex;align-items:center;justify-content:center;font-family:var(--fh);font-size:16px;color:var(--bg);font-weight:900">✓</div><div style="flex:1"><div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><span style="font-family:var(--fh);font-size:18px;font-weight:800;color:var(--text)">{strip_hanja(str(step[1]))}</span><span style="font-size:10px;background:var(--bg3);color:var(--c1);padding:2px 10px;border-radius:100px;font-weight:700;border:1px solid var(--bd)">{str(step[3]) if len(step)>3 else "4주"}</span></div><p style="font-size:14px;line-height:1.8;color:var(--t70);margin:0">{strip_hanja(str(step[2]))}</p></div></div>'
+            scale_val = 1 - (i * 0.02)  # 뒤로 갈수록 약간 작아지는 효과
+            sh += (
+                f'<div class="rv d{min(i+1,4)} sticky-card" '
+                f'style="background:var(--bg3); border:1px solid var(--bd); '
+                f'border-radius:var(--r,4px); padding:28px 32px; '
+                f'transform:scale({scale_val}); '
+                f'box-shadow:0 {4+i*8}px {20+i*20}px rgba(0,0,0,{0.08+i*0.04});">'
+                f'<div style="display:flex;gap:20px;align-items:flex-start">'
+                f'<div style="flex-shrink:0;width:48px;height:48px;border-radius:var(--r-btn,4px);'
+                f'background:var(--c1);display:flex;align-items:center;justify-content:center;'
+                f'font-family:var(--fh);font-size:18px;color:var(--bg);font-weight:900">{i+1:02d}</div>'
+                f'<div style="flex:1">'
+                f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'
+                f'<span style="font-family:var(--fh);font-size:20px;font-weight:800;color:var(--text)">'
+                f'{strip_hanja(str(step[1]))}</span>'
+                f'<span style="font-size:10px;background:var(--bg);color:var(--c1);padding:3px 12px;'
+                f'border-radius:100px;font-weight:700;border:1px solid var(--bd)">'
+                f'{str(step[3]) if len(step)>3 else "4주"}</span></div>'
+                f'<p style="font-size:14px;line-height:1.85;color:var(--t70);margin:0">'
+                f'{strip_hanja(str(step[2]))}</p>'
+                f'</div></div></div>'
+            )
+        # ✅ sticky-stack 클래스로 감싸기
+        sh_wrapped = f'<div class="sticky-stack">{sh}</div>'
+        return (
+            f'<section class="sec alt" id="curriculum">'
+            f'<div style="max-width:900px;margin:0 auto">'
+            f'<div class="rv" style="margin-bottom:40px">'
+            f'<div class="tag-line">커리큘럼</div>'
+            f'<h2 style="font-family:var(--fh); font-size:clamp(36px,5vw,64px); font-weight:900; color:var(--text); letter-spacing:-0.03em;">{t}</h2>'
+            f'<p class="sec-sub">{s}</p></div>'
+            f'{sh_wrapped}'
+            f'</div></section>'
+        )
         return f'<section class="sec alt" id="curriculum"><div style="max-width:900px;margin:0 auto"><div class="rv" style="margin-bottom:40px"><div class="tag-line">커리큘럼</div><h2 style="font-family:var(--fh); font-size:clamp(36px, 5vw, 64px); font-weight:900; color:var(--text); letter-spacing:-0.03em;">{t}</h2><p class="sec-sub">{s}</p></div>{sh}</div></section>'
 
     elif v == 2:
@@ -3474,6 +3613,7 @@ def build_html(secs: list) -> str:
     + f'const ro=new IntersectionObserver(es=>{{es.forEach(e=>{{if(e.isIntersecting){{'
     + f'e.target.classList.add("on");ro.unobserve(e.target);}}}});}},{{threshold:.06,rootMargin:"0px 0px -40px 0px"}});'
     + f'document.querySelectorAll(".rv,.rv-left,.rv-right").forEach(el=>ro.observe(el));'
+    + f'document.querySelectorAll(".reveal-text").forEach(el=>ro.observe(el));'
     + f'</script>'
     + f'<button id="mode-toggle" onclick="(function(){{var b=document.body;b.classList.toggle(\'light-mode\');localStorage.setItem(\'mode\',b.classList.contains(\'light-mode\')?\' light\':\'dark\');this.textContent=b.classList.contains(\'light-mode\')?\'🌙\':\'☀️\'}}).call(this)" title="다크/라이트 모드">☀️</button>'
     + f'<script>(function(){{var m=localStorage.getItem(\'mode\');var btn=document.getElementById(\'mode-toggle\');if(m===\'light\'){{document.body.classList.add(\'light-mode\');if(btn)btn.textContent=\'🌙\'}}}})()</script>'
