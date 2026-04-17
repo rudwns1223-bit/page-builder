@@ -2077,37 +2077,6 @@ def sec_why(d, cp, T):
         
     return (
         f'<section class="sec" id="why" style="padding-top:0;">'
-        # 💡 바로 이 아래 줄에 overlap-top 이라는 마법의 단어가 들어갔습니다!
-        f'<div class="overlap-top" style="max-width:1000px; margin:0 auto; background:var(--bg); border:1px solid var(--bd); border-radius:16px; padding:60px 40px; box-shadow:0 20px 60px rgba(0,0,0,0.1);">'
-        f'<div class="rv" style="text-align:center; margin-bottom:60px;">'
-        f'<div class="tag-line" style="justify-content:center;">{s}</div>'
-        f'<h2 style="font-family:var(--fh); font-size:clamp(40px, 6vw, 75px); font-weight:900; color:var(--text); letter-spacing:-0.04em; margin-top:16px;">{t}</h2>'
-        f'</div><div style="border-top:2px solid var(--c1);">{rh}</div></div></section>'
-    )
-def sec_why(d, cp, T):
-    t = strip_hanja(cp.get('whyTitle', '이 강의가 필요한 이유'))
-    s = strip_hanja(cp.get('whySub', f"{d['subject']} 1등급의 비결"))
-    reasons = cp.get('whyReasons', [])
-    
-    safe_r = []
-    for it in reasons:
-        if isinstance(it, (list, tuple)) and len(it) >= 3:
-            safe_r.append((str(it[0]), str(it[1]), str(it[2])))
-        elif isinstance(it, dict):
-            safe_r.append((it.get('no','01'), it.get('title',''), it.get('desc','')))
-
-    rh = ""
-    for i, (no, tt, dc) in enumerate(safe_r):
-        rh += (
-            f'<div class="rv d{min(i+1,4)}" style="display:flex; gap:40px; align-items:flex-start; padding:50px 0; border-bottom:1px solid var(--bd);">'
-            f'<div style="font-family:var(--fh); font-size:60px; font-weight:900; color:var(--c1); line-height:1; flex-shrink:0;">{i+1:02d}.</div>'
-            f'<div><h3 style="font-family:var(--fh); font-size:clamp(26px, 3.5vw, 40px); font-weight:900; color:var(--text); margin-bottom:20px; letter-spacing:-0.03em;">{strip_hanja(tt)}</h3>'
-            f'<p style="font-size:clamp(16px, 1.8vw, 20px); color:var(--t70); line-height:1.85; margin:0; font-weight:500;">{strip_hanja(dc)}</p></div>'
-            f'</div>'
-        )
-        
-    return (
-        f'<section class="sec" id="why" style="padding-top:0;">'
         f'<div class="overlap-top" style="max-width:1000px; margin:0 auto; background:var(--bg); border:1px solid var(--bd); border-radius:16px; padding:60px 40px; box-shadow:0 20px 60px rgba(0,0,0,0.1);">'
         f'<div class="rv" style="text-align:center; margin-bottom:60px;">'
         f'<div class="tag-line" style="justify-content:center;">{s}</div>'
@@ -2127,7 +2096,6 @@ def sec_target(d, cp, T):
     v = random.randint(0, 3)
  
     if v == 1:
-        # 체크마크 리스트
         ih = "".join(
             f'<div class="rv d{min(i+1,4)}" style="display:flex;gap:16px;align-items:flex-start;'
             f'padding:16px 0;border-bottom:1px solid var(--bd)">'
@@ -2146,7 +2114,6 @@ def sec_target(d, cp, T):
         )
  
     elif v == 2:
-        # 큰 번호 강조
         ih = "".join(
             f'<div class="rv d{min(i+1,4)}" style="display:grid;grid-template-columns:80px 1fr;'
             f'gap:20px;align-items:center;padding:20px 0;border-bottom:1px solid var(--bd)">'
@@ -2164,7 +2131,6 @@ def sec_target(d, cp, T):
         )
  
     elif v == 3:
-        # 페르소나 카드
         emojis = ["📚","✏️","🎯","💪"]
         grades = ["고3","N수생","고2","재학생"]
         ih = "".join(
@@ -2186,7 +2152,6 @@ def sec_target(d, cp, T):
         )
  
     else:
-        # 기존 엇갈린 카드
         left_items  = [(i,txt) for i,txt in enumerate(items) if i%2==0]
         right_items = [(i,txt) for i,txt in enumerate(items) if i%2==1]
         def card(i,txt):
@@ -2213,11 +2178,6 @@ def sec_target(d, cp, T):
         )
 
 def sec_reviews(d, cp, T):
-    reviews = cp.get("reviews", [
-        [f'"개념이 이렇게 명확하게 보인 적이 없었어요. {d["subject"]} 공부가 달라졌습니다."', "고3 김OO","등급 향상"],
-        ['"3주 만에 독해 속도가 확실히 빨라졌어요. 실전에서 시간이 남는 게 느껴졌습니다."', "N수 이OO","실전 완성"],
-        [f'"선생님 덕분에 {d["subject"]} 구조가 보이기 시작했어요."', "고2 박OO","자신감 회복"],
-    ])
     reviews = []
     for r in cp.get("reviews", []):
         if isinstance(r, dict):
@@ -2230,18 +2190,6 @@ def sec_reviews(d, cp, T):
             reviews.append([strip_hanja(str(row[0])), strip_hanja(str(row[1])), strip_hanja(str(row[2]))])
         else:
             reviews.append([strip_hanja(str(r)), "수강생", "수강 완료"])
-    if not reviews:
-        reviews = [
-            [f"{d['subject']} 공부 방식이 완전히 달라졌어요. 이제 지문이 보입니다.", "고3 김OO", "등급 향상"],
-            ["막막했던 실전이 이제는 자신 있어요. 시간도 남아요.", "N수 이OO", "실전 완성"],
-            [f"{d['subject']} 구조가 보이기 시작했어요. 선생님 덕분입니다.", "고2 박OO", "자신감 회복"],
-        ]
-
-
-
-
-## 문제 2 — AI 문구 품질 + 수강평 스키마 강화
-
  
     if not reviews:
         reviews = [
@@ -2254,7 +2202,6 @@ def sec_reviews(d, cp, T):
     v = int(hashlib.md5((d.get("name","") + d.get("subject","") + str(len(reviews))).encode()).hexdigest(), 16) % 4
  
     if v == 1:
-        # SNS 카드 스타일
         rh = "".join(
             f'<div class="card rv d{min(i+1,4)}" style="padding:24px">'
             f'<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">'
@@ -2280,7 +2227,6 @@ def sec_reviews(d, cp, T):
         )
  
     elif v == 2:
-        # 큰 인용부호 강조
         rh = "".join(
             f'<div class="rv d{min(i+1,4)}" style="padding:40px;background:{"var(--bg2)" if i%2==0 else "var(--bg3)"};'
             f'border-radius:var(--r,4px);position:relative;overflow:hidden;margin-bottom:12px">'
@@ -2307,7 +2253,6 @@ def sec_reviews(d, cp, T):
         )
  
     elif v == 3:
-        # 점수 강조 카드
         rh = "".join(
             f'<div class="card rv d{min(i+1,4)}" style="padding:28px">'
             f'<div style="display:flex;gap:3px;color:#F59E0B;font-size:14px;margin-bottom:14px">{"★"*5}</div>'
@@ -2328,7 +2273,6 @@ def sec_reviews(d, cp, T):
         )
  
     else:
-        # 기존 스타일 (첫 카드 풀와이드 강조)
         rh = ""
         for i,(txt,nm,badge) in enumerate(reviews):
             if i == 0:
@@ -2422,7 +2366,7 @@ def sec_cta(d, cp, T):
     sub   = strip_hanja(cp.get("ctaSub",   f"{d['name']} 선생님과 함께라면 가능합니다." if d["name"] else f"{d['subject']} 1등급, 지금 시작하세요."))
     cc    = strip_hanja(cp.get("ctaCopy",  "지금 수강신청하기"))
     badge = strip_hanja(cp.get("ctaBadge", f"{d['target']} 전용"))
-    ct    = _cta_text_color(T)  # ← 자동 텍스트 색상
+    ct    = _cta_text_color(T)
     return (
         f'<section style="padding:clamp(80px,10vw,120px) clamp(28px,6vw,72px);text-align:center;position:relative;overflow:hidden;background:{T["cta"]}">'
         f'<div style="position:absolute;inset:0;background:radial-gradient(ellipse 70% 60% at 50% 0%,rgba(255,255,255,.07),transparent 60%);pointer-events:none"></div>'
@@ -2439,7 +2383,6 @@ def sec_cta(d, cp, T):
         f'<p style="margin-top:28px;font-size:11px;color:{ct["txt35"]};letter-spacing:.08em">지금 신청하는 수험생이 먼저 시작합니다</p>'
         f'</div></section>'
     )
-
 
 def sec_event_overview(d, cp, T):
     t = strip_hanja(cp.get("eventTitle", d["purpose_label"]))
@@ -2490,7 +2433,6 @@ def sec_event_deadline(d, cp, T):
         f'</div></section>'
     )
 
-
 def sec_fest_hero(d, cp, T):
     t    = strip_hanja(cp.get("festHeroTitle", f"{d['subject']} 기획전"))
     cc   = strip_hanja(cp.get("festHeroCopy", "최고의 강사들이 한 자리에"))
@@ -2498,7 +2440,6 @@ def sec_fest_hero(d, cp, T):
     stats  = cp.get("festHeroStats", [])
     bg_url = cp.get("bg_photo_url", "")
 
-    # 배경 처리 — 이미지 있으면 오버레이 포함, 없으면 그라디언트
     if bg_url:
         hero_bg  = f"background:url('{bg_url}') center/cover no-repeat"
         overlay  = '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.58);z-index:1;pointer-events:none"></div>'
@@ -2538,7 +2479,6 @@ def sec_fest_hero(d, cp, T):
         + f'</div></section>'
     )
 
-
 def sec_fest_lineup(d, cp, T):
     t = strip_hanja(cp.get("festLineupTitle","강사 라인업"))
     s = strip_hanja(cp.get("festLineupSub",f"{d['subject']} 전 영역 최강 강사진"))
@@ -2563,7 +2503,6 @@ def sec_fest_lineup(d, cp, T):
         )
     lh = "".join(_safe_l(l, i) for i, l in enumerate(lineup))
     return f'<section class="sec alt" id="fest-lineup"><div style="max-width:1200px;margin:0 auto"><div class="rv"><div class="tag-line">강사 라인업</div><h2 class="sec-h2 st">{t}</h2><p class="sec-sub">{s}</p></div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">{lh}</div></div></section>'
-
 
 def sec_fest_benefits(d, cp, T):
     t = strip_hanja(cp.get("festBenefitsTitle","기획전 특별 혜택"))
@@ -2597,11 +2536,11 @@ def sec_fest_benefits(d, cp, T):
     bh = "".join(_safe_fb(b, i) for i, b in enumerate(benefits))
     return f'<section class="sec" id="fest-benefits"><div style="max-width:1200px;margin:0 auto"><div class="rv"><div class="tag-line">기획전 혜택</div><h2 class="sec-h2 st">{t}</h2></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">{bh}</div></div></section>'
 
-
 def sec_fest_cta(d, cp, T):
     t = strip_hanja(cp.get("festCtaTitle",f"지금 바로 {d['subject']} 기획전<br>전체 강사 라인업을 만나세요"))
     s = strip_hanja(cp.get("festCtaSub",f"최고의 강사들과 함께 {d['subject']} 1등급 완성."))
     return (f'<section style="padding:clamp(72px,10vw,112px) clamp(28px,6vw,72px);text-align:center;position:relative;overflow:hidden;background:{T["cta"]}"><div style="position:absolute;top:-120px;left:50%;transform:translateX(-50%);width:700px;height:700px;border-radius:50%;background:rgba(255,255,255,.03);pointer-events:none"></div><div style="position:relative;z-index:1"><div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);padding:7px 22px;border-radius:var(--r-btn,4px);font-size:11px;font-weight:800;color:#fff;margin-bottom:26px;border:1px solid rgba(255,255,255,.2)">🏆 {d["subject"]} 기획전 통합 신청</div><h2 style="font-family:var(--fh);font-size:clamp(28px,5vw,60px);font-weight:900;line-height:1.05;letter-spacing:-.04em;color:#fff;margin-bottom:18px">{t}</h2><p style="color:rgba(255,255,255,.6);font-size:15px;line-height:1.85;margin-bottom:44px;max-width:480px;margin-left:auto;margin-right:auto">{s}</p><div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap"><a style="display:inline-flex;align-items:center;gap:8px;background:#fff;color:#0A0A0A;font-weight:800;padding:18px 52px;border-radius:var(--r-btn,4px);font-size:16px;text-decoration:none" href="#">기획전 통합 신청 →</a><a style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);backdrop-filter:blur(8px);color:rgba(255,255,255,.82);font-weight:600;padding:17px 32px;border-radius:var(--r-btn,4px);border:1.5px solid rgba(255,255,255,.3);font-size:14px;text-decoration:none" href="#">강사 개별 신청</a></div></div></section>')
+
 def gen_custom_sec(topic: str) -> dict:
     inst_ctx = _get_instructor_context()
     EVENT_KWS = ["이벤트", "후기", "수강평", "기대평", "경품", "추첨", "선물", "상품", "이벤", "기념"]
@@ -2667,7 +2606,6 @@ def gen_custom_sec(topic: str) -> dict:
     raise last_err
     
 def _sec_event_promo(d: dict, c: dict, T: dict) -> str:
-    """대성마이맥 스타일 이벤트 섹션 (상품+추첨배지+블랙라벨 정보표+입력폼) (가독성 및 색상 개선 버전)"""
     tag          = strip_hanja(c.get("tag", "이벤트"))
     title        = strip_hanja(c.get("title", "이벤트"))
     desc         = strip_hanja(c.get("desc", ""))
@@ -2676,7 +2614,6 @@ def _sec_event_promo(d: dict, c: dict, T: dict) -> str:
     raffle_count = strip_hanja(str(c.get("raffle_count", "30명")))
     details      = c.get("event_details", [])
     
-    # 1. 상품 이미지 & 원형 뱃지 (뱃지 색상 및 그림자 강조)
     num_only = ''.join(filter(str.isdigit, raffle_count)) if raffle_count else ""
     prize_visual = f'<div style="position:relative; display:inline-block; margin:0 auto;">'
     if raffle_count:
@@ -2700,21 +2637,17 @@ def _sec_event_promo(d: dict, c: dict, T: dict) -> str:
         )
     prize_visual += f'</div>'
 
-    # 2. 이벤트 정보 테이블 (블랙 라벨 스타일) (가독성 대폭 개선)
     detail_rows = "".join(
         f'<div style="display:flex; margin-bottom:4px; box-shadow:0 2px 8px rgba(0,0,0,.08); border-radius:4px; overflow:hidden;">'
-        # 왼쪽 라벨 (진한 차콜, 흰색 글씨)
         f'<div style="width:110px; background:#1a1a1a; color:#fff; padding:12px; font-size:12.5px; '
         f'font-weight:700; display:flex; align-items:center; justify-content:center; letter-spacing:-0.02em; border-right:1px solid #333;">'
         f'{strip_hanja(str(row[0]))}</div>'
-        # 오른쪽 값 (아주 연한 회색 배경, 진한 글씨 - 가독성 확보)
         f'<div style="flex:1; background:#f5f5f5; color:#222; padding:12px 18px; '
         f'font-size:13.5px; font-weight:600; display:flex; align-items:center;">{strip_hanja(str(row[1]))}</div>'
         f'</div>'
         for row in details if isinstance(row, (list, tuple)) and len(row) >= 2
     )
 
-    # 3. 수강후기/기대평 입력 폼 (가독성 및 버튼 색상 개선)
     input_form = (
         f'<div style="background:#fff; padding:20px 24px; margin-top:32px; box-shadow:0 8px 30px rgba(0,0,0,.06); border:1px solid #eee; border-radius:4px;">'
         f'<div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">'
@@ -2726,7 +2659,6 @@ def _sec_event_promo(d: dict, c: dict, T: dict) -> str:
         f'<div style="display:flex; gap:0; border:1px solid #ddd; border-radius:2px; overflow:hidden;">'
         f'<input type="text" placeholder="{title} 남기고 상품 받자!" '
         f'style="flex:1; padding:16px 20px; border:none; font-size:14px; outline:none; background:#fafafa; color:#333;" readonly>'
-        # 버튼을 완전한 '블랙 라벨' 스타일로 검은색으로 변경
         f'<button style="background:#111; color:#fff; border:none; padding:0 36px; font-weight:800; font-size:14px; cursor:pointer; transition:background 0.2s;" '
         f'onmouseover="this.style.background=\'#000\'" onmouseout="this.style.background=\'#111\'">작성하기</button>'
         f'</div>'
@@ -2735,23 +2667,18 @@ def _sec_event_promo(d: dict, c: dict, T: dict) -> str:
 
     prize_name_html = f'<div style="margin-top:20px; font-size:14px; font-weight:800; color:#333; text-align:center;">{prize_name}</div>' if prize_name else ""
 
-    # 4. 전체 HTML 조립 (헤더 색상 개선 및 섹션 배경색 고정)
     return (
-        # 'sec alt' 클래스 대신 스타일을 직접 지정하여 흰색 배경으로 고정
         f'<section class="sec" style="background:#fff" id="custom-section">'
         f'<div style="max-width:860px; margin:0 auto">'
         f'<div class="rv" style="text-align:center; margin-bottom:48px">'
-        # 태그 라인 색상 및 배경 개선
         f'<div style="display:inline-flex; align-items:center; gap:8px; border:1px solid #aaa; color:#666; '
         f'font-size:11px; font-weight:800; padding:6px 20px; border-radius:100px; margin-bottom:20px; '
         f'letter-spacing:0.1em; background:#fafafa;">{tag} EVENT</div>'
-        # 제목 및 설명 색상 개선
         f'<h2 style="font-family:\'Black Han Sans\', var(--fh); font-size:clamp(32px, 5vw, 48px); font-weight:900; '
         f'line-height:1.15; letter-spacing:-0.03em; color:#111; margin-bottom:16px;">{title}</h2>'
         f'<p style="font-size:15.5px; line-height:1.85; color:#444; font-weight:500; '
         f'max-width:600px; margin:0 auto">{desc}</p>'
         f'</div>'
-        # 이벤트 카드 배경색 및 테두리 개선
         f'<div class="rv d1" style="background:#F4F4F4; padding:40px; border-radius:var(--r,8px); box-shadow:0 12px 40px rgba(0,0,0,.15); border:1px solid #ddd;">'
         f'<div style="display:grid; grid-template-columns:1fr 1.3fr; gap:40px; align-items:center;">'
         f'<div style="text-align:center;">'
@@ -2767,17 +2694,14 @@ def _sec_event_promo(d: dict, c: dict, T: dict) -> str:
 
 
 def sec_custom(d, cp, T):
-    """기타 섹션 — 메인 분기 처리"""
     c = cp.get("custom_section_data", {})
     if not c: return ""
     
-    # 안전장치: AI가 event_style을 안 주더라도, 상품명이나 이벤트 표가 있으면 무조건 이벤트 폼으로 렌더링
     is_event = c.get("event_style") or "event_details" in c or "prize_name" in c or "raffle_count" in c
     
     if is_event:
         return _sec_event_promo(d, c, T)
 
-    # 이벤트가 아닌 일반 섹션 (이전의 카드/텍스트 레이아웃)
     tag   = strip_hanja(c.get("tag", "추가 안내"))
     title = strip_hanja(c.get("title", "추가 섹션"))
     items = c.get("items", [])
@@ -2810,12 +2734,7 @@ def sec_custom(d, cp, T):
         f'{body}</div></section>'
     )
 
-
-# ══════════════════════════════════════════════════════
-# 추가 고급 섹션들 (ABPS / OVS 시안 수준)
-# ══════════════════════════════════════════════════════
 def sec_before_after(d, cp, T):
-    """수강 전후 비교 — 3가지 다이내믹 레이아웃"""
     t   = strip_hanja(cp.get('baTitle', '공부 방식이 이렇게 달라집니다'))
     sub = strip_hanja(cp.get('baSub', f"{d['purpose_label']} 이후의 변화"))
     befores = cp.get('baBeforeItems', [f"{d['subject']} 지문이 무슨 말인지 몰라 다 읽는다", '시간이 부족해 뒷문제를 찍는다', '시험장에서 실수가 계속 나온다'])
@@ -2824,7 +2743,6 @@ def sec_before_after(d, cp, T):
     v = (sum(ord(c) for c in t) % 3) + 1
 
     if v == 1:
-        # [스타일 1: 세련된 벤토박스형 교차 배열 (Modern Grid)]
         bh_ah_combined = ""
         for i in range(min(len(befores), len(afters))):
             bh_ah_combined += (
@@ -2853,7 +2771,6 @@ def sec_before_after(d, cp, T):
         )
 
     elif v == 2:
-        # [스타일 2: 애플 Mac 비교표 스타일 (Sleek Table)]
         rows = ""
         for i in range(min(len(befores), len(afters))):
             rows += (
@@ -2880,7 +2797,6 @@ def sec_before_after(d, cp, T):
         )
 
     else:
-        # [스타일 3: 기존 다크/라이트 대조형 블록 다듬기]
         bh = ''.join(f'<div style="display:flex; gap:12px; margin-bottom:20px;"><div style="color:#D32F2F; font-weight:900;">✕</div><p style="font-size:14.5px; line-height:1.7; color:rgba(255,255,255,0.7); margin:0;">{strip_hanja(b)}</p></div>' for b in befores)
         ah = ''.join(f'<div style="display:flex; gap:12px; margin-bottom:20px;"><div style="color:var(--c1); font-weight:900;">✓</div><p style="font-size:14.5px; line-height:1.7; color:var(--text); font-weight:600; margin:0;">{strip_hanja(a)}</p></div>' for a in afters)
         
@@ -2901,9 +2817,7 @@ def sec_before_after(d, cp, T):
             f'</div></div></section>'
         )
 
-
 def sec_grade_stats(d, cp, T):
-    """학습 변화 흐름 — 수강 전~수능 당일까지의 4단계 여정 시각화"""
     t   = strip_hanja(cp.get("gradeTitle", f"{d['purpose_label']}으로 달라지는 것들"))
     sub = strip_hanja(cp.get("gradeSub",   f"{d['subject']} 공부의 방식이 이렇게 바뀝니다"))
 
@@ -2965,18 +2879,14 @@ def sec_grade_stats(d, cp, T):
         f'<h2 class="sec-h2 st" style="text-align:center">{t}</h2>'
         f'<p class="sec-sub" style="text-align:center;margin:0 auto">{sub}</p>'
         f'</div>'
-        # 변화 흐름 타임라인
         f'<div class="rv d1" style="display:flex;gap:24px;align-items:stretch;'
         f'flex-wrap:wrap;margin-bottom:40px">{flow_html}</div>'
-        # 핵심 카드
         f'<div style="display:grid;grid-template-columns:repeat({min(len(cards),3)},1fr);'
         f'gap:14px" class="rv d2">{card_html}</div>'
         f'</div></section>'
     )
 
-
 def sec_method(d, cp, T):
-    """시그니처 학습법 시각화 — ABPS 'Apply to text' 스타일"""
     t    = strip_hanja(cp.get("methodTitle", f"{d['name'] or d['subject']} 시그니처 학습법"))
     sub  = strip_hanja(cp.get("methodSub",   "이 방식으로 접근하면 지문이 완전히 달리 보입니다"))
     methods_raw = cp.get("methodSteps",[])
@@ -2998,12 +2908,10 @@ def sec_method(d, cp, T):
         dc = strip_hanja(str(m.get("desc",  "")))
         steps_html += (
             f'<div class="rv d{min(i+1,4)}" style="display:flex;gap:0;align-items:stretch;margin-bottom:10px">'
-            # 좌: 스텝 번호 블록
             f'<div style="min-width:90px;background:var(--c1);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px 12px;border-radius:var(--r,4px) 0 0 var(--r,4px)">'
             f'<div style="font-family:var(--fh);font-size:11px;font-weight:900;color:rgba(255,255,255,.6);letter-spacing:.1em">{s}</div>'
             f'<div style="font-family:var(--fh);font-size:17px;font-weight:900;color:#fff;margin-top:2px">{lb}</div>'
             f'</div>'
-            # 우: 설명
             f'<div style="flex:1;background:var(--bg3);padding:18px 24px;border-radius:0 var(--r,4px) var(--r,4px) 0;border:1px solid var(--bd);border-left:none;display:flex;align-items:center">'
             f'<p style="font-size:14px;line-height:1.8;color:var(--text);margin:0;font-weight:500">{dc}</p>'
             f'</div></div>'
@@ -3024,9 +2932,7 @@ def sec_method(d, cp, T):
         f'</div></section>'
     )
 
-
 def sec_package(d, cp, T):
-    """구매 패키지 섹션 — 세련된 다단 그리드(Bento Box) 스타일"""
     t    = strip_hanja(cp.get("pkgTitle",   f"{d['purpose_label']} 구성 안내"))
     sub  = strip_hanja(cp.get("pkgSub",     "지금 신청하면 아래 구성이 모두 포함됩니다"))
     pkgs = cp.get("packages",[
@@ -3036,7 +2942,6 @@ def sec_package(d, cp, T):
         {"icon":"💬","name":"1:1 밀착 Q&A","desc":"연구진이 직접 답변하는 프라이빗 질문 게시판","badge":"특전"},
     ])
     
-    # 🌟 레이아웃을 2단 그리드 카드 형태로 고급스럽게 변경
     ph = "".join(
         f'<div class="card rv d{min(i+1,4)}" style="display:flex; flex-direction:column; justify-content:space-between; padding:32px; background:{"var(--bg)" if i%2!=0 else "var(--bg3)"}; border:1px solid var(--bd); border-radius:var(--r, 8px); height:100%; transition:transform 0.3s, box-shadow 0.3s;">'
         f'<div>'
