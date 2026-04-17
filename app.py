@@ -2619,6 +2619,40 @@ def sec_event_overview(d, cp, T):
         
     return f'<section class="sec" id="event-overview"><div style="max-width:1200px;margin:0 auto"><div class="rv"><div class="tag-line">이벤트 개요</div><h2 class="sec-h2 st">{t}</h2><p class="sec-sub">{desc}</p></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">{dh}</div></div></section>'
 
+def sec_video(d, cp, T):
+    """영상 미리보기 섹션 렌더러"""
+    t = strip_hanja(cp.get("videoTitle", "영상 미리보기"))
+    sub = strip_hanja(cp.get("videoSub", "영상을 통해 자세한 내용을 확인하세요"))
+    tag = strip_hanja(cp.get("videoTag", "OFFICIAL TRAILER"))
+    
+    # 사이드바에서 입력한 videoUrl 가져오기
+    v_url = cp.get("videoUrl", "")
+    
+    if not v_url:
+        video_html = (
+            f'<div style="width:100%; aspect-ratio:16/9; background:var(--bg3); border-radius:var(--r, 8px); display:flex; align-items:center; justify-content:center; color:var(--t45); border:1px dashed var(--bd);">'
+            f'사이드바에서 YouTube embed URL을 입력해주세요.'
+            f'</div>'
+        )
+    else:
+        video_html = (
+            f'<iframe width="100%" style="aspect-ratio:16/9; border-radius:var(--r, 8px); border:none; box-shadow:0 12px 40px rgba(0,0,0,.15);" '
+            f'src="{v_url}" title="YouTube video" frameborder="0" '
+            f'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'
+        )
+
+    return (
+        f'<section class="sec" id="video">'
+        f'<div style="max-width:1000px; margin:0 auto; text-align:center;">'
+        f'<div class="rv" style="margin-bottom:48px;">'
+        f'<div class="tag-line" style="justify-content:center;">{tag}</div>'
+        f'<h2 style="font-family:var(--fh); font-size:clamp(32px, 5vw, 56px); font-weight:900; color:var(--text); margin-bottom:16px;">{t}</h2>'
+        f'<p style="font-size:16px; color:var(--t70);">{sub}</p>'
+        f'</div>'
+        f'<div class="rv d1">{video_html}</div>'
+        f'</div></section>'
+    )
+
 def sec_event_benefits(d, cp, T):
     t = strip_hanja(cp.get("benefitsTitle", "이벤트 특별 혜택"))
     benefits = cp.get("eventBenefits", [{"icon":"🎁","title":"할인","desc":"혜택제공","badge":"혜택","no":"01"}])
