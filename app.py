@@ -21,6 +21,7 @@ st.set_page_config(
 # ══════════════════════════════════════════════════════
 _D = {
     "api_key": "", "concept": "acid", "custom_theme": None,
+    "metaphor": "",
     "instructor_name": "", "subject": "영어",
     "purpose_label": "2026 수능 파이널 완성",
     "purpose_type": "신규 커리큘럼", "target": "고3·N수",
@@ -998,32 +999,35 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
     
     st.session_state["_theme_declaration"] = theme_decl
     
-    # 🌟 이모지 완전 삭제, 고급화 🌟
-    # 🌟 메인 카피는 무조건 짧게, 리드는 강렬하게 🌟
+    # 사용자가 입력한 메타포 가져오기
+    metaphor = st.session_state.get("metaphor", "").strip()
+    metaphor_prompt = f"\n# 🌊 핵심 기획 메타포: [{metaphor}]\n- 이 메타포(비유)를 카피 전반에 자연스럽게 녹여내고, 시각적 디렉션(Visual)에도 적극 반영하세요." if metaphor else ""
+
+    # 🌟 스키마에 Visual(시각적 디렉션) 필드 추가 🌟
     schemas = {
-        "신규 커리큘럼": '{"bannerSub":"과목의 본질을 찌르는 10자 이내","bannerTitle":"25자 이내의 아주 짧고 압도적인 단어/구 (절대 길게 쓰지 마세요)","brandTagline":"영문 슬로건 한 문장","bannerLead":"뻔한 위로가 아닌 현 상황을 찌르는 팩트폭력 리드문","bannerTags":["키워드1","키워드2","키워드3"],"ctaCopy":"망설임을 없애는 단어","ctaTitle":"강력한 CTA 제목","ctaSub":"지금 안 하면 손해라는 서브 문구","ctaBadge":"10자이내","introTitle":"강사의 절대적 권위 제목","introDesc":"왜 이 강의를 들어야만 하는지 날카롭게 서술 (길게)","introBio":"시그니처 1문장","whyTitle":"파격적 제목","whySub":"30자이내","whyReasons":[["01","직설적인 짧은 제목","학생이 읽고 아차 싶을 만큼 뼈 때리는 구체적 이유와 해결책 서술 (최소 80자 이상)"],["02","제목","서술"],["03","제목","서술"]],"curriculumTitle":"20자이내","curriculumSub":"30자이내","curriculumSteps":[["01","단계명","이 시기에 학생들이 하는 착각과, 이 단계가 그걸 어떻게 부수고 점수를 만드는지 서술","기간"],["02","단계","서술","기간"],["03","단계","서술","기간"],["04","단계","서술","기간"]],"targetTitle":"이런 학생이라면 반드시 들어라","targetItems":["구체적인 절망적 상황 묘사 1","상황 묘사 2","상황 묘사 3","상황 묘사 4"],"reviews":[["진짜 학생이 흥분해서 쓴 것 같은 매우 길고 구체적인 후기","이름","변화뱃지"],["후기","이름","뱃지"],["후기","이름","뱃지"]],"videoTitle":"영상 제목","videoSub":"설명","videoTag":"OFFICIAL TRAILER"}',
-        "이벤트": '{"bannerSub":"10자","bannerTitle":"15자 이내의 짧고 파격적인 이벤트 제목","brandTagline":"이벤트 분위기 한 문장","bannerLead":"참여하지 않으면 손해라는 긴박감 리드","bannerTags":["이벤트특징1","이벤트특징2","이벤트특징3"],"ctaCopy":"행동 유도","ctaTitle":"CTA","ctaSub":"서브문구","ctaBadge":"15자","eventTitle":"20자","eventDesc":"50자이상","eventDetails":[["일정","날짜"],["대상","값"],["혜택","값"]],"benefitsTitle":"20자","eventBenefits":[{"no":"01","title":"혜택명","desc":"50자이상","badge":"8자"},{"no":"02","title":"혜택명","desc":"50자","badge":"8자"},{"no":"03","title":"혜택명","desc":"50자","badge":"8자"}],"deadlineTitle":"20자","deadlineMsg":"70자 긴박감"}',
-        "기획전": '{"festHeroTitle":"15자 이내의 강렬한 기획전 제목","festHeroCopy":"30자","festHeroSub":"50자이상","brandTagline":"분위기 문장","festHeroStats":[["수치","라벨"],["수치","라벨"]],"festLineupTitle":"20자","festLineupSub":"40자","festLineup":[{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지"},{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지"}],"festBenefitsTitle":"20자","festBenefits":[{"no":"01","title":"혜택명","desc":"50자이상","badge":"8자"},{"no":"02","title":"혜택명","desc":"50자","badge":"8자"}],"festCtaTitle":"CTA제목","festCtaSub":"50자이상"}'
+        "신규 커리큘럼": '{"bannerSub":"과목의 본질을 찌르는 10자 이내","bannerTitle":"25자 이내의 아주 짧고 압도적인 단어/구","brandTagline":"영문 슬로건 한 문장","bannerLead":"뻔한 위로가 아닌 현 상황을 찌르는 팩트폭력 리드문","bannerTags":["키워드1","키워드2","키워드3"],"bannerVisual":"[Visual Directing] 배너 영역의 배경/인물/그래픽 연출 디렉션 (디자이너/영상팀 전달용, 50자 이내)","ctaCopy":"망설임을 없애는 단어","ctaTitle":"강력한 CTA 제목","ctaSub":"지금 안 하면 손해라는 서브 문구","ctaBadge":"10자이내","introTitle":"강사의 절대적 권위 제목","introDesc":"왜 이 강의를 들어야만 하는지 날카롭게 서술 (길게)","introBio":"시그니처 1문장","introVisual":"[Visual Directing] 강사 소개 영역의 디자인/모션 디렉션 (50자 이내)","whyTitle":"파격적 제목","whySub":"30자이내","whyReasons":[["01","직설적인 짧은 제목","학생이 읽고 아차 싶을 만큼 뼈 때리는 구체적 이유와 해결책 서술 (최소 80자 이상)"],["02","제목","서술"],["03","제목","서술"]],"whyVisual":"[Visual Directing] 수강 이유 섹션의 레이아웃이나 오브제 디렉션","curriculumTitle":"20자이내","curriculumSub":"30자이내","curriculumSteps":[["01","단계명","이 시기에 학생들이 하는 착각과, 이 단계가 그걸 어떻게 부수고 점수를 만드는지 서술","기간"],["02","단계","서술","기간"],["03","단계","서술","기간"],["04","단계","서술","기간"]],"targetTitle":"이런 학생이라면 반드시 들어라","targetItems":["구체적인 절망적 상황 묘사 1","상황 묘사 2","상황 묘사 3","상황 묘사 4"],"reviews":[["진짜 학생이 흥분해서 쓴 것 같은 매우 길고 구체적인 후기","이름","변화뱃지"],["후기","이름","뱃지"],["후기","이름","뱃지"]],"videoTitle":"영상 제목","videoSub":"설명","videoTag":"OFFICIAL TRAILER"}',
+        "이벤트": '{"bannerSub":"10자","bannerTitle":"15자 이내의 짧고 파격적인 이벤트 제목","brandTagline":"이벤트 분위기 한 문장","bannerLead":"참여하지 않으면 손해라는 긴박감 리드","bannerTags":["이벤트특징1","이벤트특징2","이벤트특징3"],"bannerVisual":"[Visual Directing] 이벤트 배너의 시각적 컨셉 및 오브제 연출 (50자 이내)","ctaCopy":"행동 유도","ctaTitle":"CTA","ctaSub":"서브문구","ctaBadge":"15자","eventTitle":"20자","eventDesc":"50자이상","eventDetails":[["일정","날짜"],["대상","값"],["혜택","값"]],"benefitsTitle":"20자","eventBenefits":[{"no":"01","title":"혜택명","desc":"50자이상","badge":"8자"},{"no":"02","title":"혜택명","desc":"50자","badge":"8자"},{"no":"03","title":"혜택명","desc":"50자","badge":"8자"}],"deadlineTitle":"20자","deadlineMsg":"70자 긴박감"}',
+        "기획전": '{"festHeroTitle":"15자 이내의 강렬한 기획전 제목","festHeroCopy":"30자","festHeroSub":"50자이상","brandTagline":"분위기 문장","festHeroVisual":"[Visual Directing] 기획전 히어로 영역의 전체 무드 및 강사 라인업 배치 연출 (50자 이내)","festHeroStats":[["수치","라벨"],["수치","라벨"]],"festLineupTitle":"20자","festLineupSub":"40자","festLineup":[{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지"},{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지"}],"festBenefitsTitle":"20자","festBenefits":[{"no":"01","title":"혜택명","desc":"50자이상","badge":"8자"},{"no":"02","title":"혜택명","desc":"50자","badge":"8자"}],"festCtaTitle":"CTA제목","festCtaSub":"50자이상"}'
     }
 
     tone_instruction = COPY_TONES.get(st.session_state.copy_tone, "")
     
-    prompt = f"""당신은 Apple과 Samsung의 런칭 페이지를 기획하는 업계 최고 수준의 브랜드 마케터입니다.
-단순히 정보를 나열하지 마세요. 수험생의 심장을 울리고, 압도적인 카리스마와 깊은 철학이 느껴지는 최고급 카피를 창조해야 합니다.
+    prompt = f"""당신은 Apple과 Samsung의 런칭 페이지를 기획하는 업계 최고 수준의 브랜드 마케터이자 아트 디렉터입니다.
+단순히 정보를 나열하지 마세요. 수험생의 심장을 울리는 카피와, 디자이너가 즉시 작업할 수 있는 시각적 디렉션(Visual Directing)을 함께 창조해야 합니다.
 
 ===문구 생성 지침===
 {variation_hint}
 # 이 페이지의 핵심 키워드: [{core_keyword}]
-# 방향성: {declaration}
+# 방향성: {declaration}{metaphor_prompt}
 # 절대 금지어: 이모지(절대 쓰지 말 것), 최고의, 체계적인, 합리적인, 실력 향상, 교수
 
 ===강사 정보===
 {inst_ctx}
 
-===문구 품질 기준===
-1. 모든 문구의 길이 제한을 무시하세요. 감정을 흔들 수 있다면 아주 짧거나, 서사적으로 길게 작성하세요.
+===문구 및 디렉션 품질 기준===
+1. 카피 길이 제한을 무시하세요. 감정을 흔들 수 있다면 아주 짧거나, 서사적으로 길게 작성하세요.
 2. 이모지(😊, 🎯 등)는 절대 사용하지 마세요. 오직 텍스트의 무게감으로 승부하세요.
-3. 숫자를 활용하여 데이터 기반의 프리미엄 신뢰감을 주세요.
+3. [Visual Directing] 필드는 담당 디자이너나 영상팀이 스토리보드를 보고 바로 화면을 스케치할 수 있도록 구체적인 묘사(오브제, 조명, 인물 포즈, 앵글, 질감 등)를 작성하세요.
 4. 반드시 순수 한국어로 작성 (강사 고유명사 제외).
 
 JSON만 반환 (마크다운 금지):
@@ -1272,9 +1276,9 @@ def gen_section(sec_id: str) -> dict:
 
     # 🌟 부분 재생성 시에도 메인 카피는 짧게 유지 🌟
     schemas = {
-        "banner": '{"bannerSub":"10자","bannerTitle":"15자 이내의 아주 짧고 압도적인 단어/구","brandTagline":"컨셉을 담은 브랜드 한 문장","bannerLead":"60-90자 수험생이 공감하는 구체적 리드","bannerTags":["키워드1","키워드2","키워드3"],"ctaCopy":"10자","statBadges":[]}',
-        "intro":  '{"introTitle":"20자","introDesc":"80-120자 강사 철학과 차별점","introBio":"강사 학습법 포함 60자","introBadges":[]}',
-        "why":    '{"whyTitle":"20자","whySub":"30자","whyReasons":[["01","직설적인 짧은 제목","학생 입장에서 구체적 설명 최소 80자"],["02","12자","80자"],["03","12자","80자"]]}',
+        "banner": '{"bannerSub":"10자","bannerTitle":"15자 이내의 아주 짧고 압도적인 단어/구","brandTagline":"컨셉을 담은 브랜드 한 문장","bannerLead":"60-90자 수험생이 공감하는 구체적 리드","bannerTags":["키워드1","키워드2","키워드3"],"bannerVisual":"[Visual Directing] 배너 시각 연출 디렉션","ctaCopy":"10자","statBadges":[]}',
+        "intro":  '{"introTitle":"20자","introDesc":"80-120자 강사 철학과 차별점","introBio":"강사 학습법 포함 60자","introVisual":"[Visual Directing] 인트로 시각 연출 디렉션","introBadges":[]}',
+        "why":    '{"whyTitle":"20자","whySub":"30자","whyReasons":[["01","직설적인 짧은 제목","학생 입장에서 구체적 설명 최소 80자"],["02","12자","80자"],["03","12자","80자"]],"whyVisual":"[Visual Directing] 수강이유 섹션 시각 연출 디렉션"}',
         "curriculum": '{"curriculumTitle":"20자","curriculumSub":"30자","curriculumSteps":[["01","8자","이 단계 통해 무엇이 달라지는지 50자 이상 설명","기간"],["02","8자","50자 이상","기간"],["03","8자","50자 이상","기간"],["04","8자","50자 이상","기간"]]}',
         "target": '{"targetTitle":"20자","targetItems":["이런 학생을 위한 40-50자 구체적 상황","항목2 40자","항목3 40자","항목4 40자"]}',
         "reviews": '{"reviews":[["지금도 쓸 것 같은 생생한 50-70자 인용문, 구체적 점수·방법 언급","이름","뱃지"],["50-70자 인용문","이름","뱃지"],["50-70자 인용문","이름","뱃지"]]}',
@@ -1307,8 +1311,11 @@ def gen_section(sec_id: str) -> dict:
     theme_decl = st.session_state.get("_theme_declaration", {})
     declaration = theme_decl.get("declaration", "")
     core_keyword = theme_decl.get("core_keyword", "")
+    
+    metaphor = st.session_state.get("metaphor", "").strip()
+    metaphor_hint = f"\n# 핵심 기획 메타포: [{metaphor}] -> 카피와 시각적 디렉션(Visual)에 이 메타포를 강력하게 적용하세요." if metaphor else ""
 
-    declaration_hint = f"# ★ 이 섹션도 반드시 아래 방향으로 작성하세요:\n{declaration}\n# 핵심 키워드 [{core_keyword}]가 자연스럽게 녹아있어야 합니다." if declaration else ""
+    declaration_hint = f"# ★ 이 섹션도 반드시 아래 방향으로 작성하세요:\n{declaration}\n# 핵심 키워드 [{core_keyword}]가 자연스럽게 녹아있어야 합니다.{metaphor_hint}" if declaration else metaphor_hint
 
     # 🌟 매번 누를 때마다 파격적인 프롬프트를 생성 🌟
     variation_hint = get_copy_variation()
@@ -4137,10 +4144,14 @@ with st.sidebar:
     st.divider()
 
     # 설정
-    st.markdown('<div class="sec-hdr">📝 강의 브랜드명</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-hdr">📝 기획 방향 설정</div>', unsafe_allow_html=True)
     pl = st.text_input("브랜드명", value=st.session_state.purpose_label,
                        placeholder="2026 수능 파이널 완성", label_visibility="collapsed")
     st.session_state.purpose_label = pl
+    mt = st.text_input("핵심 메타포 (선택)", value=st.session_state.get("metaphor", ""),
+                       placeholder="예: Surfing, Racing, 등대, 해부학",
+                       help="기획안 전체를 관통하는 비유적 표현을 입력하면 카피와 시각적 디렉션에 반영됩니다.")
+    st.session_state.metaphor = mt
     st.markdown('<div class="sec-hdr">🎯 수강 대상</div>', unsafe_allow_html=True)
     tgt = st.radio("대상", ["고3·N수","고1·2 — 기초 완성"], horizontal=True, label_visibility="collapsed")
     st.session_state.target = tgt
@@ -4429,6 +4440,50 @@ with L:
                     st.session_state.preview_key = st.session_state.get("preview_key", 0) + 1
                     st.rerun()
         st.divider()
+        st.markdown("### 📋 SB 텍스트 & 디렉션 추출")
+    st.caption("스토리보드에 복사/붙여넣기 편하도록 텍스트만 모아 보여줍니다.")
+    if st.session_state.custom_copy:
+        with st.expander("📝 SB 데이터 전체 보기 및 복사", expanded=False):
+            st.info("💡 팁: 아래 텍스트 블록 우측 상단의 '복사' 아이콘을 누르면 전체 내용을 SB로 가져갈 수 있습니다.")
+            
+            # JSON을 기획자가 읽기 편한 텍스트로 변환하여 출력
+            sb_text = ""
+            cp_data = st.session_state.custom_copy
+            
+            if "bannerTitle" in cp_data:
+                sb_text += f"[메인 배너 (Hero)]\n"
+                sb_text += f"• 서브: {cp_data.get('bannerSub', '')}\n"
+                sb_text += f"• 메인 카피: {cp_data.get('bannerTitle', '')}\n"
+                sb_text += f"• 리드 카피: {cp_data.get('bannerLead', '')}\n"
+                if cp_data.get('bannerVisual'):
+                    sb_text += f"🎥 Visual Directing: {cp_data.get('bannerVisual')}\n"
+                sb_text += "\n"
+                
+            if "introTitle" in cp_data:
+                sb_text += f"[강사 소개 (Intro)]\n"
+                sb_text += f"• 제목: {cp_data.get('introTitle', '')}\n"
+                sb_text += f"• 본문: {cp_data.get('introDesc', '')}\n"
+                if cp_data.get('introVisual'):
+                    sb_text += f"🎥 Visual Directing: {cp_data.get('introVisual')}\n"
+                sb_text += "\n"
+                
+            if "whyReasons" in cp_data:
+                sb_text += f"[수강 이유 (Why)]\n"
+                sb_text += f"• 제목: {cp_data.get('whyTitle', '')} / {cp_data.get('whySub', '')}\n"
+                if cp_data.get('whyVisual'):
+                    sb_text += f"🎥 Visual Directing: {cp_data.get('whyVisual')}\n"
+                for r in cp_data.get("whyReasons", []):
+                    if len(r) >= 3:
+                        sb_text += f"  - [{r[0]}] {r[1]}: {r[2]}\n"
+                sb_text += "\n"
+                
+            # 나머지 데이터는 그대로 출력
+            sb_text += "[기타 데이터]\n"
+            import json
+            other_data = {k:v for k,v in cp_data.items() if k not in ["bannerTitle","bannerSub","bannerLead","bannerVisual","introTitle","introDesc","introVisual","whyTitle","whySub","whyReasons","whyVisual"]}
+            sb_text += json.dumps(other_data, ensure_ascii=False, indent=2)
+
+            st.code(sb_text, language="markdown")
     st.markdown("### 📥 HTML 내보내기")
     cn = (st.session_state.custom_theme.get("name","custom")
           if st.session_state.concept=="custom" and st.session_state.custom_theme
