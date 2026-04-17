@@ -2017,6 +2017,42 @@ def sec_banner(d, cp, T):
         f'</section>'
     )
 
+def sec_intro(d, cp, T):
+    label   = st.session_state.get("purpose_label", d["purpose_label"])
+    subj    = d["subject"]
+    tagline = strip_hanja(cp.get("brandTagline", ""))
+    desc    = strip_hanja(cp.get("introDesc", f"{label}이 특별한 이유가 있습니다."))
+
+    reasons = cp.get("whyReasons", [])
+    points  = []
+    for r in reasons[:3]:
+        if isinstance(r, (list, tuple)) and len(r) >= 3:
+            points.append((str(r[0]), str(r[1]), str(r[2])))
+    if not points:
+        points = [("🎯", "핵심만 담았다", f"{label} 한 강좌로 {subj} 완성"),("⚡", "즉시 적용된다", "배운 내용을 바로 실전에 적용"),("📈", "결과가 달라진다", "수강 후 성적 변화 체감")]
+
+    point_html = "".join(
+        f'<div class="rv d{i+1}" style="flex:1;min-width:180px;padding:28px 24px;background:var(--bg3);border-radius:var(--r,4px);border:1px solid var(--bd);border-top:3px solid var(--c1)">'
+        f'<div style="font-size:34px;margin-bottom:14px">{ic}</div>'
+        f'<div style="font-family:var(--fh);font-size:15px;font-weight:800;color:var(--text);margin-bottom:8px">{strip_hanja(tt)}</div>'
+        f'<p style="font-size:13px;line-height:1.8;color:var(--t70);margin:0">{strip_hanja(dc)}</p>'
+        f'</div>'
+        for i, (ic, tt, dc) in enumerate(points)
+    )
+
+    tagline_html = f'<div style="padding:22px 28px;background:var(--c1);border-radius:var(--r,4px);margin-bottom:20px"><p style="font-size:clamp(15px,1.6vw,18px);font-style:italic;font-weight:700;color:#fff;line-height:1.6;margin:0">"{tagline}"</p></div>' if tagline else ""
+
+    return (
+        f'<section class="sec" id="intro"><div style="max-width:1100px;margin:0 auto">'
+        f'<div class="rv" style="display:grid;grid-template-columns:1fr 1.8fr;gap:60px;align-items:center;padding-bottom:40px;border-bottom:2px solid var(--bd);margin-bottom:40px">'
+        f'<div><div class="tag-line">{subj} 강좌 소개</div>'
+        f'<h2 style="font-family:var(--fh);font-size:clamp(28px,4vw,52px);font-weight:900;line-height:1.05;color:var(--text);margin-bottom:14px">{label}</h2>'
+        f'<div style="display:flex;align-items:center;gap:8px;margin-top:16px"><span style="font-size:10px;font-weight:800;background:var(--c1);color:#fff;padding:4px 14px;border-radius:var(--r-btn,100px)">{subj}</span><span style="font-size:10px;font-weight:700;color:var(--t45)">{d["target"]}</span></div></div>'
+        f'<div>{tagline_html}<p style="font-size:15px;line-height:2;color:var(--t70)">{desc}</p></div></div>'
+        f'<div style="display:flex;gap:16px;flex-wrap:wrap">{point_html}</div>'
+        f'</div></section>'
+    )
+
 def sec_why(d, cp, T):
     t = strip_hanja(cp.get('whyTitle', '이 강의가 필요한 이유'))
     s = strip_hanja(cp.get('whySub', f"{d['subject']} 1등급의 비결"))
