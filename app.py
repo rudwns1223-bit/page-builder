@@ -1991,7 +1991,6 @@ def sec_banner(d, cp, T):
     return (
         f'<section id="hero" style="position:relative; min-height:95vh; display:flex; align-items:center; overflow:hidden; background:var(--bg2); padding-top:60px;">'
         
-        # --- 왼쪽: 글자 영역 ---
         f'<div class="rv-left" style="position:relative; z-index:3; width:100%; max-width:1200px; margin:0 auto; padding: 0 clamp(20px, 5vw, 60px); display:flex; justify-content:space-between; align-items:center;">'
         f'<div style="flex:1.2; max-width:700px;">'
         f'<div style="display:inline-block; font-size:14px; font-weight:900; color:var(--c1); border:2px solid var(--c1); padding:8px 20px; border-radius:100px; margin-bottom:32px; letter-spacing:0.1em;">{sub}</div>'
@@ -2000,7 +1999,6 @@ def sec_banner(d, cp, T):
         f'<a href="#cta" style="display:inline-flex; align-items:center; background:var(--c1); color:var(--bg); padding:20px 48px; border-radius:8px; font-size:18px; font-weight:900; font-family:var(--fh); text-decoration:none; box-shadow: 0 10px 30px rgba(0,0,0,0.2); transition:transform 0.2s;">{cta} →</a>'
         f'</div>'
         
-        # --- 오른쪽: 사진이 들어갈 빈칸 박스(Placeholder) ---
         f'<div style="flex:1; position:relative; height:700px; display:flex; align-items:flex-end; justify-content:center;">'
         f'<div style="position:absolute; top:50px; right:0; width:180px; height:180px; border:2px dashed var(--c1); border-radius:50%; display:flex; align-items:center; justify-content:center; opacity:0.6; animation: float 6s ease-in-out infinite;">'
         f'<div style="text-align:center; color:var(--c1);"><div style="font-size:32px; margin-bottom:8px;">🧊</div><div style="font-size:11px; font-weight:800;">[3D 모션 그래픽]<br>강좌 컨셉 오브젝트</div></div>'
@@ -2050,40 +2048,36 @@ def sec_why(d, cp, T):
         f'<h2 style="font-family:var(--fh); font-size:clamp(40px, 6vw, 75px); font-weight:900; color:var(--text); letter-spacing:-0.04em; margin-top:16px;">{t}</h2>'
         f'</div><div style="border-top:2px solid var(--c1);">{rh}</div></div></section>'
     )
-def sec_curriculum(d, cp, T):
-    """커리큘럼 — 3가지 다이내믹 레이아웃"""
-    t = strip_hanja(cp.get("curriculumTitle", f"{d['purpose_label']} 커리큘럼"))
-    s = strip_hanja(cp.get("curriculumSub", "단계별 완성 로드맵"))
-    steps = cp.get("curriculumSteps", [])
-    if not steps:
-        steps = [["01","개념 완성","핵심 개념을 정확히 이해","4주"], ["02","훈련","기출 완전 분석","4주"], ["03","심화","고난도 특훈","3주"], ["04","파이널","실전 완성","3주"]]
+def sec_why(d, cp, T):
+    t = strip_hanja(cp.get('whyTitle', '이 강의가 필요한 이유'))
+    s = strip_hanja(cp.get('whySub', f"{d['subject']} 1등급의 비결"))
+    reasons = cp.get('whyReasons', [])
+    
+    safe_r = []
+    for it in reasons:
+        if isinstance(it, (list, tuple)) and len(it) >= 3:
+            safe_r.append((str(it[0]), str(it[1]), str(it[2])))
+        elif isinstance(it, dict):
+            safe_r.append((it.get('no','01'), it.get('title',''), it.get('desc','')))
 
-    v = (sum(ord(c) for c in t + s) % 3) + 1
-    sh = ""
-
-    if v == 1:
-        # [스타일 1: 중앙 집중형 거대 넘버링 카드 (Editorial Stack)]
-        for i, step in enumerate(steps):
-            du = str(step[3]) if len(step) > 3 else "4주"
-            sh += (
-                f'<div class="rv d{min(i+1,4)} sticky-card" style="display:flex; flex-direction:column; align-items:center; text-align:center; background:var(--bg); border:1px solid var(--bd); border-radius:var(--r, 12px); padding:48px 32px; box-shadow:0 10px 30px rgba(0,0,0,0.05); margin-bottom:24px; position:relative; overflow:hidden;">'
-                f'<div style="position:absolute; top:-30px; left:50%; transform:translateX(-50%); font-family:var(--fh); font-size:200px; font-weight:900; color:var(--c1); opacity:0.04; line-height:1; pointer-events:none;">{i+1:02d}</div>'
-                f'<div style="display:inline-block; font-size:12px; font-weight:800; background:var(--bg3); color:var(--c1); padding:6px 16px; border-radius:100px; margin-bottom:20px; border:1px solid var(--bd); position:relative; z-index:1;">{du} 완성</div>'
-                f'<h3 style="font-family:var(--fh); font-size:clamp(24px, 3.5vw, 36px); font-weight:900; color:var(--text); margin-bottom:16px; position:relative; z-index:1;">{strip_hanja(str(step[1]))}</h3>'
-                f'<p style="font-size:15px; line-height:1.8; color:var(--t70); max-width:600px; margin:0; position:relative; z-index:1;">{strip_hanja(str(step[2]))}</p>'
-                f'</div>'
-            )
-        return (
-            f'<section class="sec alt" id="curriculum">'
-            f'<div style="max-width:800px; margin:0 auto">'
-            f'<div class="rv" style="text-align:center; margin-bottom:56px;">'
-            f'<div class="tag-line" style="justify-content:center;">CURRICULUM</div>'
-            f'<h2 style="font-family:var(--fh); font-size:clamp(36px, 5vw, 64px); font-weight:900; color:var(--text); letter-spacing:-0.03em; margin-bottom:16px;">{t}</h2>'
-            f'<p style="font-size:16px; color:var(--t70);">{s}</p>'
+    rh = ""
+    for i, (no, tt, dc) in enumerate(safe_r):
+        rh += (
+            f'<div class="rv d{min(i+1,4)}" style="display:flex; gap:40px; align-items:flex-start; padding:50px 0; border-bottom:1px solid var(--bd);">'
+            f'<div style="font-family:var(--fh); font-size:60px; font-weight:900; color:var(--c1); line-height:1; flex-shrink:0;">{i+1:02d}.</div>'
+            f'<div><h3 style="font-family:var(--fh); font-size:clamp(26px, 3.5vw, 40px); font-weight:900; color:var(--text); margin-bottom:20px; letter-spacing:-0.03em;">{strip_hanja(tt)}</h3>'
+            f'<p style="font-size:clamp(16px, 1.8vw, 20px); color:var(--t70); line-height:1.85; margin:0; font-weight:500;">{strip_hanja(dc)}</p></div>'
             f'</div>'
-            f'<div class="sticky-stack">{sh}</div>'
-            f'</div></section>'
         )
+        
+    return (
+        f'<section class="sec" id="why" style="padding-top:0;">'
+        f'<div class="overlap-top" style="max-width:1000px; margin:0 auto; background:var(--bg); border:1px solid var(--bd); border-radius:16px; padding:60px 40px; box-shadow:0 20px 60px rgba(0,0,0,0.1);">'
+        f'<div class="rv" style="text-align:center; margin-bottom:60px;">'
+        f'<div class="tag-line" style="justify-content:center;">{s}</div>'
+        f'<h2 style="font-family:var(--fh); font-size:clamp(40px, 6vw, 75px); font-weight:900; color:var(--text); letter-spacing:-0.04em; margin-top:16px;">{t}</h2>'
+        f'</div><div style="border-top:2px solid var(--c1);">{rh}</div></div></section>'
+    )
 
     elif v == 2:
         # [스타일 2: 좌우 지그재그 타임라인 (Timeline)]
