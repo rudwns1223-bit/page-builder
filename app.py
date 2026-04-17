@@ -2122,7 +2122,6 @@ def sec_why(d, cp, T):
 
     else: # [스타일 3: 벤토박스 비대칭 그리드]
         rh = ""
-        # 벤토박스 패턴: 첫 카드는 2칸, 나머지는 1칸
         BENTO_PATTERNS = ["bento-wide", "", "bento-tall", ""]
         for i, (no, tt, dc) in enumerate(safe_r):
             bento_cls = BENTO_PATTERNS[i % len(BENTO_PATTERNS)]
@@ -2155,23 +2154,6 @@ def sec_why(d, cp, T):
             f'<div class="bento-grid">{rh}</div>'
             f'</div></section>'
         )
-                f'<div style="width:40px; height:4px; background:var(--c1); margin-bottom:30px;"></div>'
-                f'<div style="font-family:var(--fh); font-size:14px; font-weight:800; color:var(--c1); margin-bottom:16px; letter-spacing:0.1em;">REASON 0{i+1}</div>'
-                f'<h3 style="font-family:var(--fh); font-size:clamp(22px, 2.5vw, 28px); font-weight:900; color:var(--text); margin-bottom:24px; line-height:1.4;">{strip_hanja(tt)}</h3>'
-                f'<p style="font-size:16px; color:var(--t70); line-height:1.8; margin:0;">{strip_hanja(dc)}</p>'
-                f'</div>'
-            )
-        return (
-            f'<section class="sec" id="why" style="padding: 160px 20px; background:var(--bg2);">'
-            f'<div style="max-width:1200px; margin:0 auto;">'
-            f'<div class="rv" style="display:flex; flex-direction:column; align-items:center; text-align:center; margin-bottom:80px;">'
-            f'<div class="tag-line" style="margin-bottom:20px;">WHY THIS CLASS</div>'
-            f'<h2 style="font-family:var(--fh); font-size:clamp(36px, 5vw, 64px); font-weight:900; color:var(--text);">{t}</h2>'
-            f'<p style="font-size:18px; color:var(--t70); margin-top:20px;">{s}</p>'
-            f'</div><div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:30px;">{rh}</div>'
-            f'</div></section>'
-        )
-
 def sec_curriculum(d, cp, T):
     t = strip_hanja(cp.get("curriculumTitle", f"{d['purpose_label']} 커리큘럼"))
     s = strip_hanja(cp.get("curriculumSub", "단계별 완성 로드맵"))
