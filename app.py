@@ -3206,7 +3206,7 @@ def sec_package(d, cp, T):
 # 강좌 소개 섹션 렌더러
 # ═══════════════════════════════════════════════════════
 def sec_course_intro(d, cp, T):
-    """강좌 소개 섹션 — 사용자 입력 기반"""
+    """강좌 소개 섹션 — 3가지 다이내믹 레이아웃 (벤토박스 / 에디토리얼 / 스플릿)"""
     c = cp.get("course_copy") or st.session_state.get("course_copy") or {}
     if not c:
         return (
@@ -3224,75 +3224,105 @@ def sec_course_intro(d, cp, T):
     level   = strip_hanja(c.get("courseLevel", ""))
     tags    = [strip_hanja(t) for t in c.get("courseTag", [])]
 
-    # 포인트 카드
-    ph = ""
-    for pt in points:
-        if not isinstance(pt, dict): continue
-        ph += (
-            f'<div class="card rv d1" style="text-align:center;padding:28px 20px">'
-            f'<div style="font-size:36px;margin-bottom:12px">{pt.get("icon","✦")}</div>'
-            f'<div style="font-family:var(--fh);font-size:15px;font-weight:800;'
-            f'color:var(--text);margin-bottom:8px">{strip_hanja(pt.get("title",""))}</div>'
-            f'<p style="font-size:12.5px;line-height:1.8;color:var(--t70);margin:0">'
-            f'{strip_hanja(pt.get("desc",""))}</p>'
-            f'</div>'
+    text_hash = sum(ord(ch) for ch in title + sub)
+    v = (text_hash % 3) + 1
+
+    # 메타 뱃지 & 태그 조립
+    meta = ""
+    if dur: meta += f'<span style="display:inline-flex;align-items:center;gap:6px;background:var(--bg3);padding:6px 16px;border-radius:var(--r-btn,100px);font-size:11px;font-weight:700;color:var(--text);border:1px solid var(--bd);margin-right:8px">⏱ {dur}</span>'
+    if level: meta += f'<span style="display:inline-flex;align-items:center;gap:6px;background:var(--c1);padding:6px 16px;border-radius:var(--r-btn,100px);font-size:11px;font-weight:700;color:#fff;margin-right:8px">🎯 {level}</span>'
+    tag_html = "".join(f'<span style="font-size:11px;font-weight:800;padding:6px 14px;border:1.5px solid var(--bd);border-radius:var(--r-btn,100px);color:var(--t70);margin-right:6px;margin-bottom:6px;display:inline-block">#{tg}</span>' for tg in tags[:4])
+
+    if v == 1:
+        # [스타일 1: 비대칭 벤토박스 (Bento Box) 레이아웃]
+        ph = ""
+        for i, pt in enumerate(points[:3]):
+            if not isinstance(pt, dict): continue
+            ph += (
+                f'<div class="card rv d{i+2}" style="padding:32px; background:{"var(--bg3)" if i%2==0 else "var(--bg)"}; border-radius:var(--r, 8px); border:1px solid var(--bd);">'
+                f'<div style="font-size:36px; margin-bottom:16px;">{pt.get("icon","✦")}</div>'
+                f'<h4 style="font-family:var(--fh); font-size:18px; font-weight:800; color:var(--text); margin-bottom:12px;">{strip_hanja(pt.get("title",""))}</h4>'
+                f'<p style="font-size:13.5px; line-height:1.8; color:var(--t70); margin:0;">{strip_hanja(pt.get("desc",""))}</p>'
+                f'</div>'
+            )
+        
+        return (
+            f'<section class="sec alt" id="course-intro">'
+            f'<div style="max-width:1100px; margin:0 auto">'
+            f'<div class="rv d1" style="display:grid; grid-template-columns:1.2fr 1fr; gap:40px; align-items:center; margin-bottom:40px;">'
+            f'<div><div class="tag-line">COURSE INFO</div>'
+            f'<h2 style="font-family:var(--fh); font-size:clamp(36px, 5vw, 64px); font-weight:900; color:var(--text); letter-spacing:-0.03em; margin-bottom:16px; line-height:1.1;">{title}</h2>'
+            f'<p style="font-size:16px; color:var(--t70); margin-bottom:24px; font-weight:500;">{sub}</p>'
+            f'<div style="display:flex; flex-wrap:wrap; margin-bottom:16px;">{meta}</div>'
+            f'<div style="display:flex; flex-wrap:wrap;">{tag_html}</div></div>'
+            f'<div style="background:var(--c1); padding:40px; border-radius:var(--r, 8px); color:var(--bg);">'
+            f'<div style="font-size:40px; margin-bottom:20px; opacity:0.8;">"</div>'
+            f'<p style="font-size:16px; line-height:1.9; font-weight:600; margin:0;">{desc}</p>'
+            f'</div></div>'
+            f'<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px;">{ph}</div>'
+            f'</div></section>'
         )
 
-    # 메타 뱃지
-    meta = ""
-    if dur:
-        meta += f'<div style="display:inline-flex;align-items:center;gap:6px;background:var(--bg3);padding:6px 16px;border-radius:var(--r-btn,4px);font-size:11px;font-weight:700;color:var(--text);margin-right:8px;border:1px solid var(--bd)">⏱ {dur}</div>'
-    if level:
-        meta += f'<div style="display:inline-flex;align-items:center;gap:6px;background:var(--c1);padding:6px 16px;border-radius:var(--r-btn,4px);font-size:11px;font-weight:700;color:#fff;margin-right:8px">{level}</div>'
+    elif v == 2:
+        # [스타일 2: 에디토리얼 프리미엄 (중앙 정렬 + 거대 타이포그래피)]
+        ph = ""
+        for i, pt in enumerate(points[:3]):
+            if not isinstance(pt, dict): continue
+            ph += (
+                f'<div class="rv d{i+2}" style="text-align:center; padding:24px 16px;">'
+                f'<div style="width:64px; height:64px; background:var(--bg3); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; font-size:28px; border:1px solid var(--bd);">{pt.get("icon","✦")}</div>'
+                f'<h4 style="font-family:var(--fh); font-size:18px; font-weight:900; color:var(--text); margin-bottom:12px;">{strip_hanja(pt.get("title",""))}</h4>'
+                f'<p style="font-size:14px; line-height:1.8; color:var(--t70); margin:0;">{strip_hanja(pt.get("desc",""))}</p>'
+                f'</div>'
+            )
+        
+        return (
+            f'<section class="sec" id="course-intro">'
+            f'<div style="max-width:900px; margin:0 auto; text-align:center;">'
+            f'<div class="rv d1">'
+            f'<div class="tag-line" style="justify-content:center;">강좌 핵심 소개</div>'
+            f'<h2 style="font-family:var(--fh); font-size:clamp(40px, 6vw, 72px); font-weight:900; color:var(--text); letter-spacing:-0.04em; margin-bottom:24px; line-height:1.1;">{title}</h2>'
+            f'<div style="display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-bottom:40px;">{meta}</div>'
+            f'<p style="font-size:18px; line-height:1.9; color:var(--t70); margin-bottom:60px; max-width:700px; margin-left:auto; margin-right:auto;">{desc}</p>'
+            f'</div>'
+            f'<div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; border-top:1px solid var(--bd); padding-top:40px;">{ph}</div>'
+            f'</div></section>'
+        )
 
-    # 태그
-    tag_html = "".join(
-        f'<span style="font-size:10px;font-weight:800;padding:4px 12px;'
-        f'border:1px solid var(--c1);border-radius:var(--r-btn,4px);'
-        f'color:var(--c1);margin:2px">{tg}</span>' for tg in tags[:3]
-    )
-
-    return (
-        f'<section class="sec" id="course-intro">'
-        f'<div style="max-width:1100px;margin:0 auto">'
-        # 헤더
-        f'<div class="rv" style="display:grid;grid-template-columns:1fr auto;'
-        f'align-items:flex-end;gap:24px;padding-bottom:28px;'
-        f'border-bottom:3px solid var(--c1);margin-bottom:44px">'
-        f'<div>'
-        f'<div class="tag-line">강좌 소개</div>'
-        f'<h2 style="font-family:\'Black Han Sans\',var(--fh);'
-        f'font-size:clamp(28px,4vw,52px);font-weight:900;'
-        f'color:var(--text);line-height:1.05;margin-bottom:10px">{title}</h2>'
-        f'<p style="font-size:15px;color:var(--t70);margin-bottom:16px">{sub}</p>'
-        f'{meta}'
-        f'</div>'
-        f'<div style="text-align:right">'
-        f'<div style="display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end">{tag_html}</div>'
-        f'</div></div>'
-        # 설명 + 포인트
-        f'<div style="display:grid;grid-template-columns:1fr 1.6fr;gap:48px;align-items:start">'
-        f'<div class="rv d1">'
-        f'<p style="font-size:15px;line-height:2;color:var(--t70)">{desc}</p>'
-        f'<div style="margin-top:24px;padding:20px 24px;'
-        f'background:var(--c1);border-radius:var(--r,4px)">'
-        f'<div style="font-size:10px;font-weight:800;letter-spacing:.14em;'
-        f'text-transform:uppercase;color:rgba(255,255,255,.6);margin-bottom:8px">이 강좌 하나면</div>'
-        f'<div style="font-family:var(--fh);font-size:20px;font-weight:900;'
-        f'color:#fff;line-height:1.3">{d["subject"]} 완성</div>'
-        f'</div></div>'
-        f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px" class="rv d2">'
-        f'{ph}</div>'
-        f'</div>'
-        f'</div></section>'
-    )
+    else:
+        # [스타일 3: 스플릿 스크롤 (Sticky Left, Scroll Right)]
+        ph = ""
+        for i, pt in enumerate(points):
+            if not isinstance(pt, dict): continue
+            ph += (
+                f'<div class="rv d{min(i+1,4)}" style="display:flex; gap:24px; padding:32px; background:var(--bg); border:1px solid var(--bd); border-radius:var(--r, 8px); margin-bottom:16px; box-shadow:0 4px 20px rgba(0,0,0,0.03);">'
+                f'<div style="font-size:48px; flex-shrink:0; filter:drop-shadow(0 4px 6px rgba(0,0,0,0.1));">{pt.get("icon","✦")}</div>'
+                f'<div><h4 style="font-family:var(--fh); font-size:19px; font-weight:800; color:var(--text); margin-bottom:8px;">{strip_hanja(pt.get("title",""))}</h4>'
+                f'<p style="font-size:14px; line-height:1.8; color:var(--t70); margin:0;">{strip_hanja(pt.get("desc",""))}</p></div>'
+                f'</div>'
+            )
+        
+        return (
+            f'<section class="sec alt" id="course-intro">'
+            f'<div style="display:grid; grid-template-columns:1fr 1.3fr; gap:60px; align-items:start; max-width:1200px; margin:0 auto;">'
+            f'<div class="rv d1" style="position:sticky; top:100px;">'
+            f'<div class="tag-line">COURSE OVERVIEW</div>'
+            f'<h2 style="font-family:var(--fh); font-size:clamp(32px, 4vw, 56px); font-weight:900; color:var(--text); letter-spacing:-0.03em; margin-bottom:16px; line-height:1.15;">{title}</h2>'
+            f'<p style="font-size:16px; color:var(--t70); margin-bottom:32px; font-weight:600;">{sub}</p>'
+            f'<p style="font-size:14px; line-height:1.9; color:var(--t45); margin-bottom:32px;">{desc}</p>'
+            f'<div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:24px;">{meta}</div>'
+            f'<div style="display:flex; flex-wrap:wrap;">{tag_html}</div>'
+            f'</div>'
+            f'<div>{ph}</div>'
+            f'</div></section>'
+        )
 
 
 # ═══════════════════════════════════════════════════════
 # 교재 소개·판매 섹션 렌더러
 # ═══════════════════════════════════════════════════════
 def sec_textbook_sale(d, cp, T):
-    """교재 소개·판매 섹션 — 참고 이미지(현우진 수분감) 스타일"""
+    """교재 소개·판매 섹션 — 3가지 다이내믹 프리미엄 레이아웃"""
     c = cp.get("textbook_copy") or st.session_state.get("textbook_copy") or {}
     if not c:
         return (
@@ -3310,91 +3340,125 @@ def sec_textbook_sale(d, cp, T):
     buy_title = strip_hanja(c.get("tbBuyTitle", "지금 바로 구매하기"))
     buy_desc  = strip_hanja(c.get("tbBuyDesc", ""))
 
-    # 교재 권별 카드
     BADGE_COLORS = {
-        "필수": ("var(--c1)", "#fff"),
+        "필수": ("var(--c1)", "var(--bg)"),
         "추천": ("var(--bg3)", "var(--c1)"),
         "심화": ("var(--bg2)", "var(--t70)"),
     }
-    book_html = ""
-    for i, bk in enumerate(books[:6]):
-        if not isinstance(bk, dict): continue
-        bname = strip_hanja(bk.get("name",""))
-        bdesc = strip_hanja(bk.get("desc",""))
-        badge = strip_hanja(bk.get("badge","필수"))
-        bg_c, tx_c = BADGE_COLORS.get(badge, ("var(--bg3)", "var(--text)"))
-        BOOK_EMOJIS = ["📗","📘","📙","📕","📓","📔"]
-        book_html += (
-            f'<div class="rv d{min(i+1,4)}" style="border:1px solid var(--bd);'
-            f'border-radius:var(--r,4px);overflow:hidden;background:var(--bg)">'
-            # 상단 컬러 바
-            f'<div style="height:4px;background:var(--c1)"></div>'
-            f'<div style="padding:24px 20px">'
-            # 교재 아이콘 + 배지
-            f'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'
-            f'<div style="font-size:40px">{BOOK_EMOJIS[i % len(BOOK_EMOJIS)]}</div>'
-            f'<span style="font-size:10px;font-weight:800;background:{bg_c};'
-            f'color:{tx_c};padding:4px 14px;border-radius:var(--r-btn,100px);'
-            f'border:1px solid var(--bd)">{badge}</span>'
+    BOOK_EMOJIS = ["📗","📘","📙","📕","📓","📔"]
+
+    text_hash = sum(ord(ch) for ch in title + sub)
+    v = (text_hash % 3) + 1
+
+    if v == 1:
+        # [스타일 1: 다크 모드 팝아웃 (강렬한 대비)]
+        book_html = ""
+        for i, bk in enumerate(books[:4]):
+            if not isinstance(bk, dict): continue
+            bg_c, tx_c = BADGE_COLORS.get(strip_hanja(bk.get("badge","필수")), ("var(--c1)", "var(--bg)"))
+            book_html += (
+                f'<div class="rv d{i+2}" style="background:#111; border:1px solid #333; border-radius:var(--r,8px); padding:32px; text-align:center; position:relative; overflow:hidden;">'
+                f'<div style="position:absolute; top:-20px; left:-20px; font-size:120px; opacity:0.05; filter:grayscale(100%);">{BOOK_EMOJIS[i % len(BOOK_EMOJIS)]}</div>'
+                f'<div style="font-size:48px; margin-bottom:20px; position:relative; z-index:1; filter:drop-shadow(0 10px 15px rgba(0,0,0,0.5));">{BOOK_EMOJIS[i % len(BOOK_EMOJIS)]}</div>'
+                f'<span style="display:inline-block; font-size:10px; font-weight:800; background:{bg_c}; color:{tx_c}; padding:4px 12px; border-radius:100px; margin-bottom:12px; position:relative; z-index:1;">{strip_hanja(bk.get("badge","필수"))}</span>'
+                f'<h4 style="font-family:var(--fh); font-size:18px; font-weight:900; color:#fff; margin-bottom:12px; position:relative; z-index:1;">{strip_hanja(bk.get("name",""))}</h4>'
+                f'<p style="font-size:13px; line-height:1.7; color:#aaa; margin:0; position:relative; z-index:1;">{strip_hanja(bk.get("desc",""))}</p>'
+                f'</div>'
+            )
+        
+        feat_html = "".join(f'<span style="display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,0.1); padding:8px 20px; border-radius:100px; font-size:13px; font-weight:600; color:#eee; border:1px solid rgba(255,255,255,0.2);"><span style="font-size:16px;">{ft.get("icon","✦")}</span>{strip_hanja(ft.get("feature",""))}</span>' for ft in features if isinstance(ft, dict))
+
+        return (
+            f'<section class="sec" id="textbook-sale" style="background:#050505; color:#fff;">'
+            f'<div style="max-width:1100px; margin:0 auto;">'
+            f'<div class="rv d1" style="text-align:center; margin-bottom:56px;">'
+            f'<div class="tag-line" style="color:var(--c1); justify-content:center;">TEXTBOOK & MATERIALS</div>'
+            f'<h2 style="font-family:var(--fh); font-size:clamp(32px, 5vw, 56px); font-weight:900; color:#fff; margin-bottom:16px; letter-spacing:-0.03em;">{title}</h2>'
+            f'<p style="font-size:16px; color:#888; max-width:600px; margin:0 auto;">{desc}</p>'
             f'</div>'
-            f'<div style="font-family:var(--fh);font-size:16px;font-weight:900;'
-            f'color:var(--text);margin-bottom:8px">{bname}</div>'
-            f'<p style="font-size:12px;line-height:1.75;color:var(--t70);margin:0">{bdesc}</p>'
+            f'<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:16px; margin-bottom:48px;">{book_html}</div>'
+            f'<div class="rv d3" style="display:flex; flex-wrap:wrap; justify-content:center; gap:12px; margin-bottom:56px;">{feat_html}</div>'
+            f'<div class="rv d4" style="text-align:center; padding:48px; background:linear-gradient(135deg, #111, #0a0a0a); border-radius:var(--r, 8px); border:1px solid #222;">'
+            f'<h3 style="font-family:var(--fh); font-size:24px; font-weight:900; color:#fff; margin-bottom:12px;">{buy_title}</h3>'
+            f'<p style="font-size:14px; color:#888; margin-bottom:24px;">{buy_desc}</p>'
+            f'<a class="btn-p" href="#cta" style="font-size:15px; padding:16px 48px; box-shadow:0 10px 30px rgba(0,0,0,0.5);">교재 패키지 구매하기 →</a>'
+            f'</div>'
+            f'</div></section>'
+        )
+
+    elif v == 2:
+        # [스타일 2: 카탈로그형 좌우 스플릿 (Editorial Catalog)]
+        book_html = ""
+        for i, bk in enumerate(books):
+            if not isinstance(bk, dict): continue
+            bg_c, tx_c = BADGE_COLORS.get(strip_hanja(bk.get("badge","필수")), ("var(--bg3)", "var(--c1)"))
+            book_html += (
+                f'<div class="rv d{min(i+1,4)}" style="display:flex; gap:20px; align-items:center; padding:24px 0; border-bottom:1px solid var(--bd);">'
+                f'<div style="font-size:48px; filter:drop-shadow(0 8px 12px rgba(0,0,0,0.1));">{BOOK_EMOJIS[i % len(BOOK_EMOJIS)]}</div>'
+                f'<div style="flex:1;">'
+                f'<div style="display:flex; align-items:center; gap:12px; margin-bottom:6px;">'
+                f'<h4 style="font-family:var(--fh); font-size:18px; font-weight:900; color:var(--text); margin:0;">{strip_hanja(bk.get("name",""))}</h4>'
+                f'<span style="font-size:10px; font-weight:800; background:{bg_c}; color:{tx_c}; padding:4px 10px; border-radius:4px;">{strip_hanja(bk.get("badge","필수"))}</span>'
+                f'</div>'
+                f'<p style="font-size:13.5px; line-height:1.7; color:var(--t70); margin:0;">{strip_hanja(bk.get("desc",""))}</p>'
+                f'</div></div>'
+            )
+        
+        feat_html = "".join(f'<div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;"><div style="width:32px; height:32px; background:var(--bg3); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px;">{ft.get("icon","✦")}</div><span style="font-size:14.5px; font-weight:600; color:var(--text);">{strip_hanja(ft.get("feature",""))}</span></div>' for ft in features if isinstance(ft, dict))
+
+        return (
+            f'<section class="sec" id="textbook-sale">'
+            f'<div style="display:grid; grid-template-columns:1fr 1.2fr; gap:60px; max-width:1100px; margin:0 auto;">'
+            f'<div class="rv d1" style="padding-right:20px;">'
+            f'<div class="tag-line">교재 안내</div>'
+            f'<h2 style="font-family:var(--fh); font-size:clamp(32px, 4vw, 56px); font-weight:900; color:var(--text); margin-bottom:20px; line-height:1.2;">{title}</h2>'
+            f'<p style="font-size:15px; line-height:1.9; color:var(--t70); margin-bottom:40px;">{desc}</p>'
+            f'<div style="padding:28px; background:var(--bg2); border-radius:var(--r,8px); margin-bottom:40px;">'
+            f'<div style="font-size:11px; font-weight:800; color:var(--c1); margin-bottom:20px; letter-spacing:0.1em;">KEY FEATURES</div>'
+            f'{feat_html}</div>'
+            f'<div style="padding-top:32px; border-top:2px solid var(--text);">'
+            f'<h3 style="font-family:var(--fh); font-size:22px; font-weight:900; color:var(--text); margin-bottom:8px;">{buy_title}</h3>'
+            f'<p style="font-size:13px; color:var(--t70); margin-bottom:24px;">{buy_desc}</p>'
+            f'<a class="btn-p" href="#cta" style="width:100%; justify-content:center; padding:18px;">교재 신청하기</a>'
             f'</div></div>'
+            f'<div class="rv d2" style="background:var(--bg3); padding:40px; border-radius:var(--r,8px); border:1px solid var(--bd);">{book_html}</div>'
+            f'</div></section>'
         )
 
-    # 특징 리스트
-    feat_html = ""
-    for ft in features:
-        if not isinstance(ft, dict): continue
-        feat_html += (
-            f'<div style="display:flex;align-items:center;gap:12px;'
-            f'padding:12px 0;border-bottom:1px solid var(--bd)">'
-            f'<div style="font-size:22px;flex-shrink:0">{ft.get("icon","✦")}</div>'
-            f'<span style="font-size:14px;font-weight:600;color:var(--text)">'
-            f'{strip_hanja(ft.get("feature",""))}</span>'
+    else:
+        # [스타일 3: 가로 스크롤 카드형 (심플 & 모던)]
+        book_html = ""
+        for i, bk in enumerate(books):
+            if not isinstance(bk, dict): continue
+            bg_c, tx_c = BADGE_COLORS.get(strip_hanja(bk.get("badge","필수")), ("var(--bg3)", "var(--text)"))
+            book_html += (
+                f'<div class="rv d{min(i+1,4)}" style="min-width:280px; flex:1; background:var(--bg); border:1px solid var(--bd); border-radius:var(--r,8px); padding:32px 24px; text-align:center; box-shadow:0 8px 24px rgba(0,0,0,0.04);">'
+                f'<div style="display:inline-flex; align-items:center; justify-content:center; width:80px; height:80px; background:var(--bg3); border-radius:50%; margin-bottom:24px; font-size:40px;">{BOOK_EMOJIS[i % len(BOOK_EMOJIS)]}</div>'
+                f'<div style="margin-bottom:16px;"><span style="font-size:10px; font-weight:800; background:{bg_c}; color:{tx_c}; padding:4px 12px; border-radius:100px; border:1px solid var(--bd);">{strip_hanja(bk.get("badge","필수"))}</span></div>'
+                f'<h4 style="font-family:var(--fh); font-size:18px; font-weight:800; color:var(--text); margin-bottom:12px;">{strip_hanja(bk.get("name",""))}</h4>'
+                f'<p style="font-size:13px; line-height:1.7; color:var(--t70); margin:0;">{strip_hanja(bk.get("desc",""))}</p>'
+                f'</div>'
+            )
+
+        feat_html = "".join(f'<div style="display:flex; flex-direction:column; align-items:center; text-align:center; padding:24px;"><div style="font-size:32px; margin-bottom:12px;">{ft.get("icon","✦")}</div><div style="font-size:14px; font-weight:700; color:var(--text);">{strip_hanja(ft.get("feature",""))}</div></div>' for ft in features if isinstance(ft, dict))
+
+        return (
+            f'<section class="sec alt" id="textbook-sale">'
+            f'<div style="max-width:1200px; margin:0 auto;">'
+            f'<div class="rv d1" style="text-align:center; margin-bottom:48px;">'
+            f'<div class="tag-line" style="justify-content:center;">교재 구성</div>'
+            f'<h2 style="font-family:var(--fh); font-size:clamp(32px, 5vw, 56px); font-weight:900; color:var(--text); margin-bottom:16px; letter-spacing:-0.03em;">{title}</h2>'
+            f'<p style="font-size:16px; color:var(--t70); margin-bottom:48px;">{sub}</p>'
             f'</div>'
+            f'<div style="display:flex; gap:16px; overflow-x:auto; padding-bottom:24px; scrollbar-width:none; -ms-overflow-style:none;">{book_html}</div>'
+            f'<div class="rv d3" style="display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; background:var(--bg); border:1px solid var(--bd); border-radius:var(--r,8px); margin-top:32px; margin-bottom:48px;">{feat_html}</div>'
+            f'<div class="rv d4" style="text-align:center; padding:40px; background:var(--bg3); border-radius:var(--r,8px);">'
+            f'<h3 style="font-family:var(--fh); font-size:22px; font-weight:900; color:var(--text); margin-bottom:12px;">{buy_title}</h3>'
+            f'<p style="font-size:14px; color:var(--t70); margin-bottom:24px;">{buy_desc}</p>'
+            f'<a class="btn-p" href="#cta" style="font-size:15px; padding:16px 40px;">지금 신청하기 →</a>'
+            f'</div>'
+            f'</div></section>'
         )
-
-    cols = min(len(books), 3) if books else 3
-
-    return (
-        f'<section class="sec alt" id="textbook-sale">'
-        f'<div style="max-width:1100px;margin:0 auto">'
-        # 섹션 헤더
-        f'<div class="rv" style="margin-bottom:40px">'
-        f'<div class="tag-line">교재 소개</div>'
-        f'<h2 style="font-family:\'Black Han Sans\',var(--fh);'
-        f'font-size:clamp(26px,4vw,48px);font-weight:900;'
-        f'color:var(--text);margin-bottom:10px">{title}</h2>'
-        f'<p style="font-size:15px;color:var(--t70)">{sub}</p>'
-        f'</div>'
-        # 교재 카드 그리드
-        f'<div style="display:grid;grid-template-columns:repeat({cols},1fr);'
-        f'gap:14px;margin-bottom:40px">{book_html}</div>'
-        # 하단: 특징 + 구매 CTA
-        f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;'
-        f'padding:32px;background:var(--bg);border-radius:var(--r,4px);'
-        f'border:1px solid var(--bd)">'
-        # 왼쪽: 교재 특징
-        f'<div class="rv d1">'
-        f'<div style="font-size:10px;font-weight:800;letter-spacing:.14em;'
-        f'text-transform:uppercase;color:var(--c1);margin-bottom:16px">교재 특징</div>'
-        f'{feat_html}'
-        f'</div>'
-        # 오른쪽: 구매 CTA
-        f'<div class="rv d2" style="display:flex;flex-direction:column;'
-        f'justify-content:center;align-items:flex-start;'
-        f'padding:24px;background:var(--bg3);border-radius:var(--r,4px)">'
-        f'<div style="font-family:\'Black Han Sans\',var(--fh);'
-        f'font-size:clamp(18px,2.5vw,28px);font-weight:900;'
-        f'color:var(--text);margin-bottom:10px;line-height:1.2">{buy_title}</div>'
-        f'<p style="font-size:13px;color:var(--t70);margin-bottom:24px">{buy_desc}</p>'
-        f'<a class="btn-p" href="#" style="font-size:14px;padding:14px 36px">교재 구매하기 →</a>'
-        f'</div>'
-        f'</div>'
-        f'</div></section>'
-    )
 
 
 # ═══════════════════════════════════════════════════════
