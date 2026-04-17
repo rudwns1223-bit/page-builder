@@ -984,7 +984,7 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
     # 🌟 이모지 완전 삭제, 고급화 🌟
     # 🌟 메인 카피는 무조건 짧게, 리드는 강렬하게 🌟
     schemas = {
-        "신규 커리큘럼": '{"bannerSub":"과목의 본질을 찌르는 10자 이내","bannerTitle":"15자 이내의 아주 짧고 압도적인 단어/구 (절대 길게 쓰지 마세요)","brandTagline":"영문 슬로건 한 문장","bannerLead":"뻔한 위로가 아닌 현 상황을 찌르는 팩트폭력 리드문","bannerTags":["키워드1","키워드2","키워드3"],"ctaCopy":"망설임을 없애는 단어","ctaTitle":"강력한 CTA 제목","ctaSub":"지금 안 하면 손해라는 서브 문구","ctaBadge":"10자이내","introTitle":"강사의 절대적 권위 제목","introDesc":"왜 이 강의를 들어야만 하는지 날카롭게 서술 (길게)","introBio":"시그니처 1문장","whyTitle":"파격적 제목","whySub":"30자이내","whyReasons":[["01","직설적인 짧은 제목","학생이 읽고 아차 싶을 만큼 뼈 때리는 구체적 이유와 해결책 서술 (최소 80자 이상)"],["02","제목","서술"],["03","제목","서술"]],"curriculumTitle":"20자이내","curriculumSub":"30자이내","curriculumSteps":[["01","단계명","이 시기에 학생들이 하는 착각과, 이 단계가 그걸 어떻게 부수고 점수를 만드는지 서술","기간"],["02","단계","서술","기간"],["03","단계","서술","기간"],["04","단계","서술","기간"]],"targetTitle":"이런 학생이라면 반드시 들어라","targetItems":["구체적인 절망적 상황 묘사 1","상황 묘사 2","상황 묘사 3","상황 묘사 4"],"reviews":[["진짜 학생이 흥분해서 쓴 것 같은 매우 길고 구체적인 후기","이름","변화뱃지"],["후기","이름","뱃지"],["후기","이름","뱃지"]],"videoTitle":"영상 제목","videoSub":"설명","videoTag":"OFFICIAL TRAILER"}',
+        "신규 커리큘럼": '{"bannerSub":"과목의 본질을 찌르는 10자 이내","bannerTitle":"25자 이내의 아주 짧고 압도적인 단어/구 (절대 길게 쓰지 마세요)","brandTagline":"영문 슬로건 한 문장","bannerLead":"뻔한 위로가 아닌 현 상황을 찌르는 팩트폭력 리드문","bannerTags":["키워드1","키워드2","키워드3"],"ctaCopy":"망설임을 없애는 단어","ctaTitle":"강력한 CTA 제목","ctaSub":"지금 안 하면 손해라는 서브 문구","ctaBadge":"10자이내","introTitle":"강사의 절대적 권위 제목","introDesc":"왜 이 강의를 들어야만 하는지 날카롭게 서술 (길게)","introBio":"시그니처 1문장","whyTitle":"파격적 제목","whySub":"30자이내","whyReasons":[["01","직설적인 짧은 제목","학생이 읽고 아차 싶을 만큼 뼈 때리는 구체적 이유와 해결책 서술 (최소 80자 이상)"],["02","제목","서술"],["03","제목","서술"]],"curriculumTitle":"20자이내","curriculumSub":"30자이내","curriculumSteps":[["01","단계명","이 시기에 학생들이 하는 착각과, 이 단계가 그걸 어떻게 부수고 점수를 만드는지 서술","기간"],["02","단계","서술","기간"],["03","단계","서술","기간"],["04","단계","서술","기간"]],"targetTitle":"이런 학생이라면 반드시 들어라","targetItems":["구체적인 절망적 상황 묘사 1","상황 묘사 2","상황 묘사 3","상황 묘사 4"],"reviews":[["진짜 학생이 흥분해서 쓴 것 같은 매우 길고 구체적인 후기","이름","변화뱃지"],["후기","이름","뱃지"],["후기","이름","뱃지"]],"videoTitle":"영상 제목","videoSub":"설명","videoTag":"OFFICIAL TRAILER"}',
         "이벤트": '{"bannerSub":"10자","bannerTitle":"15자 이내의 짧고 파격적인 이벤트 제목","brandTagline":"이벤트 분위기 한 문장","bannerLead":"참여하지 않으면 손해라는 긴박감 리드","bannerTags":["이벤트특징1","이벤트특징2","이벤트특징3"],"ctaCopy":"행동 유도","ctaTitle":"CTA","ctaSub":"서브문구","ctaBadge":"15자","eventTitle":"20자","eventDesc":"50자이상","eventDetails":[["일정","날짜"],["대상","값"],["혜택","값"]],"benefitsTitle":"20자","eventBenefits":[{"no":"01","title":"혜택명","desc":"50자이상","badge":"8자"},{"no":"02","title":"혜택명","desc":"50자","badge":"8자"},{"no":"03","title":"혜택명","desc":"50자","badge":"8자"}],"deadlineTitle":"20자","deadlineMsg":"70자 긴박감"}',
         "기획전": '{"festHeroTitle":"15자 이내의 강렬한 기획전 제목","festHeroCopy":"30자","festHeroSub":"50자이상","brandTagline":"분위기 문장","festHeroStats":[["수치","라벨"],["수치","라벨"]],"festLineupTitle":"20자","festLineupSub":"40자","festLineup":[{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지"},{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지"}],"festBenefitsTitle":"20자","festBenefits":[{"no":"01","title":"혜택명","desc":"50자이상","badge":"8자"},{"no":"02","title":"혜택명","desc":"50자","badge":"8자"}],"festCtaTitle":"CTA제목","festCtaSub":"50자이상"}'
     }
@@ -1304,11 +1304,12 @@ def gen_section(sec_id: str) -> dict:
 
 {purpose_specific_rule}
 
-=== 🚨 극단적 다양성 및 이모지 규칙 (가장 중요!) 🚨 ===
-1. 흔하고 뻔한 이모지(🎯, ⚡, 💡, 📚, 📈, 📖)는 절대로, 절대로 쓰지 마세요!!
-2. 대신 맥락에 맞고 시선을 끄는 파격적인 이모지(예: 🌪️, 🧩, 🚀, 🔨, 🧭, 🩸, 🦅, 🌊, 🗝️, 🪐, 🌋 등)를 무조건 사용하세요.
-3. 재생성할 때마다 문장 구조와 단어를 완전히 새롭게 비틀어야 합니다. (명령형, 단답형, 질문형 섞어서 사용)
-4. 한자 금지, 수치 지어내기 절대 금지. "교수" 금지.
+=== 🚨 카피라이팅 품질 및 이모지 규칙 🚨 ===
+1. 작위적인 비유, 번역기 돌린 듯한 문장("수험생은 ~할 수 있는가?"), 어색한 단어 조합("초고속 선택")을 절대 피하세요.
+2. 대치동 1타 강사들이 실제로 쓰는 세련되고 단호한 문장(존댓말 또는 부드러운 평어체)을 사용하세요.
+3. 이모지는 문맥에 완벽히 어울리는 경우에만 1개 이하로 최소화해서 사용하세요. 억지로 파격적인 이모지를 넣지 마세요.
+4. 버튼(CTA) 텍스트는 행동을 직관적으로 유도하는 자연스러운 한국어(예: "수강신청 바로가기", "지금 시작하기")로 작성하세요.
+5. 한자 금지, 확인되지 않은 수치 지어내기 절대 금지.
 
 아래 JSON 형식만 반환. 마크다운 금지:
 {schema}"""
@@ -1986,17 +1987,22 @@ def sec_banner(d, cp, T):
 
     elif v == 2: # [스타일 2: 애플/프리미엄 여백 (Editorial 스타일)]
         bg_style = f"background: url('{bg_url}') center/cover no-repeat;" if bg_url else f"background: linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);"
-        overlay = '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.5);z-index:1;"></div>' if bg_url else ''
+        overlay = '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.65);z-index:1;"></div>' if bg_url else ''
         text_color = "#fff" if (dark or bg_url) else "var(--text)"
         
+        # 💡 수정됨: 제목과 설명의 간격 조정, 설명 텍스트 너비(max-width) 축소, 버튼 디자인 세련되게 변경
         return (
             f'<section id="hero" style="position:relative; min-height:90vh; display:flex; align-items:center; justify-content:center; text-align:center; overflow:hidden; {bg_style}">'
             + overlay +
-            f'<div class="rv" style="position:relative; z-index:2; max-width:1200px; padding: 20px;">'
-            f'<h3 style="font-family:var(--fh); font-size:clamp(14px, 2vw, 20px); font-weight:800; color:var(--c1); letter-spacing:0.3em; margin-bottom:30px; text-transform:uppercase;">{sub}</h3>'
-            f'<h1 style="font-family:var(--fh); font-size:clamp(50px, 9vw, 140px); font-weight:900; color:{text_color}; line-height:1.05; letter-spacing:-0.05em; margin-bottom:40px; word-break:keep-all;">{title}</h1>'
-            f'<p style="font-size:clamp(16px, 2.2vw, 26px); color:rgba(255,255,255,0.7) if {dark} else var(--t70); font-weight:500; line-height:1.7; max-width:800px; margin:0 auto 60px; word-break:keep-all;">{lead}</p>'
-            f'<a href="#cta" style="display:inline-block; background:var(--c1); color:var(--bg); padding:20px 60px; border-radius:50px; font-size:clamp(16px, 2vw, 20px); font-weight:900; font-family:var(--fh); text-decoration:none; box-shadow: 0 10px 30px rgba(0,0,0,0.3); transition: transform 0.2s;">{cta}</a>'
+            f'<div class="rv" style="position:relative; z-index:2; max-width:1000px; padding: 20px; display:flex; flex-direction:column; align-items:center;">'
+            # 뱃지 (노란색 테두리 대신 세련된 칩 스타일)
+            f'<div style="font-family:var(--fh); font-size:13px; font-weight:800; color:var(--bg); background:var(--c1); padding:6px 18px; border-radius:100px; letter-spacing:0.1em; margin-bottom:24px;">{sub}</div>'
+            # 메인 타이틀 (줄간격 타이트하게)
+            f'<h1 style="font-family:var(--fh); font-size:clamp(42px, 8vw, 110px); font-weight:900; color:{text_color}; line-height:1.1; letter-spacing:-0.04em; margin-bottom:24px; word-break:keep-all;">{title}</h1>'
+            # 리드 문구 (너비를 줄여서 눈에 잘 들어오게)
+            f'<p style="font-size:clamp(16px, 2vw, 22px); color:rgba(255,255,255,0.85) if {dark} else var(--t70); font-weight:500; line-height:1.6; max-width:580px; margin:0 auto 48px; word-break:keep-all;">{lead}</p>'
+            # CTA 버튼 (모양 정돈)
+            f'<a href="#cta" style="display:inline-flex; align-items:center; justify-content:center; background:var(--c1); color:var(--bg); padding:18px 48px; border-radius:8px; font-size:clamp(16px, 1.8vw, 18px); font-weight:800; text-decoration:none; transition: transform 0.2s;">{cta}</a>'
             f'</div></section>'
         )
 
