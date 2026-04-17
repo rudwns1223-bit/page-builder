@@ -635,13 +635,18 @@ KO_BG = {
 # ══════════════════════════════════════════════════════
 def strip_hanja(text: str) -> str:
     if not isinstance(text, str): return str(text) if text is not None else ""
-    result = []
-    for ch in text:
-        cp = ord(ch)
-        if 0x4E00 <= cp <= 0x9FFF: continue
-        if 0x3400 <= cp <= 0x4DBF: continue
-        result.append(ch)
-    return "".join(result).strip()
+    
+    import re
+    # 허용하는 문자: 한글(자음/모음/완성형), 알파벳, 숫자, 공백, 그리고 텍스트에 필요한 기본 문장기호들
+    # 이 외의 모든 문자(한자, 일본어, 깨지는 특수문자 등)는 흔적도 없이 날려버립니다.
+    allowed_pattern = r'[^\u3131-\u3163\uAC00-\uD7A3a-zA-Z0-9\s\.\,\!\?\'\"\%\[\]\(\)\-\<\>~·/&+]'
+    
+    cleaned = re.sub(allowed_pattern, '', text)
+    
+    # 간혹 찌꺼기 공백이 남는 것을 방지
+    cleaned = re.sub(r'\s+', ' ', cleaned)
+    
+    return cleaned.strip()
 
 def clean_obj(obj):
     if isinstance(obj, str): return strip_hanja(obj)
