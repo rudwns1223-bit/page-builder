@@ -684,6 +684,63 @@ KO_BG = {
 # ══════════════════════════════════════════════════════
 # 유틸
 # ══════════════════════════════════════════════════════
+import re
+
+def fix_korean_particles(text: str) -> str:
+    if not text:
+        return text
+    def _has_batchim(char):
+        if not char or not ('가' <= char <= '힣'): return False
+        return (ord(char) - ord('가')) % 28 != 0
+    def _is_rieul(char):
+        if not char or not ('가' <= char <= '힣'): return False
+        return (ord(char) - ord('가')) % 28 == 8
+    def _fix(m, no_batchim, batchim):
+        word = m.group(1)
+        if not word: return m.group(0)
+        last = word[-1]
+        if _has_batchim(last) and not _is_rieul(last): return word + batchim
+        return word + no_batchim
+    W   = r'([가-힣a-zA-Z0-9]+)'
+    SEP = r'(?=[\s,\.·!\?\"\'()\-]|$)'
+    rules = [
+        (W + r'(으로|로)' + SEP, lambda m: _fix(m, '로',   '으로')),
+        (W + r'(을|를)'   + SEP, lambda m: _fix(m, '를',   '을'  )),
+        (W + r'(은|는)'   + SEP, lambda m: _fix(m, '는',   '은'  )),
+        (W + r'(과|와)'   + SEP, lambda m: _fix(m, '와',   '과'  )),
+    ]
+    for pattern, repl in rules:
+        text = re.sub(pattern, repl, text)
+    return text
+
+def remove_series_suffix(text: str, plabel: str) -> str:
+    if not plabel or not text:
+        return text
+    escaped = re.escape(plabel)
+    text = re.sub(escaped + r'\s*시리즈', plabel, text)
+    return text
+
+def postprocess_copy(text: str, plabel: str) -> str:
+    text = remove_series_suffix(text, plabel)
+    text = fix_korean_particles(text)
+    return text
+
+def strip_hanja(text: str) -> str:
+    if not isinstance(text, str): return str(text) if text is not None else ""
+    allowed_pattern = r'[^\u3131-\u3163\uAC00-\uD7A3a-zA-Z0-9\s\.\,\!\?\'\"\%\[\]\(\)\-\<\>~·/&+]'
+    cleaned = re.sub(allowed_pattern, '', text)
+    FORBIDDEN_WORDS = [
+        r'\bmasih\b', r'\bdan\b', r'\bdengan\b', r'\buntuk\b',
+        r'\bjuga\b', r'\batau\b', r'\btidak\b', r'\byang\b',
+        r'\bini\b', r'\bitu\b', r'\bsaya\b', r'\bkamu\b',
+        r'\bada\b', r'\bbisa\b', r'\bharus\b', r'\bsudah\b',
+        r'\bakan\b', r'\bagar\b', r'\bpada\b', r'\bdari\b',
+    ]
+    for pattern in FORBIDDEN_WORDS:
+        cleaned = re.sub(pattern, '', cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r'\s+', ' ', cleaned)
+    return cleaned.strip()
+    
 def strip_hanja(text: str) -> str:
     if not isinstance(text, str): return str(text) if text is not None else ""
     import re
