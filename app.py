@@ -1992,67 +1992,97 @@ def sec_banner(d, cp, T):
     cta   = strip_hanja(cp.get("ctaCopy", "수강신청하기"))
     bg_url= cp.get("bg_photo_url", "")
     dark  = T["dark"]
-    
-    # 🌟 핵심: 문구(글자)가 바뀔 때마다 레이아웃이 3가지 중 하나로 랜덤하게 변함 🌟
+
+    # ✅ 핵심 수정: 글자색을 Python 조건문으로 미리 계산 후 변수에 담기
+    has_bg = bool(bg_url)
+    text_col   = "#FFFFFF" if (dark or has_bg) else "var(--text)"
+    lead_col   = "rgba(255,255,255,0.85)" if (dark or has_bg) else "var(--t70)"
+    btn_border = "2px solid rgba(255,255,255,0.6)" if (dark or has_bg) else "2px solid var(--c1)"
+
     text_hash = sum(ord(c) for c in title + lead)
     v = (text_hash % 3) + 1
 
-    if v == 1: # [스타일 1: 거대 타이포 마키 (Brutal 스타일)]
+    # ✅ 배경 이미지 있을 때: 오버레이 강도 높이고 text-shadow 추가
+    if has_bg:
+        bg_style  = f"background: url('{bg_url}') center/cover no-repeat;"
+        overlay   = (
+            '<div style="position:absolute;inset:0;'
+            'background:linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.75) 100%);'
+            'z-index:1;pointer-events:none"></div>'
+        )
+        txt_shadow = "text-shadow: 0 2px 16px rgba(0,0,0,0.7), 0 1px 4px rgba(0,0,0,0.9);"
+    else:
+        bg_style  = "background: var(--bg);" if not dark else "background: linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);"
+        overlay   = ""
+        txt_shadow = ""
+
+    if v == 1:  # 거대 마키 스타일
         bg_text = f"{title} " * 5
-        text_col = "#fff" if (dark or bg_url) else "var(--text)"
-        bg_style = f"background: url('{bg_url}') center/cover no-repeat;" if bg_url else f"background: var(--bg3);"
-        overlay = '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.6);z-index:1;"></div>' if bg_url else ''
-        
         return (
-            f'<section id="hero" style="position:relative; min-height:100vh; overflow:hidden; {bg_style}; display:flex; flex-direction:column; justify-content:center; text-align:center;">'
+            f'<section id="hero" style="position:relative; min-height:100vh; overflow:hidden;'
+            f'{bg_style} display:flex; flex-direction:column; justify-content:center; text-align:center;">'
             + overlay +
             f'<div class="marquee-container"><div class="marquee-content">{bg_text}{bg_text}</div></div>'
             f'<div style="position:relative; z-index:2; padding:0 20px; max-width:1200px; margin:0 auto;">'
-            f'<div style="display:inline-block; font-size:12px; font-weight:800; letter-spacing:0.2em; color:var(--c1); border:2px solid var(--c1); padding:8px 24px; border-radius:50px; margin-bottom:30px;">{sub}</div>'
+            f'<div style="display:inline-block; font-size:12px; font-weight:800; letter-spacing:0.2em;'
+            f'color:var(--c1); border:2px solid var(--c1); padding:8px 24px;'
+            f'border-radius:50px; margin-bottom:30px;">{sub}</div>'
             f'<div class="reveal-wrap">'
-            f'<h1 class="reveal-text d1" style="font-family:\'Black Han Sans\', var(--fh); font-size:clamp(60px, 8vw, 150px); font-weight:900; line-height:1.05; letter-spacing:-0.05em; color:{text_col}; margin-bottom:30px; word-break:keep-all;">{title}</h1>'
+            f'<h1 class="reveal-text d1" style="font-family:\'Black Han Sans\', var(--fh);'
+            f'font-size:clamp(60px, 8vw, 150px); font-weight:900; line-height:1.05;'
+            f'letter-spacing:-0.05em; color:{text_col}; margin-bottom:30px;'
+            f'word-break:keep-all; {txt_shadow}">{title}</h1>'
             f'</div>'
-            f'<p style="font-size:clamp(16px, 2vw, 22px); line-height:1.8; color:rgba(255,255,255,0.8) if {dark} else var(--t70); max-width:800px; margin:0 auto 50px; font-weight:600;">{lead}</p>'
-            f'<a href="#cta" style="display:inline-block; background:var(--c1); color:var(--bg); padding:20px 50px; font-size:18px; font-weight:900; font-family:var(--fh); text-decoration:none; box-shadow: 10px 10px 0px rgba(0,0,0,0.3); transition:transform 0.2s;">{cta} →</a>'
+            f'<p style="font-size:clamp(16px, 2vw, 22px); line-height:1.8; color:{lead_col};'
+            f'max-width:800px; margin:0 auto 50px; font-weight:600; {txt_shadow}">{lead}</p>'
+            f'<a href="#cta" style="display:inline-block; background:var(--c1); color:var(--bg);'
+            f'padding:20px 50px; font-size:18px; font-weight:900; font-family:var(--fh);'
+            f'text-decoration:none; box-shadow:10px 10px 0px rgba(0,0,0,0.3);'
+            f'transition:transform 0.2s;">{cta} →</a>'
             f'</div></section>'
         )
 
-    elif v == 2: # [스타일 2: 애플/프리미엄 여백 (Editorial 스타일)]
-        bg_style = f"background: url('{bg_url}') center/cover no-repeat;" if bg_url else f"background: linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);"
-        overlay = '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.65);z-index:1;"></div>' if bg_url else ''
-        text_color = "#fff" if (dark or bg_url) else "var(--text)"
-        
-        # 💡 수정됨: 제목과 설명의 간격 조정, 설명 텍스트 너비(max-width) 축소, 버튼 디자인 세련되게 변경
+    elif v == 2:  # 애플/프리미엄 여백 스타일
         return (
-            f'<section id="hero" style="position:relative; min-height:90vh; display:flex; align-items:center; justify-content:center; text-align:center; overflow:hidden; {bg_style}">'
+            f'<section id="hero" style="position:relative; min-height:90vh; display:flex;'
+            f'align-items:center; justify-content:center; text-align:center; overflow:hidden; {bg_style}">'
             + overlay +
-            f'<div class="rv" style="position:relative; z-index:2; max-width:1000px; padding: 20px; display:flex; flex-direction:column; align-items:center;">'
-            # 뱃지 (노란색 테두리 대신 세련된 칩 스타일)
-            f'<div style="font-family:var(--fh); font-size:13px; font-weight:800; color:var(--bg); background:var(--c1); padding:6px 18px; border-radius:100px; letter-spacing:0.1em; margin-bottom:24px;">{sub}</div>'
-            # 메인 타이틀 (줄간격 타이트하게)
-            f'<h1 style="font-family:var(--fh); font-size:clamp(42px, 8vw, 110px); font-weight:900; color:{text_color}; line-height:1.1; letter-spacing:-0.04em; margin-bottom:24px; word-break:keep-all;">{title}</h1>'
-            # 리드 문구 (너비를 줄여서 눈에 잘 들어오게)
-            f'<p style="font-size:clamp(16px, 2vw, 22px); color:rgba(255,255,255,0.85) if {dark} else var(--t70); font-weight:500; line-height:1.6; max-width:580px; margin:0 auto 48px; word-break:keep-all;">{lead}</p>'
-            # CTA 버튼 (모양 정돈)
-            f'<a href="#cta" style="display:inline-flex; align-items:center; justify-content:center; background:var(--c1); color:var(--bg); padding:18px 48px; border-radius:8px; font-size:clamp(16px, 1.8vw, 18px); font-weight:800; text-decoration:none; transition: transform 0.2s;">{cta}</a>'
+            f'<div class="rv" style="position:relative; z-index:2; max-width:1000px;'
+            f'padding:20px; display:flex; flex-direction:column; align-items:center;">'
+            f'<div style="font-family:var(--fh); font-size:13px; font-weight:800;'
+            f'color:var(--bg); background:var(--c1); padding:6px 18px;'
+            f'border-radius:100px; letter-spacing:0.1em; margin-bottom:24px;">{sub}</div>'
+            f'<h1 style="font-family:var(--fh); font-size:clamp(42px, 8vw, 110px);'
+            f'font-weight:900; color:{text_col}; line-height:1.1; letter-spacing:-0.04em;'
+            f'margin-bottom:24px; word-break:keep-all; {txt_shadow}">{title}</h1>'
+            f'<p style="font-size:clamp(16px, 2vw, 22px); color:{lead_col}; font-weight:500;'
+            f'line-height:1.6; max-width:580px; margin:0 auto 48px; word-break:keep-all;">{lead}</p>'
+            f'<a href="#cta" style="display:inline-flex; align-items:center; justify-content:center;'
+            f'background:var(--c1); color:var(--bg); padding:18px 48px; border-radius:8px;'
+            f'font-size:clamp(16px, 1.8vw, 18px); font-weight:800; text-decoration:none;">{cta}</a>'
             f'</div></section>'
         )
 
-    else: # [스타일 3: 좌우 분할 매거진 (Split 스타일)]
-        bg_style = f"background: url('{bg_url}') center/cover no-repeat;" if bg_url else f"background: var(--bg2);"
-        overlay = '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.7);z-index:1;"></div>' if bg_url else ''
-        text_color = "#fff" if (dark or bg_url) else "var(--text)"
-        
+    else:  # 좌우 분할 매거진 스타일
         return (
-            f'<section id="hero" style="position:relative; min-height:90vh; display:flex; align-items:center; overflow:hidden; {bg_style}">'
+            f'<section id="hero" style="position:relative; min-height:90vh; display:flex;'
+            f'align-items:center; overflow:hidden; {bg_style}">'
             + overlay +
-            f'<div class="rv-left" style="position:relative; z-index:2; padding: 100px clamp(20px, 5vw, 80px); width:100%; max-width:1400px; margin:0 auto;">'
-            f'<div style="display:inline-block; font-size:14px; font-weight:800; color:var(--bg); background:var(--c1); padding:6px 16px; margin-bottom:24px;">{sub}</div>'
-            f'<h1 style="font-family:var(--fh); font-size:clamp(45px, 7vw, 110px); font-weight:900; color:{text_color}; line-height:1.1; letter-spacing:-0.03em; margin-bottom:30px; word-break:keep-all; text-align:left;">{title}</h1>'
+            f'<div class="rv-left" style="position:relative; z-index:2;'
+            f'padding:100px clamp(20px, 5vw, 80px); width:100%; max-width:1400px; margin:0 auto;">'
+            f'<div style="display:inline-block; font-size:14px; font-weight:800;'
+            f'color:var(--bg); background:var(--c1); padding:6px 16px; margin-bottom:24px;">{sub}</div>'
+            f'<h1 style="font-family:var(--fh); font-size:clamp(45px, 7vw, 110px);'
+            f'font-weight:900; color:{text_col}; line-height:1.1; letter-spacing:-0.03em;'
+            f'margin-bottom:30px; word-break:keep-all; text-align:left; {txt_shadow}">{title}</h1>'
             f'<div style="width:60px; height:4px; background:var(--c1); margin-bottom:30px;"></div>'
-            f'<p style="font-size:clamp(15px, 1.8vw, 22px); color:rgba(255,255,255,0.7) if {dark} else var(--t70); font-weight:500; line-height:1.8; max-width:600px; margin-bottom:50px; text-align:left;">{lead}</p>'
-            f'<div style="text-align:left;"><a href="#cta" style="display:inline-block; background:transparent; border:2px solid var(--c1); color:{text_color}; padding:16px 40px; font-size:16px; font-weight:800; text-decoration:none; transition: all 0.2s;" onmouseover="this.style.background=\'var(--c1)\'; this.style.color=\'var(--bg)\'" onmouseout="this.style.background=\'transparent\'; this.style.color=\'{text_color}\'">{cta} →</a></div>'
-            f'</div></section>'
+            f'<p style="font-size:clamp(15px, 1.8vw, 22px); color:{lead_col}; font-weight:500;'
+            f'line-height:1.8; max-width:600px; margin-bottom:50px; text-align:left;">{lead}</p>'
+            f'<div style="text-align:left;">'
+            f'<a href="#cta" style="display:inline-block; background:transparent;'
+            f'border:{btn_border}; color:{text_col}; padding:16px 40px; font-size:16px;'
+            f'font-weight:800; text-decoration:none; transition:all 0.2s;">{cta} →</a>'
+            f'</div></div></section>'
         )
         
 def sec_intro(d, cp, T):
