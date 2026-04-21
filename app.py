@@ -944,18 +944,49 @@ JSON만 반환 (한 줄, extraCSS 필드 제외):
 
 
 def _get_instructor_context() -> str:
-    ip = st.session_state.get("inst_profile") or {}
+    ip   = st.session_state.get("inst_profile") or {}
     name = st.session_state.instructor_name
     subj = st.session_state.subject
+    plabel = st.session_state.get("purpose_label", "")
+
+    # ✅ 핵심 수정: 강사 프로필의 시그니처 메서드가
+    # 현재 브랜드명(purpose_label)과 관련 없으면 무시
+    sig_methods = [m for m in (ip.get("signatureMethods") or []) if m and m != "없음"]
+    
+    # 브랜드명과 시그니처 메서드가 전혀 겹치지 않으면 메서드 정보 드롭
+    if plabel and sig_methods:
+        plabel_clean = plabel.replace(" ", "").lower()
+        method_match = any(
+            m.replace(" ", "").lower() in plabel_clean or 
+            plabel_clean in m.replace(" ", "").lower()
+            for m in sig_methods
+        )
+        if not method_match:
+            # 브랜드명과 무관한 시그니처 → 크로스오염 방지용으로 제거
+            sig_methods = []
+
     if not ip.get("found") or not name:
-        return f"강사명: {name} | 과목: {subj}" if name else f"과목: {subj}"
+        ctx = f"강사명: {name} | 과목: {subj}" if name else f"과목: {subj}"
+        if plabel:
+            ctx += f" | 강좌명(브랜드): {plabel}"
+        return ctx
+
     parts = [f"강사: {name} ({subj})"]
-    if ip.get("bio"):        parts.append(f"이력: {ip['bio']}")
-    if ip.get("slogan"):     parts.append(f"슬로건: \"{ip['slogan']}\"")
-    methods = [m for m in (ip.get("signatureMethods") or []) if m and m != "없음"]
-    if methods:              parts.append(f"고유 학습법: {', '.join(methods)}")
-    if ip.get("teachingStyle"): parts.append(f"강의 스타일: {ip['teachingStyle']}")
-    if ip.get("desc"):       parts.append(f"차별점: {ip['desc']}")
+    if plabel:
+        parts.append(f"이번 강좌명(브랜드): {plabel} ← 반드시 이 강좌명 기준으로만 문구 생성")
+    if ip.get("bio"):
+        parts.append(f"이력: {ip['bio']}")
+    if ip.get("slogan"):
+        parts.append(f"슬로건: \"{ip['slogan']}\"")
+    if sig_methods:
+        parts.append(f"고유 학습법: {', '.join(sig_methods)}")
+    else:
+        parts.append(f"고유 학습법: {plabel} 방법론")  # 브랜드명으로 대체
+    if ip.get("teachingStyle"):
+        parts.append(f"강의 스타일: {ip['teachingStyle']}")
+    if ip.get("desc"):
+        parts.append(f"차별점: {ip['desc']}")
+
     return "\n".join(parts)
 
 # ═══════════════════════════════════════════════════════
@@ -1955,6 +1986,37 @@ section#intro .card p {
     opacity: 0.7;
     font-weight: 500;
 }
+/* =============================================
+   ✅ 카드 텍스트 가독성 강제 보장
+   흰 배경 + 흰 글씨 버그 완전 차단
+   ============================================= */
+
+/* 모든 카드 내 p 태그 강제 색상 */
+.card p {
+    color: var(--text) !important;
+    opacity: 0.78 !important;
+}
+
+/* 수강 이유 섹션 카드 설명 */
+section#why p,
+section#why div[style*="t70"],
+section#why p[style*="t70"] {
+    color: var(--text) !important;
+    opacity: 0.75 !important;
+}
+
+/* intro 섹션 포인트 카드 */
+section#intro .rv p,
+section#intro div[style*="bg3"] p {
+    color: var(--text) !important;
+    opacity: 0.75 !important;
+}
+
+/* 밝은 테마일 때 t70이 너무 연해지는 현상 방지 */
+body:not(.light-mode) p[style*="var(--t70)"] {
+    color: var(--text) !important;
+    opacity: 0.7 !important;
+}
 """
 
 
@@ -2190,7 +2252,7 @@ def sec_intro(d, cp, T):
         f'<div class="rv d{i+1}" style="flex:1;min-width:180px;padding:28px 24px;background:var(--bg3);border-radius:var(--r,4px);border:1px solid var(--bd);border-top:3px solid var(--c1)">'
         f'<div style="font-size:34px;margin-bottom:14px">{ic}</div>'
         f'<div style="font-family:var(--fh);font-size:15px;font-weight:800;color:var(--text);margin-bottom:8px">{strip_hanja(tt)}</div>'
-        f'<p style="font-size:13px;line-height:1.8;color:var(--t70);margin:0">{strip_hanja(dc)}</p>'
+        f'<p style="font-size:13px;line-height:1.8;color:var(--text);opacity:0.72;margin:0">{strip_hanja(dc)}</p>'
         f'</div>'
         for i, (ic, tt, dc) in enumerate(points)
     )
@@ -4240,9 +4302,12 @@ with st.sidebar:
         st.rerun()
     nm = st.text_input("강사명", value=st.session_state.instructor_name,
                    placeholder="강사명", label_visibility="collapsed")
-    # ✅ 강사명이 바뀌면 이전 프로필 자동 삭제 (크로스오염 방지)
+
+    # ✅ 강사명 바뀌면 이전 프로필 즉시 삭제
     if nm != st.session_state.instructor_name:
         st.session_state.instructor_name = nm
+        st.session_state.inst_profile = None
+        st.rerun()
         st.session_state.inst_profile = None  # ← 핵심: 이전 강사 정보 초기화
         st.rerun()
 
@@ -4280,8 +4345,13 @@ with st.sidebar:
     # 설정
     st.markdown('<div class="sec-hdr">📝 기획 방향 설정</div>', unsafe_allow_html=True)
     pl = st.text_input("브랜드명", value=st.session_state.purpose_label,
-                       placeholder="2026 수능 파이널 완성", label_visibility="collapsed")
-    st.session_state.purpose_label = pl
+                   placeholder="2026 수능 파이널 완성", label_visibility="collapsed")
+
+    # ✅ 브랜드명 바뀌면 생성된 문구도 초기화 (이전 강좌 내용 방지)
+    if pl != st.session_state.purpose_label:
+        st.session_state.purpose_label = pl
+        st.session_state.custom_copy = None  # 이전 문구 초기화
+        st.rerun()
     mt = st.text_input("핵심 메타포 (선택)", value=st.session_state.get("metaphor", ""),
                        placeholder="예: Surfing, Racing, 등대, 해부학",
                        help="기획안 전체를 관통하는 비유적 표현을 입력하면 카피와 시각적 디렉션에 반영됩니다.")
