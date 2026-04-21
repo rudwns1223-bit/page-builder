@@ -1005,12 +1005,12 @@ def _get_instructor_context() -> str:
         parts.append(f"이번 강좌명(브랜드): {plabel} ← 반드시 이 강좌명 기준으로만 문구 생성")
     if ip.get("bio"):
         parts.append(f"이력: {ip['bio']}")
+    if sig_methods:
     if ip.get("slogan"):
         parts.append(f"슬로건: \"{ip['slogan']}\"")
-    if sig_methods:
-        parts.append(f"고유 학습법: {', '.join(sig_methods)}")
-    else:
-        parts.append(f"고유 학습법: {plabel} 방법론")  # 브랜드명으로 대체
+    parts.append(f"고유 학습법: {', '.join(sig_methods)}")
+else:
+    parts.append(f"고유 학습법: {plabel} 방법론")
     if ip.get("teachingStyle"):
         parts.append(f"강의 스타일: {ip['teachingStyle']}")
     if ip.get("desc"):
@@ -3959,6 +3959,10 @@ def sec_instructor_philosophy(d, cp, T):
     """강사 철학 — 서사형 풀와이드 섹션"""
     ip = st.session_state.get("inst_profile") or {}
     slogan = strip_hanja(ip.get("slogan",""))
+if slogan and plabel:
+    # 슬로건에 브랜드명이 없으면 사용 안 함
+    if plabel not in slogan:
+        slogan = f"{plabel}으로 (과목)를 완성하다"
     desc   = strip_hanja(ip.get("desc",""))
     style  = strip_hanja(ip.get("teachingStyle",""))
     methods = [strip_hanja(m) for m in (ip.get("signatureMethods") or []) if m and m != "없음"]
