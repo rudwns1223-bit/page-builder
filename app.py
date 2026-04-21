@@ -995,10 +995,10 @@ JSON만 반환 (한 줄, extraCSS 필드 제외):
 
 
 def _get_instructor_context() -> str:
-    ip = st.session_state.get("inst_profile") or {}
-    name = st.session_state.instructor_name
-    subj = st.session_state.subject
-    plabel = st.session_state.get("purpose_label", "").strip()
+    ip     = st.session_state.get("inst_profile") or {}
+    name   = st.session_state.instructor_name
+    subj   = st.session_state.subject
+    plabel = st.session_state.get("purpose_label", "")
 
     sig_methods = [m for m in (ip.get("signatureMethods") or []) if m and m != "없음"]
 
@@ -1028,11 +1028,10 @@ def _get_instructor_context() -> str:
     # bio에서 다른 커리큘럼명 제거 후 삽입
     raw_bio = ip.get("bio", "")
     if raw_bio and plabel:
-        # DB에 있는 다른 커리큘럼명이 bio에 섞여 있으면 현재 브랜드명으로 치환
-        banned_names = ["인셉션", "O.V.S", "파노라마", "뉴런", "R'gorithm", "KISS", "KISS Logic", "KICE Anatomy"]
-        for b_name in banned_names:
-            if b_name.lower() != plabel.lower():
-                raw_bio = raw_bio.replace(b_name, plabel)
+        # bio 안의 시리즈명·강좌명 단어를 전부 plabel로 마스킹
+        other_methods = [m for m in (ip.get("signatureMethods") or []) if m and m != "없음"]
+        for method in other_methods:
+            raw_bio = raw_bio.replace(method, plabel)
         # 자주 오염되는 고유명사 패턴 추가 제거
         import re
         raw_bio = re.sub(r'(인셉션|O\.V\.S|OVS|파노라마|뉴런|R\'gorithm|KISS|Starting Block|KICE Anatomy|세젤쉬|All Of KICE|VIC-FLIX)', plabel, raw_bio)
