@@ -2402,7 +2402,8 @@ def _bg_vars(bg_url, dark):
 def sec_banner(d, cp, T):
     sub   = strip_hanja(cp.get("bannerSub", d["subject"]+" 완성"))
     title = strip_hanja(cp.get("bannerTitle", d["purpose_label"]))
-    lead  = strip_hanja(cp.get("bannerLead", f"{d[\'target\']}을 위한 커리큘럼"))
+    _tgt  = d.get("target", "")
+    lead  = strip_hanja(cp.get("bannerLead", f"{_tgt}을 위한 커리큘럼"))
     cta   = strip_hanja(cp.get("ctaCopy", "수강신청하기"))
     bg_url = cp.get("bg_photo_url", "")
     dark   = T["dark"]
