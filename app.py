@@ -71,8 +71,30 @@ GROQ_MODELS = [
     "llama-3.1-8b-instant",             # 경량 빠른 모델 (gemma2-9b-it 후계)
 ]
 
-# ── 문구 스타일 예시 (Few-shot) ──────────────────────
 FEW_SHOT_EXAMPLES = """
+=== 🏆 인간이 직접 쓴 것 같은 문구의 특징 ===
+좋은 카피는 다음 3가지를 동시에 충족한다:
+1. 수험생의 지금 상황을 정확히 묘사 (추상적 희망 금지)
+2. 이 강의가 왜 지금 필요한지 논리적 근거 제시
+3. 강좌명·메타포가 문장 안에 자연스럽게 녹아있음
+
+[실제 수험생이 공감하는 문장 패턴]
+- "지문은 읽히는데 답은 모르겠다. 그게 네 현실이다."
+- "3월에 방향을 잘못 잡으면 11월에 후회한다."
+- "감으로 맞히는 건 수능장에서 통하지 않는다. 진또배기는 구조로 읽는다."
+- "공부는 하는데 성적이 안 오른다면, 방향이 틀린 것이다."
+- "국어 지문에는 출제자가 만든 구조가 있다. 그 구조를 보는 눈을 만드는 것이 진또배기의 시작이다."
+
+[성의없는 AI 문구 vs 인간 문구 비교]
+❌ "체계적인 학습으로 성적을 올리세요" (→ 아무 의미 없음)
+✅ "3월에 구조 잡고, 6월에 패턴 읽고, 수능장에서 답을 본다. 진또배기의 순서다."
+
+❌ "최고의 강사와 함께라면 가능합니다" (→ 근거 없는 희망)
+✅ "국어 지문은 처음부터 끝까지 읽지 않아도 된다. 어디를 읽어야 하는지 아는 것이 실력이다."
+
+❌ "수강생들이 만족하는 강의입니다" (→ 증명 불가)
+✅ "지문 구조가 보이기 시작하면, 시험장에서 처음으로 시간이 남는 경험을 한다."
+
 === ❌ 절대 쓰지 말 것 — AI 클리셰 목록 ===
 아래 표현은 진부하고 AI스럽게 들립니다. 이것이 떠오르면 반드시 뒤집어서 다시 쓰세요.
 
@@ -1003,10 +1025,22 @@ def _get_instructor_context() -> str:
         f"강사: {name} ({subj})",
         f"⚠️ 이번 강좌명(브랜드): [{plabel}] ← 모든 문구는 이 강좌명만 기준으로 생성. 다른 커리큘럼명 절대 언급 금지.",
     ]
-    if ip.get("bio"):
-        parts.append(f"이력: {ip['bio']}")
-    if ip.get("slogan"):
-        parts.append(f"슬로건(참고용): \"{ip['slogan']}\"")
+    # bio에서 다른 커리큘럼명 제거 후 삽입
+    raw_bio = ip.get("bio", "")
+    if raw_bio and plabel:
+        # bio 안의 시리즈명·강좌명 단어를 전부 plabel로 마스킹
+        other_methods = [m for m in (ip.get("signatureMethods") or []) if m and m != "없음"]
+        for method in other_methods:
+            raw_bio = raw_bio.replace(method, plabel)
+        # 자주 오염되는 고유명사 패턴 추가 제거
+        import re
+        raw_bio = re.sub(r'(인셉션|O\.V\.S|OVS|파노라마|뉴런|R\'gorithm|KISS|Starting Block|KICE Anatomy|세젤쉬|All Of KICE|VIC-FLIX)', plabel, raw_bio)
+        parts.append(f"강사 이력(참고용): {raw_bio}")
+    
+    # 슬로건도 같은 방식으로 세정
+    raw_slogan = ip.get("slogan", "")
+    if raw_slogan and sig_methods:  # 매칭된 메서드가 있을 때만 슬로건 포함
+        parts.append(f"슬로건(참고용): \"{raw_slogan}\"")
     if sig_methods:
         parts.append(f"고유 학습법: {', '.join(sig_methods)}")
     else:
@@ -1137,10 +1171,16 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
         ),
     }
 
+    # 강사 DB에 있는 타 커리큘럼명 수집 (금지어 목록용)
+    ip_profile = st.session_state.get("inst_profile") or {}
+    all_methods = [m for m in (ip_profile.get("signatureMethods") or []) if m and m != "없음"]
+    forbidden_names = [m for m in all_methods if m.replace(" ","").lower() not in course_name.replace(" ","").lower()]
+    forbidden_str = ", ".join(f'"{m}"' for m in forbidden_names) if forbidden_names else "없음"
+
     prompt = f"""당신은 대한민국 최고 수능 강사 브랜딩 카피라이터입니다.
 
 ━━━ 절대 규칙 (어기면 전체 무효) ━━━
-① bannerTitle = 반드시 강좌명 "{course_name}" 포함. 15자 이내. 명사형·선언형만.
+① bannerTitle = 반드시 강좌명 "{course_name}" 포함. 20자 이내. 명사형·선언형만.
    ✅ 허용: "{course_name}" / "{course_name}으로 끝낸다" / "국어의 {course_name}"
    ❌ 금지: 문장형("~하세요"), 질문형("~인가요?"), 강좌명 없는 제목
    ❌ 금지: "4등급→1등급" "3개월만에" 등 근거 없는 수치 약속
@@ -1148,6 +1188,9 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
 ③ masih, dan, dengan 등 인도네시아어 금지
 ④ "체계적", "최고의", "함께라면", "실력 향상" 등 AI 클리셰 금지
 ⑤ 확인 안 된 수치(합격생 수, 만족도%, 등급 변화 수치) 지어내기 금지
+⑥ 수능 D-day 숫자 절대 지어내지 말 것. "D-365", "D-100" 같은 구체적 일수 금지.
+   대신 "수능 전", "지금 이 순간", "남은 시간" 등 시간 표현만 사용.
+⑦ 현재 날짜 기준으로 계산이 필요한 모든 수치는 작성 금지.
 
 ━━━ 이번 생성 방향 ━━━
 {variation_hint}
@@ -2126,87 +2169,89 @@ section#intro .card p {
     font-weight: 500;
 }
 /* ================================================
-   ✅ 텍스트 가독성 시스템 — 완전 재설계
-   핵심 원칙: 배경색을 먼저 파악하고 글자색 결정
+   텍스트 가독성 — 핵심 3원칙
+   1) 어두운 배경(bg luminance < 40%) → 텍스트 무조건 밝게
+   2) 밝은 배경(bg luminance > 60%) → 텍스트 무조건 어둡게
+   3) c1(강조색) 배경 위 → 무조건 흰 글씨
    ================================================ */
 
-/* --- 기본 텍스트: 테마 변수 사용 --- */
-body { color: var(--text); }
+/* 기본 body */
+body { color: var(--text); background: var(--bg); }
 
-/* --- c1(강조색) 배경 위는 무조건 흰 글씨 --- */
+/* 섹션 기본 — var(--text) 사용 */
+section, .sec { color: var(--text); }
+
+/* c1 배경 위 → 흰 글씨 강제 */
+[style*="background:var(--c1)"],
+[style*="background: var(--c1)"] {
+    color: #ffffff !important;
+}
 [style*="background:var(--c1)"] *,
 [style*="background: var(--c1)"] * {
     color: #ffffff !important;
     -webkit-text-fill-color: #ffffff !important;
 }
 
-/* --- 그라디언트 배경(CTA 섹션 등) 위는 무조건 흰 글씨 --- */
-[style*="background:linear-gradient"] *:not(a):not(button),
-[style*="background: linear-gradient"] *:not(a):not(button) {
+/* 그라디언트 배경(CTA) → 흰 글씨 강제 */
+[style*="background:linear-gradient"] *:not(.btn-s):not(input),
+[style*="background: linear-gradient"] *:not(.btn-s):not(input) {
     color: #ffffff !important;
 }
 
-/* --- 카드 내 텍스트: var(--text) 강제 (배경이 bg/bg2/bg3이므로) --- */
-.card * { color: var(--text) !important; }
+/* 카드 — 배경이 bg 계열이므로 var(--text) 사용 */
+.card { color: var(--text) !important; }
 .card p, .card span:not([style*="background"]) {
+    color: var(--text) !important;
     opacity: 0.75;
 }
 .card h3, .card h4,
 .card > div[style*="font-weight:7"],
 .card > div[style*="font-weight:8"],
 .card > div[style*="font-weight:9"] {
+    color: var(--text) !important;
     opacity: 1 !important;
 }
 
-/* --- 섹션 본문 p 태그 --- */
-section p[style*="var(--t70)"] {
+/* tag-line(강조선+텍스트) — c1 색상 유지 */
+.tag-line { color: var(--c1) !important; }
+
+/* 어두운 배경(bg3, bg2) 위의 텍스트 보정 */
+[style*="background:var(--bg3)"] *,
+[style*="background: var(--bg3)"] *,
+[style*="background:var(--bg2)"] *,
+[style*="background: var(--bg2)"] * {
     color: var(--text) !important;
-    opacity: 0.7 !important;
 }
 
-/* ================================================
-   라이트모드 전환 — 최소한의 오버라이드만
-   (c1 배경 위 흰 글씨는 절대 건드리지 않음)
-   ================================================ */
-body.light-mode { background: #F5F5F0 !important; }
+/* 완전 검정(#111, #0a0a0a 등) 배경 → 흰 글씨 강제 */
+[style*="background:#111"] *,
+[style*="background:#0a0a0a"] *,
+[style*="background:#050505"] *,
+[style*="background:#020008"] *,
+[style*="background:#030703"] * {
+    color: #F5F5F0 !important;
+}
 
-/* 라이트모드: 배경이 bg계열인 요소만 텍스트 어둡게 */
+/* 흰색/아이보리 배경 → 검정 글씨 강제 */
+[style*="background:#fff"] *,
+[style*="background:#ffffff"] *,
+[style*="background:#F5F5F0"] *,
+[style*="background:#fafafa"] *,
+[style*="background:#f5f5f5"] * {
+    color: #111111 !important;
+}
+
+/* ── 라이트 모드 오버라이드 ── */
 body.light-mode section:not([style*="background:var(--c1)"]):not([style*="linear-gradient"]) {
     background: #F5F5F0;
-    color: #0A0A0A;
+    color: #111111;
 }
-body.light-mode .card {
-    background: #ffffff !important;
-    border-color: rgba(0,0,0,0.1) !important;
-}
-body.light-mode .card * { color: #0A0A0A !important; }
-body.light-mode .card p { opacity: 0.7; }
-
-/* 라이트모드: 네비 */
-body.light-mode #site-nav {
-    background: rgba(245,245,240,0.95) !important;
-}
-body.light-mode #site-nav a,
-body.light-mode #site-nav div {
-    color: rgba(10,10,10,0.75) !important;
-}
-
-/* 라이트모드: 섹션 헤딩 */
-body.light-mode h1,
-body.light-mode h2,
-body.light-mode h3 {
-    color: #0A0A0A !important;
-}
+body.light-mode .card { background: #ffffff !important; }
+body.light-mode .card * { color: #111111 !important; }
+body.light-mode h1, body.light-mode h2, body.light-mode h3 { color: #0A0A0A !important; }
 body.light-mode p { color: rgba(10,10,10,0.72) !important; }
-
-/* 라이트모드에서도 c1 배경 위는 흰 글씨 유지 */
-body.light-mode [style*="background:var(--c1)"] *,
-body.light-mode [style*="background: var(--c1)"] * {
-    color: #ffffff !important;
-}
-body.light-mode [style*="background:linear-gradient"] *:not(a):not(button) {
-    color: #ffffff !important;
-}
+body.light-mode [style*="background:var(--c1)"] * { color: #ffffff !important; }
+body.light-mode [style*="background:linear-gradient"] *:not(.btn-s) { color: #ffffff !important; }
 
 /* ================================================
    before/after 섹션 텍스트 강제
