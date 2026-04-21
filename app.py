@@ -714,7 +714,7 @@ def clean_obj(obj):
     if isinstance(obj, list): return [clean_obj(i) for i in obj]
     return obj
 
-# ── 타 커리큘럼명 누수 방지 사후 필터 ──────────────────────────
+# ── 타 커리큘럼명 누수 방지 사후 필터 ──────────────────────
 _GLOBAL_BANNED_CURRICULA = [
     "인셉션", "O.V.S", "OVS", "파노라마", "뉴런",
     "R'gorithm", "Starting Block", "KICE Anatomy",
@@ -722,20 +722,22 @@ _GLOBAL_BANNED_CURRICULA = [
     "KISS Logic", "KISSAVE", "KISSCHEMA",
 ]
 
-def ban_other_curricula(result: dict, plabel: str) -> dict:
+def ban_other_curricula(result, plabel: str):
     """
-    AI 출력 dict/list/str 전체를 재귀 탐색해,
+    AI 출력 전체(dict/list/str)를 재귀 탐색해,
     현재 강좌명(plabel)과 무관한 커리큘럼명을 plabel로 교체한다.
     """
     if not plabel:
         return result
 
-    # 현재 강좌명에 포함된 단어는 금지 목록에서 제외
     plabel_lower = plabel.replace(" ", "").lower()
+
+    # 현재 강좌명에 포함된 단어는 금지 대상에서 제외
     forbidden = [
         name for name in _GLOBAL_BANNED_CURRICULA
         if name.replace(" ", "").lower() not in plabel_lower
     ]
+
     # 강사 DB 시그니처 메서드도 추가
     ip = st.session_state.get("inst_profile") or {}
     for m in (ip.get("signatureMethods") or []):
@@ -1284,7 +1286,9 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
 ━━━ JSON만 반환 (마크다운 금지) ━━━
 {schemas.get(ptype, schemas['신규 커리큘럼'])}"""
 
-    return safe_json(call_ai(prompt, max_tokens=3500))
+    result = safe_json(call_ai(prompt, max_tokens=3500))
+    plabel = st.session_state.get("purpose_label", "").strip()
+    return ban_other_curricula(result, plabel)
 
 SEC_LAYOUT_VARIANTS = {
     "why": [
@@ -1457,9 +1461,9 @@ def gen_section(sec_id: str) -> dict:
 def gen_course_copy(course_info: str) -> dict:
     """사용자가 입력한 강좌 정보 → AI 문구 생성"""
     plabel = st.session_state.get("purpose_label", "").strip()
+    subj   = st.session_state.get("subject", "국어")
     ip     = st.session_state.get("inst_profile") or {}
 
-    # 현재 강좌와 무관한 커리큘럼명 수집 → 금지어 목록
     all_methods   = [m for m in (ip.get("signatureMethods") or []) if m and m != "없음"]
     plabel_lower  = plabel.replace(" ", "").lower()
     forbidden_names = [
@@ -1468,13 +1472,10 @@ def gen_course_copy(course_info: str) -> dict:
     ]
     forbidden_str = ", ".join(f'"{m}"' for m in forbidden_names) if forbidden_names else "없음"
 
-    # 강사 맥락에서 타 커리큘럼명 제거
-    inst_ctx_raw  = _get_instructor_context()
-
     prompt = f"""수능 교육 랜딩페이지 강좌 소개 섹션 카피라이터.
 
-강사/과목 정보:
-{inst_ctx_raw}
+과목: {subj}
+강좌명(브랜드): {plabel}
 
 사용자가 입력한 강좌 정보:
 "{course_info}"
@@ -1482,25 +1483,57 @@ def gen_course_copy(course_info: str) -> dict:
 ━━━ 절대 규칙 ━━━
 ① 이번 강좌명: "{plabel}" — 모든 문구에서 이 이름만 사용
 ② 금지 단어 (다른 커리큘럼명): {forbidden_str} — 이 단어들은 단 한 글자도 쓰지 말 것
-③ 입력된 정보에 없는 내용은 지어내지 말 것
-④ 확인되지 않은 수치 금지
+③ 입력된 정보에 없는 내용은 지어내지 말 것 (강사명을 coursePoints 제목으로 쓰는 것 금지)
+④ coursePoints 제목에는 반드시 "{subj}"와 관련된 학습 내용/특징만 — 강사명·강사 소개 절대 금지
+⑤ coursePoints title은 "{subj}" 포함 15자 이내 구체적 학습 항목으로 작성
+⑥ 모든 텍스트는 완전한 한국어 문장 — 단어 중간에서 끊기거나 첫 글자가 빠지는 것 금지
+⑦ 과목명({subj})을 줄이거나 생략하지 말 것 (예: "국어 원리"를 "어 원리"로 쓰는 것 금지)
 
 규칙:
 - courseTitle: 강좌명 또는 강좌를 가장 잘 표현하는 제목 (20자 이내)
-- courseSub: 이 강좌가 필요한 이유 한 문장 (30자 이내)
-- courseDesc: 강좌의 핵심 특징 설명 (60-100자, 구체적으로)
-- coursePoints: 강좌 핵심 포인트 3개 [{{"icon":"이모지","title":"10자","desc":"30자"}}]
+- courseSub: 이 강좌가 필요한 이유 한 문장 (30자 이내, 반드시 완전한 문장)
+- courseDesc: 강좌의 핵심 특징 설명 (60-100자, 구체적으로, 완전한 문장)
+- coursePoints: 강좌 핵심 포인트 3개
+  - icon: 이모지 1개
+  - title: {subj}와 관련된 학습 내용 15자 이내 (강사명 금지, 반드시 완전한 단어)
+  - desc: 구체적 설명 40자 이내 (완전한 문장)
 - courseDuration: 강좌 기간 (입력 정보에 있으면 사용, 없으면 빈 문자열)
 - courseLevel: 수준 (입력 정보에 있으면 사용, 없으면 빈 문자열)
-- courseTag: 강좌 특징 키워드 3개 ["키워드1","키워드2","키워드3"]
+- courseTag: 강좌 특징 키워드 3개 (과목명 포함, 완전한 단어)
 
-JSON만 반환:
-{{"courseTitle":"20자","courseSub":"30자","courseDesc":"60-100자 설명",
-"coursePoints":[{{"icon":"이모지","title":"10자","desc":"30자"}},{{"icon":"이모지","title":"10자","desc":"30자"}},{{"icon":"이모지","title":"10자","desc":"30자"}}],
-"courseDuration":"","courseLevel":"","courseTag":["키워드1","키워드2","키워드3"]}}"""
+JSON만 반환 (마크다운 절대 금지):
+{{"courseTitle":"{plabel}","courseSub":"{subj} 강좌가 필요한 이유 30자",
+"courseDesc":"강좌 핵심 특징 60-100자 설명",
+"coursePoints":[
+  {{"icon":"📖","title":"{subj} 핵심 포인트1","desc":"구체적 설명 40자"}},
+  {{"icon":"⚡","title":"{subj} 핵심 포인트2","desc":"구체적 설명 40자"}},
+  {{"icon":"🎯","title":"{subj} 핵심 포인트3","desc":"구체적 설명 40자"}}
+],
+"courseDuration":"","courseLevel":"","courseTag":["{subj}","진또배기","수능"]}}"""
 
     result = safe_json(call_ai(prompt, max_tokens=1000))
-    # ✅ 사후 필터: 타 커리큘럼명 누수 제거
+
+    # ── 사후 검증: 깨진 텍스트 탐지 및 보정 ──
+    points = result.get("coursePoints", [])
+    cleaned_points = []
+    for pt in points:
+        if not isinstance(pt, dict):
+            continue
+        title = pt.get("title", "")
+        desc  = pt.get("desc", "")
+        # 강사명이 포인트 제목으로 들어온 경우 제거
+        inst_name = st.session_state.get("instructor_name", "")
+        if inst_name and inst_name in title:
+            continue
+        # 너무 짧거나 의미없는 포인트 제거
+        if len(title) < 2 or len(desc) < 5:
+            continue
+        cleaned_points.append(pt)
+
+    if cleaned_points:
+        result["coursePoints"] = cleaned_points
+
+    # ── 타 커리큘럼명 누수 제거 ──
     return ban_other_curricula(result, plabel)
 
 
@@ -1648,10 +1681,11 @@ def gen_section(sec_id: str) -> dict:
 {schema}"""
 
     last_err = None
+    plabel = st.session_state.get("purpose_label", "").strip()
     for attempt in range(3):
         try:
             result = safe_json(call_ai(prompt, max_tokens=1500))
-            return result
+            return ban_other_curricula(result, plabel)
         except Exception as e:
             last_err = e
             time.sleep(1)
@@ -1925,7 +1959,8 @@ def _ensure_contrast(ct: dict) -> dict:
     return ct
 
 def _cta_text_color(T: dict) -> dict:
-    """CTA 그라디언트 평균 밝기 → 텍스트 색상 자동 결정 (CSS var 대응 강화)"""
+    """CTA 그라디언트 평균 밝기 → 텍스트 색상 자동 결정.
+    CSS var()가 섞여 있어도 안전하게 처리."""
     cta = T.get("cta", "")
     hexes = re.findall(r'#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})', cta)
 
@@ -1933,22 +1968,41 @@ def _cta_text_color(T: dict) -> dict:
         lums = [_hex_luminance("#" + h) for h in hexes]
         avg_lum = sum(lums) / len(lums)
     else:
-        # CSS 변수(var(--c1) 등)만 있어 파싱 불가 → 테마 dark 여부로 판단
-        avg_lum = 0.1 if T.get("dark", True) else 0.75
+        # CSS var()만 있어 파싱 불가 → 테마의 bg 색상 휘도로 판단
+        _vars = T.get("vars", "")
+        _bg_hex = "#111111"
+        if "--bg:" in _vars:
+            try:
+                _bg_hex = _vars.split("--bg:")[1].split(";")[0].strip()
+            except Exception:
+                pass
+        bg_lum = _hex_luminance(_bg_hex)
+        # 밝은 테마면 CTA도 밝다고 가정, 어두운 테마면 어둡다고 가정
+        avg_lum = 0.7 if bg_lum > 0.4 else 0.1
 
-    if avg_lum > 0.4:   # 밝은 CTA 배경 → 검은 글씨
+    if avg_lum > 0.35:  # 밝은 CTA 배경 → 검은 글씨
         return {
-            "txt": "#0A0A0A", "txt70": "rgba(10,10,10,.8)", "txt35": "rgba(10,10,10,.5)",
-            "badge_bg": "rgba(0,0,0,.08)", "badge_bd": "rgba(0,0,0,.2)",
-            "btn_bg": "#0A0A0A", "btn_col": "#fff",
-            "btn2_bg": "rgba(0,0,0,.05)", "btn2_col": "rgba(0,0,0,.8)",
+            "txt": "#0A0A0A",
+            "txt70": "rgba(10,10,10,.8)",
+            "txt35": "rgba(10,10,10,.5)",
+            "badge_bg": "rgba(0,0,0,.08)",
+            "badge_bd": "rgba(0,0,0,.2)",
+            "btn_bg": "#0A0A0A",
+            "btn_col": "#fff",
+            "btn2_bg": "rgba(0,0,0,.05)",
+            "btn2_col": "rgba(0,0,0,.8)",
             "btn2_bd": "rgba(0,0,0,.25)",
         }
-    return {            # 어두운 CTA 배경 → 흰 글씨
-        "txt": "#fff", "txt70": "rgba(255,255,255,.75)", "txt35": "rgba(255,255,255,.4)",
-        "badge_bg": "rgba(255,255,255,.15)", "badge_bd": "rgba(255,255,255,.25)",
-        "btn_bg": "#fff", "btn_col": "#0A0A0A",
-        "btn2_bg": "rgba(255,255,255,.1)", "btn2_col": "rgba(255,255,255,.9)",
+    return {             # 어두운 CTA 배경 → 흰 글씨
+        "txt": "#fff",
+        "txt70": "rgba(255,255,255,.75)",
+        "txt35": "rgba(255,255,255,.4)",
+        "badge_bg": "rgba(255,255,255,.15)",
+        "badge_bd": "rgba(255,255,255,.25)",
+        "btn_bg": "#fff",
+        "btn_col": "#0A0A0A",
+        "btn2_bg": "rgba(255,255,255,.1)",
+        "btn2_col": "rgba(255,255,255,.9)",
         "btn2_bd": "rgba(255,255,255,.35)",
     }
 
@@ -2674,7 +2728,25 @@ def sec_intro(d, cp, T):
         for i, (ic, tt, dc) in enumerate(points)
     )
 
-    tagline_html = f'<div style="padding:22px 28px;background:var(--c1);border-radius:var(--r,4px);margin-bottom:20px"><p style="font-size:clamp(15px,1.6vw,18px);font-style:italic;font-weight:700;color:#fff;line-height:1.6;margin:0">"{tagline}"</p></div>' if tagline else ""
+    # 무의미한 태그라인 필터링
+    _BAD_TAGLINES = {
+        "english", "korean", "math", "science", "tagline", "slogan",
+        "없음", "없음.", "none", "n/a", "tbd", "미정",
+    }
+    _tagline_clean = tagline.strip().strip('"').strip("'")
+    _tagline_lower = _tagline_clean.lower().replace(" ", "")
+    _is_bad = (
+        not _tagline_clean
+        or _tagline_lower in _BAD_TAGLINES
+        or len(_tagline_clean) < 6
+        or _tagline_clean.lower() == "english"
+        or _tagline_clean.lower() == d["subject"].lower()
+    )
+    tagline_html = (
+        f'<div style="padding:22px 28px;background:var(--c1);border-radius:var(--r,4px);margin-bottom:20px">'
+        f'<p style="font-size:clamp(15px,1.6vw,18px);font-style:italic;font-weight:700;'
+        f'color:#fff;line-height:1.6;margin:0">"{_tagline_clean}"</p></div>'
+    ) if not _is_bad else ""
 
     return (
         f'<section class="sec" id="intro"><div style="max-width:1100px;margin:0 auto">'
