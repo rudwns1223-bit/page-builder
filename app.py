@@ -714,6 +714,49 @@ def clean_obj(obj):
     if isinstance(obj, list): return [clean_obj(i) for i in obj]
     return obj
 
+# ── 타 커리큘럼명 누수 방지 사후 필터 ──────────────────────────
+_GLOBAL_BANNED_CURRICULA = [
+    "인셉션", "O.V.S", "OVS", "파노라마", "뉴런",
+    "R'gorithm", "Starting Block", "KICE Anatomy",
+    "세젤쉬", "All Of KICE", "VIC-FLIX",
+    "KISS Logic", "KISSAVE", "KISSCHEMA",
+]
+
+def ban_other_curricula(result: dict, plabel: str) -> dict:
+    """
+    AI 출력 dict/list/str 전체를 재귀 탐색해,
+    현재 강좌명(plabel)과 무관한 커리큘럼명을 plabel로 교체한다.
+    """
+    if not plabel:
+        return result
+
+    # 현재 강좌명에 포함된 단어는 금지 목록에서 제외
+    plabel_lower = plabel.replace(" ", "").lower()
+    forbidden = [
+        name for name in _GLOBAL_BANNED_CURRICULA
+        if name.replace(" ", "").lower() not in plabel_lower
+    ]
+    # 강사 DB 시그니처 메서드도 추가
+    ip = st.session_state.get("inst_profile") or {}
+    for m in (ip.get("signatureMethods") or []):
+        if m and m != "없음" and m.replace(" ", "").lower() not in plabel_lower:
+            if m not in forbidden:
+                forbidden.append(m)
+
+    def _clean(obj):
+        if isinstance(obj, str):
+            for f in forbidden:
+                if f in obj:
+                    obj = obj.replace(f, plabel)
+            return obj
+        if isinstance(obj, dict):
+            return {k: _clean(v) for k, v in obj.items()}
+        if isinstance(obj, list):
+            return [_clean(i) for i in obj]
+        return obj
+
+    return _clean(result)
+    
 def safe_json(raw: str) -> dict:
     import json, re
     
@@ -1413,17 +1456,34 @@ def gen_section(sec_id: str) -> dict:
 # ═══════════════════════════════════════════════════════
 def gen_course_copy(course_info: str) -> dict:
     """사용자가 입력한 강좌 정보 → AI 문구 생성"""
-    inst_ctx = _get_instructor_context()
+    plabel = st.session_state.get("purpose_label", "").strip()
+    ip     = st.session_state.get("inst_profile") or {}
+
+    # 현재 강좌와 무관한 커리큘럼명 수집 → 금지어 목록
+    all_methods   = [m for m in (ip.get("signatureMethods") or []) if m and m != "없음"]
+    plabel_lower  = plabel.replace(" ", "").lower()
+    forbidden_names = [
+        m for m in all_methods
+        if m.replace(" ", "").lower() not in plabel_lower
+    ]
+    forbidden_str = ", ".join(f'"{m}"' for m in forbidden_names) if forbidden_names else "없음"
+
+    # 강사 맥락에서 타 커리큘럼명 제거
+    inst_ctx_raw  = _get_instructor_context()
+
     prompt = f"""수능 교육 랜딩페이지 강좌 소개 섹션 카피라이터.
 
 강사/과목 정보:
-{inst_ctx}
+{inst_ctx_raw}
 
 사용자가 입력한 강좌 정보:
 "{course_info}"
 
-위 정보를 바탕으로 강좌 소개 섹션 문구를 생성하라.
-입력된 정보에 있는 내용만 사용하고 지어내지 말 것.
+━━━ 절대 규칙 ━━━
+① 이번 강좌명: "{plabel}" — 모든 문구에서 이 이름만 사용
+② 금지 단어 (다른 커리큘럼명): {forbidden_str} — 이 단어들은 단 한 글자도 쓰지 말 것
+③ 입력된 정보에 없는 내용은 지어내지 말 것
+④ 확인되지 않은 수치 금지
 
 규칙:
 - courseTitle: 강좌명 또는 강좌를 가장 잘 표현하는 제목 (20자 이내)
@@ -1439,29 +1499,44 @@ JSON만 반환:
 "coursePoints":[{{"icon":"이모지","title":"10자","desc":"30자"}},{{"icon":"이모지","title":"10자","desc":"30자"}},{{"icon":"이모지","title":"10자","desc":"30자"}}],
 "courseDuration":"","courseLevel":"","courseTag":["키워드1","키워드2","키워드3"]}}"""
 
-    return safe_json(call_ai(prompt, max_tokens=1000))
+    result = safe_json(call_ai(prompt, max_tokens=1000))
+    # ✅ 사후 필터: 타 커리큘럼명 누수 제거
+    return ban_other_curricula(result, plabel)
 
 
 def gen_textbook_copy(textbook_info: str) -> dict:
     """사용자가 입력한 교재 정보 → AI 문구 생성"""
-    inst_ctx = _get_instructor_context()
+    plabel = st.session_state.get("purpose_label", "").strip()
+    ip     = st.session_state.get("inst_profile") or {}
+
+    all_methods   = [m for m in (ip.get("signatureMethods") or []) if m and m != "없음"]
+    plabel_lower  = plabel.replace(" ", "").lower()
+    forbidden_names = [
+        m for m in all_methods
+        if m.replace(" ", "").lower() not in plabel_lower
+    ]
+    forbidden_str = ", ".join(f'"{m}"' for m in forbidden_names) if forbidden_names else "없음"
+
+    inst_ctx_raw = _get_instructor_context()
+
     prompt = f"""수능 교육 랜딩페이지 교재 소개·판매 섹션 카피라이터.
 
 강사/과목 정보:
-{inst_ctx}
+{inst_ctx_raw}
 
 사용자가 입력한 교재 정보:
 "{textbook_info}"
 
-위 정보를 바탕으로 교재 소개 섹션 문구를 생성하라.
-입력된 정보에만 기반하고 없는 내용은 지어내지 말 것.
+━━━ 절대 규칙 ━━━
+① 이번 강좌명: "{plabel}" — 모든 문구에서 이 이름만 사용
+② 금지 단어 (다른 커리큘럼명): {forbidden_str} — 이 단어들은 단 한 글자도 쓰지 말 것
+③ 입력된 정보에만 기반하고 없는 내용은 지어내지 말 것
 
 규칙:
 - tbTitle: 교재명 또는 시리즈명 (20자 이내)
 - tbSub: 이 교재가 특별한 이유 한 문장 (30자 이내)
 - tbDesc: 교재 소개 (60-100자)
-- tbBooks: 교재 구성 목록. 권수가 있으면 그대로 사용.
-  [{{"name":"권명","desc":"이 권의 역할 20자","badge":"필수/추천/심화"}}]
+- tbBooks: 교재 구성 목록. [{{"name":"권명","desc":"이 권의 역할 20자","badge":"필수/추천/심화"}}]
 - tbFeatures: 교재 특징 3가지 [{{"icon":"이모지","feature":"특징 20자"}}]
 - tbBuyTitle: 구매 유도 제목 (20자)
 - tbBuyDesc: 구매 유도 설명 (40자)
@@ -1472,7 +1547,9 @@ JSON만 반환:
 "tbFeatures":[{{"icon":"이모지","feature":"특징 20자"}},{{"icon":"이모지","feature":"20자"}},{{"icon":"이모지","feature":"20자"}}],
 "tbBuyTitle":"구매 제목","tbBuyDesc":"40자"}}"""
 
-    return safe_json(call_ai(prompt, max_tokens=1200))
+    result = safe_json(call_ai(prompt, max_tokens=1200))
+    # ✅ 사후 필터: 타 커리큘럼명 누수 제거
+    return ban_other_curricula(result, plabel)
 
 
 # ═══════════════════════════════════════════════════════
@@ -1848,28 +1925,31 @@ def _ensure_contrast(ct: dict) -> dict:
     return ct
 
 def _cta_text_color(T: dict) -> dict:
-    """CTA 그라디언트의 평균 밝기를 계산해 텍스트 색상 자동 결정"""
+    """CTA 그라디언트 평균 밝기 → 텍스트 색상 자동 결정 (CSS var 대응 강화)"""
     cta = T.get("cta", "")
     hexes = re.findall(r'#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})', cta)
-    
+
     if hexes:
         lums = [_hex_luminance("#" + h) for h in hexes]
         avg_lum = sum(lums) / len(lums)
     else:
-        avg_lum = 0
+        # CSS 변수(var(--c1) 등)만 있어 파싱 불가 → 테마 dark 여부로 판단
+        avg_lum = 0.1 if T.get("dark", True) else 0.75
 
-    if avg_lum > 0.4:  # 밝은 배경 (예: 형광 연두) → 검정 텍스트로 가독성 확보
+    if avg_lum > 0.4:   # 밝은 CTA 배경 → 검은 글씨
         return {
             "txt": "#0A0A0A", "txt70": "rgba(10,10,10,.8)", "txt35": "rgba(10,10,10,.5)",
             "badge_bg": "rgba(0,0,0,.08)", "badge_bd": "rgba(0,0,0,.2)",
             "btn_bg": "#0A0A0A", "btn_col": "#fff",
-            "btn2_bg": "rgba(0,0,0,.05)", "btn2_col": "rgba(0,0,0,.8)", "btn2_bd": "rgba(0,0,0,.25)",
+            "btn2_bg": "rgba(0,0,0,.05)", "btn2_col": "rgba(0,0,0,.8)",
+            "btn2_bd": "rgba(0,0,0,.25)",
         }
-    return {  # 어두운 배경 → 흰 텍스트
+    return {            # 어두운 CTA 배경 → 흰 글씨
         "txt": "#fff", "txt70": "rgba(255,255,255,.75)", "txt35": "rgba(255,255,255,.4)",
         "badge_bg": "rgba(255,255,255,.15)", "badge_bd": "rgba(255,255,255,.25)",
         "btn_bg": "#fff", "btn_col": "#0A0A0A",
-        "btn2_bg": "rgba(255,255,255,.1)", "btn2_col": "rgba(255,255,255,.9)", "btn2_bd": "rgba(255,255,255,.35)",
+        "btn2_bg": "rgba(255,255,255,.1)", "btn2_col": "rgba(255,255,255,.9)",
+        "btn2_bd": "rgba(255,255,255,.35)",
     }
 
 def get_theme() -> dict:
