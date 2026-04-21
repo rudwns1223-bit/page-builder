@@ -4253,11 +4253,11 @@ with st.sidebar:
 
     # ✅ 추가: 강사 정보 초기화 버튼
     if st.session_state.get("inst_profile"):
-    st.warning(f"⚠️ 현재 프로필: {st.session_state.inst_profile.get('bio','')[:30]}...")
-    if st.button("🗑 강사 정보 초기화 (크로스오염 방지)", use_container_width=True, key="clear_inst"):
-        st.session_state.inst_profile = None
-        st.session_state.instructor_name = ""
-        st.rerun()
+        st.warning(f"⚠️ 현재 프로필: {st.session_state.inst_profile.get('bio','')[:30]}...")
+        if st.button("🗑 강사 정보 초기화", use_container_width=True, key="clear_inst"):
+            st.session_state.inst_profile = None
+            st.session_state.instructor_name = ""
+            st.rerun()
 
     if st.button("🔍 강사 정보 자동 검색", use_container_width=True):
         if not nm:
