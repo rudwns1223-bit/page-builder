@@ -635,17 +635,26 @@ KO_BG = {
 # ══════════════════════════════════════════════════════
 def strip_hanja(text: str) -> str:
     if not isinstance(text, str): return str(text) if text is not None else ""
-    
     import re
-    # 허용하는 문자: 한글(자음/모음/완성형), 알파벳, 숫자, 공백, 그리고 텍스트에 필요한 기본 문장기호들
-    # 이 외의 모든 문자(한자, 일본어, 깨지는 특수문자 등)는 흔적도 없이 날려버립니다.
+
+    # 허용 문자 패턴
     allowed_pattern = r'[^\u3131-\u3163\uAC00-\uD7A3a-zA-Z0-9\s\.\,\!\?\'\"\%\[\]\(\)\-\<\>~·/&+]'
-    
     cleaned = re.sub(allowed_pattern, '', text)
-    
-    # 간혹 찌꺼기 공백이 남는 것을 방지
     cleaned = re.sub(r'\s+', ' ', cleaned)
-    
+
+    # ✅ 추가: AI가 자주 생성하는 비한국어 외래어 단어 필터
+    FORBIDDEN_WORDS = [
+        r'\bmasih\b', r'\bdan\b', r'\bdengan\b', r'\buntuk\b',
+        r'\bjuga\b', r'\batau\b', r'\btidak\b', r'\byang\b',
+        r'\bini\b', r'\bitu\b', r'\bsaya\b', r'\bkamu\b',
+        r'\bada\b', r'\bbisa\b', r'\bharus\b', r'\bsudah\b',
+        r'\bakan\b', r'\bagar\b', r'\bpada\b', r'\bdari\b',
+    ]
+    for pattern in FORBIDDEN_WORDS:
+        cleaned = re.sub(pattern, '', cleaned, flags=re.IGNORECASE)
+
+    # 연속 공백 다시 정리
+    cleaned = re.sub(r'\s+', ' ', cleaned)
     return cleaned.strip()
 
 def clean_obj(obj):
@@ -799,7 +808,12 @@ def call_ai(prompt: str, system: str = "", max_tokens: int = 2000) -> str:
         raise ValueError("API 키가 없습니다. 사이드바에서 gsk_... 키를 입력해주세요.")
     messages = []
     sys_parts = [system] if system else []
-    sys_parts.append("Return ONLY valid JSON. No markdown. No extra text. Never use Chinese characters. Write everything in Korean only.")
+    sys_parts.append(
+    "Return ONLY valid JSON. No markdown. No extra text. "
+    "CRITICAL: Never use Chinese, Japanese, Indonesian, Malay words. "
+    "Forbidden words: masih, dan, dengan, untuk, juga, atau, tidak, yang, ini. "
+    "Write ALL body text in Korean only. English is allowed ONLY for brand slogans and course names."
+    )
     messages.append({"role":"system","content":"\n\n".join(sys_parts)})
     messages.append({"role":"user","content":prompt})
     last_err = None
@@ -1923,6 +1937,24 @@ body.light-mode #mode-toggle{background:rgba(240,240,235,.9)!important;border-co
   background-color: #090D1C !important;
   border-color: #1A2038 !important;
 }
+/* ✅ 카드 본문 텍스트 강제 가독성 확보 */
+.card p, .card span, .card div {
+    color: var(--text) !important;
+}
+.card p {
+    opacity: 0.75;
+}
+/* 수강 이유 카드 설명 텍스트 */
+.sec p[style*="color:var(--t70)"] {
+    opacity: 1 !important;
+}
+/* why/intro 섹션 카드 설명 최소 명도 보장 */
+section#why .card p,
+section#intro .card p {
+    color: var(--text) !important;
+    opacity: 0.7;
+    font-weight: 500;
+}
 """
 
 
@@ -1990,98 +2022,153 @@ def sec_banner(d, cp, T):
     title = strip_hanja(cp.get("bannerTitle", d["purpose_label"]))
     lead  = strip_hanja(cp.get("bannerLead", f"{d['target']}을 위한 커리큘럼"))
     cta   = strip_hanja(cp.get("ctaCopy", "수강신청하기"))
-    bg_url= cp.get("bg_photo_url", "")
-    dark  = T["dark"]
+    bg_url = cp.get("bg_photo_url", "")
+    dark   = T["dark"]
 
-    # ✅ 핵심 수정: 글자색을 Python 조건문으로 미리 계산 후 변수에 담기
+    # ✅ 핵심 수정 1: 배경 이미지 유무와 테마 다크 여부를 Python에서 미리 계산
     has_bg = bool(bg_url)
-    text_col   = "#FFFFFF" if (dark or has_bg) else "var(--text)"
-    lead_col   = "rgba(255,255,255,0.85)" if (dark or has_bg) else "var(--t70)"
-    btn_border = "2px solid rgba(255,255,255,0.6)" if (dark or has_bg) else "2px solid var(--c1)"
+    is_dark_context = dark or has_bg  # 배경 이미지 있으면 무조건 흰 글자
 
+    # ✅ 핵심 수정 2: 글자색을 Python 변수로 확정 (f-string 안에 if 절대 금지)
+    text_col      = "#FFFFFF" if is_dark_context else "#0A0A0A"
+    lead_col      = "rgba(255,255,255,0.88)" if is_dark_context else "rgba(10,10,10,0.7)"
+    sub_bg        = "var(--c1)"   # 뱃지 배경색
+    sub_text_col  = "#FFFFFF" if is_dark_context else "#0A0A0A"
+    # 뱃지 텍스트는 c1 위에 오므로 c1의 밝기에 따라 결정
+    # 간단히 처리: 어두운 컨텍스트에서는 흰색으로 고정
+    sub_text_col  = "#FFFFFF"  # var(--c1) 위에서는 항상 흰색이 안전
+
+    # ✅ 핵심 수정 3: text-shadow로 배경 이미지와 텍스트 확실히 분리
+    shadow = "text-shadow:0 2px 20px rgba(0,0,0,0.85),0 1px 6px rgba(0,0,0,1);" if has_bg else ""
+
+    # 배경 설정
+    if has_bg:
+        bg_style = f"background:url('{bg_url}') center/cover no-repeat;"
+        # ✅ 그라디언트 오버레이: 위는 반투명, 아래로 갈수록 더 어둡게
+        overlay = (
+            '<div style="position:absolute;inset:0;'
+            'background:linear-gradient(to bottom,'
+            'rgba(0,0,0,0.45) 0%,'
+            'rgba(0,0,0,0.65) 50%,'
+            'rgba(0,0,0,0.80) 100%);'
+            'z-index:1;pointer-events:none"></div>'
+        )
+    else:
+        bg_style = "background:var(--bg);" if not dark else \
+                   "background:linear-gradient(180deg,var(--bg) 0%,var(--bg2) 100%);"
+        overlay = ""
+
+    # 레이아웃 변형 (해시 기반 고정)
     text_hash = sum(ord(c) for c in title + lead)
     v = (text_hash % 3) + 1
 
-    # ✅ 배경 이미지 있을 때: 오버레이 강도 높이고 text-shadow 추가
-    if has_bg:
-        bg_style  = f"background: url('{bg_url}') center/cover no-repeat;"
-        overlay   = (
-            '<div style="position:absolute;inset:0;'
-            'background:linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.75) 100%);'
-            'z-index:1;pointer-events:none"></div>'
-        )
-        txt_shadow = "text-shadow: 0 2px 16px rgba(0,0,0,0.7), 0 1px 4px rgba(0,0,0,0.9);"
-    else:
-        bg_style  = "background: var(--bg);" if not dark else "background: linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);"
-        overlay   = ""
-        txt_shadow = ""
+    # ──────────────────────────────────────────────
+    # 공통 뱃지 HTML (bannerSub 표시용)
+    # ──────────────────────────────────────────────
+    sub_badge = (
+        f'<div style="display:inline-block;font-size:12px;font-weight:800;'
+        f'letter-spacing:0.15em;color:{sub_text_col};background:{sub_bg};'
+        f'padding:7px 20px;border-radius:50px;margin-bottom:28px;'
+        f'box-shadow:0 2px 12px rgba(0,0,0,0.3);">{sub}</div>'
+    )
 
-    if v == 1:  # 거대 마키 스타일
-        bg_text = f"{title} " * 5
+    # ──────────────────────────────────────────────
+    # v1: 거대 마키 스타일 (Brutal)
+    # ──────────────────────────────────────────────
+    if v == 1:
+        bg_text = f"{title} " * 6
         return (
-            f'<section id="hero" style="position:relative; min-height:100vh; overflow:hidden;'
-            f'{bg_style} display:flex; flex-direction:column; justify-content:center; text-align:center;">'
+            f'<section id="hero" style="position:relative;min-height:100vh;overflow:hidden;'
+            f'{bg_style}display:flex;flex-direction:column;justify-content:center;text-align:center;">'
             + overlay +
-            f'<div class="marquee-container"><div class="marquee-content">{bg_text}{bg_text}</div></div>'
-            f'<div style="position:relative; z-index:2; padding:0 20px; max-width:1200px; margin:0 auto;">'
-            f'<div style="display:inline-block; font-size:12px; font-weight:800; letter-spacing:0.2em;'
-            f'color:var(--c1); border:2px solid var(--c1); padding:8px 24px;'
-            f'border-radius:50px; margin-bottom:30px;">{sub}</div>'
-            f'<div class="reveal-wrap">'
-            f'<h1 class="reveal-text d1" style="font-family:\'Black Han Sans\', var(--fh);'
-            f'font-size:clamp(60px, 8vw, 150px); font-weight:900; line-height:1.05;'
-            f'letter-spacing:-0.05em; color:{text_col}; margin-bottom:30px;'
-            f'word-break:keep-all; {txt_shadow}">{title}</h1>'
-            f'</div>'
-            f'<p style="font-size:clamp(16px, 2vw, 22px); line-height:1.8; color:{lead_col};'
-            f'max-width:800px; margin:0 auto 50px; font-weight:600; {txt_shadow}">{lead}</p>'
-            f'<a href="#cta" style="display:inline-block; background:var(--c1); color:var(--bg);'
-            f'padding:20px 50px; font-size:18px; font-weight:900; font-family:var(--fh);'
-            f'text-decoration:none; box-shadow:10px 10px 0px rgba(0,0,0,0.3);'
+            f'<div class="marquee-container" style="z-index:1;">'
+            f'<div class="marquee-content" style="color:var(--c1);opacity:0.07;">'
+            f'{bg_text}{bg_text}</div></div>'
+            f'<div style="position:relative;z-index:2;padding:0 clamp(20px,5vw,80px);'
+            f'max-width:1100px;margin:0 auto;">'
+            # 뱃지
+            + sub_badge +
+            # 메인 타이틀
+            f'<h1 style="font-family:\'Black Han Sans\',var(--fh);'
+            f'font-size:clamp(52px,9vw,140px);font-weight:900;line-height:1.0;'
+            f'letter-spacing:-0.04em;color:{text_col};margin-bottom:32px;'
+            f'word-break:keep-all;{shadow}">{title}</h1>'
+            # 리드 문구
+            f'<p style="font-size:clamp(15px,2vw,20px);line-height:1.85;'
+            f'color:{lead_col};max-width:750px;margin:0 auto 48px;'
+            f'font-weight:600;word-break:keep-all;{shadow}">{lead}</p>'
+            # CTA 버튼
+            f'<a href="#cta" style="display:inline-block;background:var(--c1);'
+            f'color:#fff;padding:18px 52px;font-size:17px;font-weight:900;'
+            f'font-family:var(--fh);text-decoration:none;'
+            f'box-shadow:8px 8px 0px rgba(0,0,0,0.35);'
             f'transition:transform 0.2s;">{cta} →</a>'
             f'</div></section>'
         )
 
-    elif v == 2:  # 애플/프리미엄 여백 스타일
+    # ──────────────────────────────────────────────
+    # v2: 프리미엄 중앙 정렬 (Apple 스타일)
+    # ──────────────────────────────────────────────
+    elif v == 2:
         return (
-            f'<section id="hero" style="position:relative; min-height:90vh; display:flex;'
-            f'align-items:center; justify-content:center; text-align:center; overflow:hidden; {bg_style}">'
+            f'<section id="hero" style="position:relative;min-height:90vh;display:flex;'
+            f'align-items:center;justify-content:center;text-align:center;overflow:hidden;{bg_style}">'
             + overlay +
-            f'<div class="rv" style="position:relative; z-index:2; max-width:1000px;'
-            f'padding:20px; display:flex; flex-direction:column; align-items:center;">'
-            f'<div style="font-family:var(--fh); font-size:13px; font-weight:800;'
-            f'color:var(--bg); background:var(--c1); padding:6px 18px;'
-            f'border-radius:100px; letter-spacing:0.1em; margin-bottom:24px;">{sub}</div>'
-            f'<h1 style="font-family:var(--fh); font-size:clamp(42px, 8vw, 110px);'
-            f'font-weight:900; color:{text_col}; line-height:1.1; letter-spacing:-0.04em;'
-            f'margin-bottom:24px; word-break:keep-all; {txt_shadow}">{title}</h1>'
-            f'<p style="font-size:clamp(16px, 2vw, 22px); color:{lead_col}; font-weight:500;'
-            f'line-height:1.6; max-width:580px; margin:0 auto 48px; word-break:keep-all;">{lead}</p>'
-            f'<a href="#cta" style="display:inline-flex; align-items:center; justify-content:center;'
-            f'background:var(--c1); color:var(--bg); padding:18px 48px; border-radius:8px;'
-            f'font-size:clamp(16px, 1.8vw, 18px); font-weight:800; text-decoration:none;">{cta}</a>'
+            f'<div style="position:relative;z-index:2;max-width:980px;'
+            f'padding:clamp(60px,8vw,100px) clamp(20px,5vw,60px);'
+            f'display:flex;flex-direction:column;align-items:center;">'
+            # 뱃지
+            + sub_badge +
+            # 메인 타이틀
+            f'<h1 style="font-family:var(--fh);'
+            f'font-size:clamp(40px,7.5vw,108px);font-weight:900;'
+            f'color:{text_col};line-height:1.08;letter-spacing:-0.04em;'
+            f'margin-bottom:26px;word-break:keep-all;{shadow}">{title}</h1>'
+            # 리드 문구
+            f'<p style="font-size:clamp(15px,1.8vw,21px);color:{lead_col};'
+            f'font-weight:500;line-height:1.7;max-width:580px;'
+            f'margin:0 auto 44px;word-break:keep-all;{shadow}">{lead}</p>'
+            # CTA 버튼
+            f'<a href="#cta" style="display:inline-flex;align-items:center;'
+            f'justify-content:center;background:var(--c1);color:#fff;'
+            f'padding:17px 50px;border-radius:8px;'
+            f'font-size:clamp(15px,1.6vw,18px);font-weight:800;'
+            f'text-decoration:none;box-shadow:0 8px 30px rgba(0,0,0,0.3);'
+            f'transition:transform 0.2s;">{cta} →</a>'
             f'</div></section>'
         )
 
-    else:  # 좌우 분할 매거진 스타일
+    # ──────────────────────────────────────────────
+    # v3: 좌측 정렬 매거진 스타일 (Split)
+    # ──────────────────────────────────────────────
+    else:
         return (
-            f'<section id="hero" style="position:relative; min-height:90vh; display:flex;'
-            f'align-items:center; overflow:hidden; {bg_style}">'
+            f'<section id="hero" style="position:relative;min-height:90vh;display:flex;'
+            f'align-items:center;overflow:hidden;{bg_style}">'
             + overlay +
-            f'<div class="rv-left" style="position:relative; z-index:2;'
-            f'padding:100px clamp(20px, 5vw, 80px); width:100%; max-width:1400px; margin:0 auto;">'
-            f'<div style="display:inline-block; font-size:14px; font-weight:800;'
-            f'color:var(--bg); background:var(--c1); padding:6px 16px; margin-bottom:24px;">{sub}</div>'
-            f'<h1 style="font-family:var(--fh); font-size:clamp(45px, 7vw, 110px);'
-            f'font-weight:900; color:{text_col}; line-height:1.1; letter-spacing:-0.03em;'
-            f'margin-bottom:30px; word-break:keep-all; text-align:left; {txt_shadow}">{title}</h1>'
-            f'<div style="width:60px; height:4px; background:var(--c1); margin-bottom:30px;"></div>'
-            f'<p style="font-size:clamp(15px, 1.8vw, 22px); color:{lead_col}; font-weight:500;'
-            f'line-height:1.8; max-width:600px; margin-bottom:50px; text-align:left;">{lead}</p>'
+            f'<div style="position:relative;z-index:2;'
+            f'padding:clamp(80px,10vw,120px) clamp(28px,6vw,80px);'
+            f'width:100%;max-width:1300px;margin:0 auto;">'
+            # 뱃지 (좌측 정렬)
+            f'<div style="margin-bottom:24px;">{sub_badge}</div>'
+            # 메인 타이틀
+            f'<h1 style="font-family:var(--fh);'
+            f'font-size:clamp(44px,7vw,108px);font-weight:900;'
+            f'color:{text_col};line-height:1.08;letter-spacing:-0.03em;'
+            f'margin-bottom:28px;word-break:keep-all;text-align:left;{shadow}">{title}</h1>'
+            # 구분선
+            f'<div style="width:56px;height:4px;background:var(--c1);margin-bottom:28px;"></div>'
+            # 리드 문구
+            f'<p style="font-size:clamp(14px,1.7vw,20px);color:{lead_col};'
+            f'font-weight:500;line-height:1.85;max-width:580px;'
+            f'margin-bottom:44px;text-align:left;word-break:keep-all;{shadow}">{lead}</p>'
+            # CTA 버튼
             f'<div style="text-align:left;">'
-            f'<a href="#cta" style="display:inline-block; background:transparent;'
-            f'border:{btn_border}; color:{text_col}; padding:16px 40px; font-size:16px;'
-            f'font-weight:800; text-decoration:none; transition:all 0.2s;">{cta} →</a>'
+            f'<a href="#cta" style="display:inline-flex;align-items:center;gap:8px;'
+            f'background:var(--c1);color:#fff;'
+            f'padding:16px 44px;font-size:16px;font-weight:900;'
+            f'text-decoration:none;box-shadow:0 6px 24px rgba(0,0,0,0.3);'
+            f'transition:transform 0.2s;">{cta} →</a>'
             f'</div></div></section>'
         )
         
@@ -4152,13 +4239,25 @@ with st.sidebar:
         st.session_state.inst_profile = info
         st.rerun()
     nm = st.text_input("강사명", value=st.session_state.instructor_name,
-                       placeholder="강사명", label_visibility="collapsed")
-    st.session_state.instructor_name = nm
+                   placeholder="강사명", label_visibility="collapsed")
+    # ✅ 강사명이 바뀌면 이전 프로필 자동 삭제 (크로스오염 방지)
+    if nm != st.session_state.instructor_name:
+        st.session_state.instructor_name = nm
+        st.session_state.inst_profile = None  # ← 핵심: 이전 강사 정보 초기화
+        st.rerun()
 
     sb = st.selectbox("과목", ["영어", "수학", "국어", "사회", "과학"],
                       index=["영어","수학","국어","사회","과학"].index(st.session_state.subject),
                       label_visibility="collapsed")
     st.session_state.subject = sb
+
+    # ✅ 추가: 강사 정보 초기화 버튼
+    if st.session_state.get("inst_profile"):
+    st.warning(f"⚠️ 현재 프로필: {st.session_state.inst_profile.get('bio','')[:30]}...")
+    if st.button("🗑 강사 정보 초기화 (크로스오염 방지)", use_container_width=True, key="clear_inst"):
+        st.session_state.inst_profile = None
+        st.session_state.instructor_name = ""
+        st.rerun()
 
     if st.button("🔍 강사 정보 자동 검색", use_container_width=True):
         if not nm:
