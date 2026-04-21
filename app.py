@@ -2217,11 +2217,8 @@ section, .sec { color: var(--text); }
     -webkit-text-fill-color: #ffffff !important;
 }
 
-/* 그라디언트 배경(CTA) → 흰 글씨 강제 */
-[style*="background:linear-gradient"] *:not(.btn-s):not(input),
-[style*="background: linear-gradient"] *:not(.btn-s):not(input) {
-    color: #ffffff !important;
-}
+/* 그라디언트 배경 — Python _cta_text_color가 inline으로 처리하므로 CSS 강제 제거 */
+/* CTA 섹션은 sec_cta() 함수 내 ct["txt"] 인라인 컬러로 직접 제어됨 */
 
 /* 카드 — 배경이 bg 계열이므로 var(--text) 사용 */
 .card { color: var(--text) !important; }
@@ -2574,7 +2571,8 @@ def sec_intro(d, cp, T):
     # ── 인셉션 등 타 커리큘럼명 desc에서 제거 ──
     _plabel = st.session_state.get("purpose_label", "")
     _BANNED = ["인셉션", "O.V.S", "OVS", "파노라마", "뉴런", "R'gorithm",
-               "Starting Block", "KICE Anatomy", "세젤쉬", "All Of KICE", "VIC-FLIX"]
+               "Starting Block", "KICE Anatomy", "세젤쉬", "All Of KICE", "VIC-FLIX",
+               "KISS Logic", "KISSAVE", "KISSCHEMA"]  # ← 이 세 개 추가
     for _b in _BANNED:
         if _b.lower() not in _plabel.lower():
             desc = desc.replace(_b, _plabel if _plabel else d["subject"])
@@ -3677,11 +3675,26 @@ def sec_grade_stats(d, cp, T):
     t   = strip_hanja(cp.get("gradeTitle", f"{d['purpose_label']}으로 달라지는 것들"))
     sub = strip_hanja(cp.get("gradeSub",   f"{d['subject']} 공부의 방식이 이렇게 바뀝니다"))
 
+    # ✅ 금지된 타 커리큘럼명 필터
+    _plabel = st.session_state.get("purpose_label", "")
+    _BANNED_NAMES = ["인셉션", "O.V.S", "OVS", "파노라마", "뉴런", "R'gorithm",
+                     "Starting Block", "KICE Anatomy", "세젤쉬", "All Of KICE",
+                     "VIC-FLIX", "KISS Logic", "KISSAVE", "KISSCHEMA"]
+    def _clean_card_text(text: str) -> str:
+        for bn in _BANNED_NAMES:
+            if bn.lower() not in _plabel.lower():
+                text = text.replace(bn, _plabel if _plabel else "")
+        return text
+
     reasons = cp.get("whyReasons", [])
     cards   = []
     for r in reasons[:3]:
         if isinstance(r, (list, tuple)) and len(r) >= 3:
-            cards.append((str(r[0]), str(r[1]), str(r[2])))
+            cards.append((
+                str(r[0]),
+                _clean_card_text(str(r[1])),
+                _clean_card_text(str(r[2]))
+            ))
     if not cards:
         cards = [
             ("🎯", "출제 원리 파악",  "감이 아닌 원리로 접근하면 어떤 유형도 흔들리지 않습니다"),
