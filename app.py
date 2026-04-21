@@ -973,26 +973,25 @@ JSON만 반환 (한 줄, extraCSS 필드 제외):
 
 
 def _get_instructor_context() -> str:
-    ip   = st.session_state.get("inst_profile") or {}
-    name = st.session_state.instructor_name
-    subj = st.session_state.subject
+    ip     = st.session_state.get("inst_profile") or {}
+    name   = st.session_state.instructor_name
+    subj   = st.session_state.subject
     plabel = st.session_state.get("purpose_label", "")
 
-    # ✅ 핵심 수정: 강사 프로필의 시그니처 메서드가
-    # 현재 브랜드명(purpose_label)과 관련 없으면 무시
     sig_methods = [m for m in (ip.get("signatureMethods") or []) if m and m != "없음"]
-    
-    # 브랜드명과 시그니처 메서드가 전혀 겹치지 않으면 메서드 정보 드롭
+
+    # ── 브랜드명과 무관한 시그니처 메서드·슬로건 완전 차단 ──
     if plabel and sig_methods:
         plabel_clean = plabel.replace(" ", "").lower()
         method_match = any(
-            m.replace(" ", "").lower() in plabel_clean or 
+            m.replace(" ", "").lower() in plabel_clean or
             plabel_clean in m.replace(" ", "").lower()
             for m in sig_methods
         )
         if not method_match:
-            # 브랜드명과 무관한 시그니처 → 크로스오염 방지용으로 제거
-            sig_methods = []
+            sig_methods = []   # 메서드 차단
+            ip = dict(ip)      # 슬로건도 차단 (dict 복사 후 제거)
+            ip.pop("slogan", None)
 
     if not ip.get("found") or not name:
         ctx = f"강사명: {name} | 과목: {subj}" if name else f"과목: {subj}"
@@ -1000,17 +999,18 @@ def _get_instructor_context() -> str:
             ctx += f" | 강좌명(브랜드): {plabel}"
         return ctx
 
-    parts = [f"강사: {name} ({subj})"]
-    if plabel:
-        parts.append(f"이번 강좌명(브랜드): {plabel} ← 반드시 이 강좌명 기준으로만 문구 생성")
+    parts = [
+        f"강사: {name} ({subj})",
+        f"⚠️ 이번 강좌명(브랜드): [{plabel}] ← 모든 문구는 이 강좌명만 기준으로 생성. 다른 커리큘럼명 절대 언급 금지.",
+    ]
     if ip.get("bio"):
         parts.append(f"이력: {ip['bio']}")
+    if ip.get("slogan"):
+        parts.append(f"슬로건(참고용): \"{ip['slogan']}\"")
     if sig_methods:
-        if ip.get("slogan"):
-            parts.append(f"슬로건: \"{ip['slogan']}\"")
         parts.append(f"고유 학습법: {', '.join(sig_methods)}")
     else:
-        parts.append(f"고유 학습법: {plabel} 방법론")  # 브랜드명으로 대체
+        parts.append(f"이번 강좌의 핵심 방법론: [{plabel}] — 이 이름으로만 설명할 것")
     if ip.get("teachingStyle"):
         parts.append(f"강의 스타일: {ip['teachingStyle']}")
     if ip.get("desc"):
@@ -1078,8 +1078,13 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
 
     metaphor = st.session_state.get("metaphor", "").strip()
     metaphor_prompt = (
-        f"\n# 핵심 기획 메타포: [{metaphor}]\n"
-        f"- 이 메타포를 카피 전반에 자연스럽게 녹여내세요."
+        f"\n\n━━━ 핵심 기획 메타포: [{metaphor}] (필수 반영) ━━━\n"
+        f"이 메타포를 배너·수강이유·CTA에 반드시 1회 이상 구체적으로 활용하라.\n"
+        f"예시 — 메타포가 'racing'이라면:\n"
+        f"  bannerTitle: '출발선이 달라지면 결승선이 달라진다'\n"
+        f"  whyReason 제목: '레이스를 이기는 건 속도가 아니라 코스를 아는 것'\n"
+        f"  ctaSub: '지금 출발하는 학생이 수능장에서 먼저 들어온다'\n"
+        f"단, 억지스럽게 메타포 단어를 반복하지 말고, 의미를 문장 안에 자연스럽게 녹여라.\n"
     ) if metaphor else ""
 
     # ✅ 강좌명 추출 (sec_id 없음 — gen_copy 전용)
@@ -1089,19 +1094,26 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
 
     schemas = {
         "신규 커리큘럼": (
-            '{"bannerSub":"10자 이내","bannerTitle":"반드시 강좌명 포함 15자 이내 — 명사형/선언형만","brandTagline":"영문 슬로건 한 문장",'
-            '"bannerLead":"강좌명 없이 학생 상황을 찌르는 팩트폭력 60-90자","bannerTags":["키워드1","키워드2","키워드3"],'
-            '"bannerVisual":"[Visual Directing] 배너 연출 디렉션 50자","ctaCopy":"10자","ctaTitle":"CTA 제목",'
-            '"ctaSub":"서브문구","ctaBadge":"10자","introTitle":"20자","introDesc":"80-120자",'
-            '"introBio":"60자","introVisual":"[Visual Directing] 인트로 연출 50자",'
-            '"whyTitle":"20자","whySub":"30자",'
-            '"whyReasons":[["01","짧은 제목","최소 80자 설명"],["02","제목","80자"],["03","제목","80자"]],'
-            '"whyVisual":"[Visual Directing] why 섹션 연출",'
-            '"curriculumTitle":"20자","curriculumSub":"30자",'
-            '"curriculumSteps":[["01","단계명","50자 이상 설명","기간"],["02","단계","50자","기간"],["03","단계","50자","기간"],["04","단계","50자","기간"]],'
-            '"targetTitle":"20자","targetItems":["40자 이상 상황 묘사","상황2","상황3","상황4"],'
-            '"reviews":[["50자 이상 생생한 후기","이름","뱃지"],["후기","이름","뱃지"],["후기","이름","뱃지"]],'
-            '"videoTitle":"20자","videoSub":"40자","videoTag":"OFFICIAL TRAILER"}'
+            '{"bannerSub":"12자 이내 — 과목+포지셔닝","bannerTitle":"반드시 강좌명 포함 20자 이내 선언형",'
+            '"brandTagline":"영문 슬로건 — 강좌명의 의미를 담은 한 문장",'
+            '"bannerLead":"학생의 현실 상황을 팩트로 찌르는 문장. 최소 80자. 구체적인 상황 묘사 필수",'
+            '"bannerTags":["핵심키워드1","핵심키워드2","핵심키워드3"],'
+            '"bannerVisual":"[Visual Directing] 배너 시각 연출 디렉션 60자 이상",'
+            '"ctaCopy":"행동 유도 10자","ctaTitle":"CTA 제목 20자",'
+            '"ctaSub":"수강신청 동기부여 — 최소 50자. 지금 신청해야 하는 이유 구체적으로",'
+            '"ctaBadge":"15자 이내","introTitle":"강사 소개 제목 20자",'
+            '"introDesc":"강사의 차별점과 철학을 담은 본문 — 최소 120자. 학생이 느끼는 변화 중심으로",'
+            '"introBio":"강사 핵심 강점 한줄 요약 — 최소 60자",'
+            '"introVisual":"[Visual Directing] 인트로 시각 연출 60자 이상",'
+            '"whyTitle":"수강 이유 섹션 제목 20자","whySub":"서브 제목 30자 — 구체적 상황 언급",'
+            '"whyReasons":[["01","임팩트 있는 짧은 제목 12자","학생 관점에서 구체적 설명 최소 100자 — 왜 이 강의여야 하는지 팩트 중심"],["02","제목 12자","100자 이상 설명"],["03","제목 12자","100자 이상 설명"]],'
+            '"whyVisual":"[Visual Directing] 수강이유 섹션 시각 연출 60자 이상",'
+            '"curriculumTitle":"커리큘럼 섹션 제목 20자","curriculumSub":"서브 제목 30자",'
+            '"curriculumSteps":[["01","단계명 8자","이 단계를 통해 학생에게 무슨 변화가 생기는지 70자 이상 구체적 설명","기간"],["02","8자","70자 이상","기간"],["03","8자","70자 이상","기간"],["04","8자","70자 이상","기간"]],'
+            '"targetTitle":"수강 대상 제목 20자",'
+            '"targetItems":["이런 학생을 위한 구체적 상황 묘사 50자 이상","50자 이상","50자 이상","50자 이상"],'
+            '"reviews":[["생생하고 구체적인 후기 — 등급·점수·변화 언급 필수 70자 이상","이름","뱃지"],["70자 이상","이름","뱃지"],["70자 이상","이름","뱃지"]],'
+            '"videoTitle":"영상 섹션 제목 20자","videoSub":"영상 설명 40자","videoTag":"OFFICIAL TRAILER"}'
         ),
         "이벤트": (
             '{"bannerSub":"10자","bannerTitle":"반드시 강좌명 포함 이벤트 제목 15자","brandTagline":"분위기 문장",'
@@ -1722,21 +1734,49 @@ def _hex_luminance(h: str) -> float:
     except Exception: return 0.5
 
 def _ensure_contrast(ct: dict) -> dict:
-    bg_l  = _hex_luminance(ct.get("bg","#111"))
-    tx_l  = _hex_luminance(ct.get("textHex","#fff"))
-    ratio = (max(bg_l,tx_l)+0.05)/(min(bg_l,tx_l)+0.05)
+    bg_l = _hex_luminance(ct.get("bg", "#111"))
+    tx_l = _hex_luminance(ct.get("textHex", "#fff"))
+    ratio = (max(bg_l, tx_l) + 0.05) / (min(bg_l, tx_l) + 0.05)
+
+    # ── 텍스트 대비 보정 (WCAG AA 기준 4.5:1) ──
     if ratio < 4.5:
         if bg_l < 0.18:
-            ct["textHex"] = "#F0F0F0"
-            ct["textRgb"] = "240,240,240"
+            # 아주 어두운 배경 → 순백에 가까운 텍스트
+            ct["textHex"] = "#F5F5F0"
+            ct["textRgb"] = "245,245,240"
+        elif bg_l < 0.5:
+            # 중간 밝기 배경 → 흰색 텍스트
+            ct["textHex"] = "#FFFFFF"
+            ct["textRgb"] = "255,255,255"
         else:
+            # 밝은 배경 → 거의 검정 텍스트
             ct["textHex"] = "#111111"
             ct["textRgb"] = "17,17,17"
-    # 밝은 배경(luminance > 0.4)이면 c1도 어두운 색으로 보정
-    if bg_l > 0.4:
-        c1_l = _hex_luminance(ct.get("c1","#000"))
+
+    # ── c1(강조색) 대비 보정 ──
+    c1_l = _hex_luminance(ct.get("c1", "#888"))
+    if bg_l < 0.18:
+        # 어두운 배경 위 c1이 너무 어두우면 밝게 보정
+        if c1_l < 0.15:
+            ct["c1"] = "#AAFF00"   # 형광 그린 fallback
+            ct["c2"] = "#CCFF44"
+    elif bg_l > 0.5:
+        # 밝은 배경 위 c1이 너무 밝으면 어둡게 보정
         if c1_l > 0.4:
-            ct["c1"] = "#0A0A0A"
+            ct["c1"] = "#1A1A1A"
+            ct["c2"] = "#444444"
+
+    # ── bg2, bg3 자동 생성 (bg 기준 ±명도 조정) ──
+    # bg2는 bg보다 약간 밝게, bg3는 더 밝게
+    if bg_l < 0.18:
+        # 어두운 테마
+        ct.setdefault("bg2", ct.get("bg2", "#0D0D0D"))
+        ct.setdefault("bg3", ct.get("bg3", "#141414"))
+    else:
+        # 밝은 테마
+        ct.setdefault("bg2", ct.get("bg2", "#F0F0F0"))
+        ct.setdefault("bg3", ct.get("bg3", "#E8E8E8"))
+
     return ct
 
 def _cta_text_color(T: dict) -> dict:
