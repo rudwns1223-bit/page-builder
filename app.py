@@ -1111,15 +1111,23 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
     st.session_state["_theme_declaration"] = theme_decl
 
     metaphor = st.session_state.get("metaphor", "").strip()
-    metaphor_prompt = (
-        f"\n\n━━━ 핵심 기획 메타포: [{metaphor}] (필수 반영) ━━━\n"
-        f"이 메타포를 배너·수강이유·CTA에 반드시 1회 이상 구체적으로 활용하라.\n"
-        f"예시 — 메타포가 'racing'이라면:\n"
-        f"  bannerTitle: '출발선이 달라지면 결승선이 달라진다'\n"
-        f"  whyReason 제목: '레이스를 이기는 건 속도가 아니라 코스를 아는 것'\n"
-        f"  ctaSub: '지금 출발하는 학생이 수능장에서 먼저 들어온다'\n"
-        f"단, 억지스럽게 메타포 단어를 반복하지 말고, 의미를 문장 안에 자연스럽게 녹여라.\n"
-    ) if metaphor else ""
+    if metaphor:
+        metaphor_prompt = (
+            f"\\n\\n"
+            f"★★★ [필수 반영 — 무시 시 전체 실패] 핵심 기획 메타포: [{metaphor}] ★★★\\n"
+            f"아래 3개 항목에 반드시 이 메타포를 구체적으로 녹여야 합니다:\\n"
+            f"  1) bannerTitle 또는 bannerLead — 메타포의 핵심 이미지를 제목/리드에 직접 사용\\n"
+            f"  2) whyReasons 중 1개 이상 — 제목 또는 설명에서 메타포 용어/개념 활용\\n"
+            f"  3) ctaSub — 메타포와 수강신청을 연결하는 한 문장\\n"
+            f"\\n[메타포 활용 예시 — 메타포가 \'Surfing\'이라면]\\n"
+            f"  bannerTitle: \'파도를 읽는 자가 1등급을 탄다\'\\n"
+            f"  whyReason: \'파도처럼 밀려오는 지문 구조를 먼저 읽어내는 눈을 만든다\'\\n"
+            f"  ctaSub: \'지금 파도에 올라타지 않으면, 다음 파도를 기다려야 합니다\'\\n"
+            f"\\n주의: 메타포 단어를 억지로 반복하지 말고, 의미·이미지를 문장에 자연스럽게 녹일 것.\\n"
+            f"메타포: [{metaphor}] — 이 단어의 뜻, 느낌, 연상 이미지를 최대한 활용하세요.\\n"
+        )
+    else:
+        metaphor_prompt = ""
 
     # ✅ 강좌명 추출 (sec_id 없음 — gen_copy 전용)
     course_name = plabel.strip() if plabel else ctx.strip()[:10]
@@ -1188,8 +1196,13 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
 ③ masih, dan, dengan 등 인도네시아어 금지
 ④ "체계적", "최고의", "함께라면", "실력 향상" 등 AI 클리셰 금지
 ⑤ 확인 안 된 수치(합격생 수, 만족도%, 등급 변화 수치) 지어내기 금지
-⑥ 수능 D-day 숫자 절대 지어내지 말 것. "D-365", "D-100" 같은 구체적 일수 금지.
-   대신 "수능 전", "지금 이 순간", "남은 시간" 등 시간 표현만 사용.
+⑥ D-day 숫자 절대 금지:
+   "D-100", "D-30", "D-365", "D-50" 등 구체적 숫자가 포함된
+   D-day 표현은 단 하나도 쓰지 마세요.
+   → 대신: "수능 전", "지금 이 순간", "남은 시간", "수능까지" 처럼
+     숫자 없는 시간 표현만 허용.
+   ❌ 금지 패턴 예시: D-\\d+, D-[0-9]+
+   ✅ 허용 표현: "수능 전 마지막", "지금 당장", "수능까지 남은 시간"
 ⑦ 현재 날짜 기준으로 계산이 필요한 모든 수치는 작성 금지.
 ⑧ 아래 클리셰 표현 절대 금지:
    "비밀을 공개", "비법 공개", "급상승의 비밀", "성적 급상승",
@@ -1521,7 +1534,15 @@ def gen_section(sec_id: str) -> dict:
     core_keyword = theme_decl.get("core_keyword", "")
     
     metaphor = st.session_state.get("metaphor", "").strip()
-    metaphor_hint = f"\n# 핵심 기획 메타포: [{metaphor}] -> 카피와 시각적 디렉션(Visual)에 이 메타포를 강력하게 적용하세요." if metaphor else ""
+    if metaphor:
+        metaphor_hint = (
+            f"\\n★★★ [필수] 핵심 메타포: [{metaphor}] ★★★\\n"
+            f"이 섹션의 제목(title)·설명(desc) 중 하나 이상에 "
+            f"메타포의 이미지/의미를 자연스럽게 녹이세요.\\n"
+            f"Visual Directing 필드가 있으면 메타포 이미지를 시각적으로 표현하세요.\\n"
+        )
+    else:
+        metaphor_hint = ""
 
     declaration_hint = f"# ★ 이 섹션도 반드시 아래 방향으로 작성하세요:\n{declaration}\n# 핵심 키워드 [{core_keyword}]가 자연스럽게 녹아있어야 합니다.{metaphor_hint}" if declaration else metaphor_hint
 
@@ -2381,26 +2402,36 @@ def _bg_vars(bg_url, dark):
 def sec_banner(d, cp, T):
     sub   = strip_hanja(cp.get("bannerSub", d["subject"]+" 완성"))
     title = strip_hanja(cp.get("bannerTitle", d["purpose_label"]))
-    lead  = strip_hanja(cp.get("bannerLead", f"{d['target']}을 위한 커리큘럼"))
+    lead  = strip_hanja(cp.get("bannerLead", f"{d[\'target\']}을 위한 커리큘럼"))
     cta   = strip_hanja(cp.get("ctaCopy", "수강신청하기"))
     bg_url = cp.get("bg_photo_url", "")
     dark   = T["dark"]
-
-    # ✅ 핵심 수정 1: 배경 이미지 유무와 테마 다크 여부를 Python에서 미리 계산
     has_bg = bool(bg_url)
-    is_dark_context = dark or has_bg  # 배경 이미지 있으면 무조건 흰 글자
-
-    # ✅ 핵심 수정 2: 글자색을 Python 변수로 확정 (f-string 안에 if 절대 금지)
+ 
+    # ✅ FIX ①: T["dark"] 대신 실제 bg 색상 휘도로 판단
+    # CSS vars에서 --bg 색상 추출 → luminance 계산
+    _vars = T.get("vars", "")
+    _bg_hex = "#111111"
+    if "--bg:" in _vars:
+        try:
+            _bg_hex = _vars.split("--bg:")[1].split(";")[0].strip()
+        except Exception:
+            pass
+    _bg_lum = _hex_luminance(_bg_hex)
+    # 배경이미지 있으면 무조건 어두운 오버레이 → 흰 글씨
+    # 배경이 실제로 어두우면(휘도 < 0.35) 흰 글씨
+    # 배경이 밝으면(휘도 >= 0.35) 검은 글씨
+    is_dark_context = has_bg or (_bg_lum < 0.35)
+ 
     text_col      = "#FFFFFF" if is_dark_context else "#0A0A0A"
-    lead_col      = "rgba(255,255,255,0.88)" if is_dark_context else "rgba(10,10,10,0.7)"
-    sub_bg        = "var(--c1)"   # 뱃지 배경색
-    sub_text_col  = "#FFFFFF" if is_dark_context else "#0A0A0A"
-    # 뱃지 텍스트는 c1 위에 오므로 c1의 밝기에 따라 결정
-    # 간단히 처리: 어두운 컨텍스트에서는 흰색으로 고정
-    sub_text_col  = "#FFFFFF"  # var(--c1) 위에서는 항상 흰색이 안전
-
-    # ✅ 핵심 수정 3: text-shadow로 배경 이미지와 텍스트 확실히 분리
+    lead_col      = "rgba(255,255,255,0.88)" if is_dark_context else "rgba(10,10,10,0.72)"
+    sub_text_col  = "#FFFFFF"   # var(--c1) 위에서 항상 흰색
+    sub_bg        = "var(--c1)"
+ 
     shadow = "text-shadow:0 2px 20px rgba(0,0,0,0.85),0 1px 6px rgba(0,0,0,1);" if has_bg else ""
+    # 밝은 배경 + 배경이미지 없을 때 → shadow 불필요
+    if not is_dark_context:
+        shadow = ""
 
     # 배경 설정
     if has_bg:
