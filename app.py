@@ -1071,52 +1071,78 @@ JSON만 반환:
 def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
     inst_ctx = _get_instructor_context()
     variation_hint = get_copy_variation()
-
     theme_decl = gen_theme_declaration(ctx, ptype)
     declaration = theme_decl.get("declaration", ctx)
     core_keyword = theme_decl.get("core_keyword", "")
-    
     st.session_state["_theme_declaration"] = theme_decl
-    
-    # 사용자가 입력한 메타포 가져오기
-    metaphor = st.session_state.get("metaphor", "").strip()
-    metaphor_prompt = f"\n# 🌊 핵심 기획 메타포: [{metaphor}]\n- 이 메타포(비유)를 카피 전반에 자연스럽게 녹여내고, 시각적 디렉션(Visual)에도 적극 반영하세요." if metaphor else ""
 
-    # 🌟 스키마에 Visual(시각적 디렉션) 필드 추가 🌟
-    schemas = {
-        "신규 커리큘럼": '{"bannerSub":"과목의 본질을 찌르는 10자 이내","bannerTitle":"반드시 강좌명을 포함한 15자 이내 — 예) 진또배기, KISS Logic, 뉴런 등 강좌명 그대로 사용. 문장형/질문형 절대 금지","brandTagline":"영문 슬로건 한 문장","bannerLead":"강좌명 없이 학생 상황을 찌르는 팩트폭력 리드문 (강좌명은 bannerTitle에만)","bannerTags":["키워드1","키워드2","키워드3"],"bannerVisual":"[Visual Directing] 배너 영역의 배경/인물/그래픽 연출 디렉션 (50자 이내)","ctaCopy":"망설임을 없애는 단어","ctaTitle":"강력한 CTA 제목","ctaSub":"지금 안 하면 손해라는 서브 문구","ctaBadge":"10자이내","introTitle":"강사의 절대적 권위 제목","introDesc":"왜 이 강의를 들어야만 하는지 날카롭게 서술 (길게)","introBio":"시그니처 1문장","introVisual":"[Visual Directing] 강사 소개 영역의 디자인/모션 디렉션 (50자 이내)","whyTitle":"파격적 제목","whySub":"30자이내","whyReasons":[["01","직설적인 짧은 제목","학생이 읽고 아차 싶을 만큼 뼈 때리는 구체적 이유와 해결책 서술 (최소 80자 이상)"],["02","제목","서술"],["03","제목","서술"]],"whyVisual":"[Visual Directing] 수강 이유 섹션의 레이아웃이나 오브제 디렉션","curriculumTitle":"20자이내","curriculumSub":"30자이내","curriculumSteps":[["01","단계명","이 시기에 학생들이 하는 착각과, 이 단계가 그걸 어떻게 부수고 점수를 만드는지 서술","기간"],["02","단계","서술","기간"],["03","단계","서술","기간"],["04","단계","서술","기간"]],"targetTitle":"이런 학생이라면 반드시 들어라","targetItems":["구체적인 절망적 상황 묘사 1","상황 묘사 2","상황 묘사 3","상황 묘사 4"],"reviews":[["진짜 학생이 흥분해서 쓴 것 같은 매우 길고 구체적인 후기","이름","변화뱃지"],["후기","이름","뱃지"],["후기","이름","뱃지"]],"videoTitle":"영상 제목","videoSub":"설명","videoTag":"OFFICIAL TRAILER"}',
-        "이벤트": '{"bannerSub":"10자","bannerTitle":"15자 이내의 짧고 파격적인 이벤트 제목","brandTagline":"이벤트 분위기 한 문장","bannerLead":"참여하지 않으면 손해라는 긴박감 리드","bannerTags":["이벤트특징1","이벤트특징2","이벤트특징3"],"bannerVisual":"[Visual Directing] 이벤트 배너의 시각적 컨셉 및 오브제 연출 (50자 이내)","ctaCopy":"행동 유도","ctaTitle":"CTA","ctaSub":"서브문구","ctaBadge":"15자","eventTitle":"20자","eventDesc":"50자이상","eventDetails":[["일정","날짜"],["대상","값"],["혜택","값"]],"benefitsTitle":"20자","eventBenefits":[{"no":"01","title":"혜택명","desc":"50자이상","badge":"8자"},{"no":"02","title":"혜택명","desc":"50자","badge":"8자"},{"no":"03","title":"혜택명","desc":"50자","badge":"8자"}],"deadlineTitle":"20자","deadlineMsg":"70자 긴박감"}',
-        "기획전": '{"festHeroTitle":"15자 이내의 강렬한 기획전 제목","festHeroCopy":"30자","festHeroSub":"50자이상","brandTagline":"분위기 문장","festHeroVisual":"[Visual Directing] 기획전 히어로 영역의 전체 무드 및 강사 라인업 배치 연출 (50자 이내)","festHeroStats":[["수치","라벨"],["수치","라벨"]],"festLineupTitle":"20자","festLineupSub":"40자","festLineup":[{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지"},{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지"}],"festBenefitsTitle":"20자","festBenefits":[{"no":"01","title":"혜택명","desc":"50자이상","badge":"8자"},{"no":"02","title":"혜택명","desc":"50자","badge":"8자"}],"festCtaTitle":"CTA제목","festCtaSub":"50자이상"}'
-    }
+    metaphor = st.session_state.get("metaphor", "").strip()
+    metaphor_prompt = (
+        f"\n# 핵심 기획 메타포: [{metaphor}]\n"
+        f"- 이 메타포를 카피 전반에 자연스럽게 녹여내세요."
+    ) if metaphor else ""
+
+    # ✅ 강좌명 추출 (sec_id 없음 — gen_copy 전용)
+    course_name = plabel.strip() if plabel else ctx.strip()[:10]
 
     tone_instruction = COPY_TONES.get(st.session_state.copy_tone, "")
-    
-    # 강좌명 추출
-    course_name = st.session_state.get("purpose_label", "").strip()
-    
-    if sec_id == "banner":
-        purpose_specific_rule = (
-            f'⚠️ [절대규칙] bannerTitle에 반드시 강좌명 "{course_name}"이 들어가야 합니다. '
-            f'문장형/질문형 금지. 명사형 선언만 허용. '
-            f'좋은 예: "{course_name}" / "{course_name}으로 끝낸다"'
-        )
+
+    schemas = {
+        "신규 커리큘럼": (
+            '{"bannerSub":"10자 이내","bannerTitle":"반드시 강좌명 포함 15자 이내 — 명사형/선언형만","brandTagline":"영문 슬로건 한 문장",'
+            '"bannerLead":"강좌명 없이 학생 상황을 찌르는 팩트폭력 60-90자","bannerTags":["키워드1","키워드2","키워드3"],'
+            '"bannerVisual":"[Visual Directing] 배너 연출 디렉션 50자","ctaCopy":"10자","ctaTitle":"CTA 제목",'
+            '"ctaSub":"서브문구","ctaBadge":"10자","introTitle":"20자","introDesc":"80-120자",'
+            '"introBio":"60자","introVisual":"[Visual Directing] 인트로 연출 50자",'
+            '"whyTitle":"20자","whySub":"30자",'
+            '"whyReasons":[["01","짧은 제목","최소 80자 설명"],["02","제목","80자"],["03","제목","80자"]],'
+            '"whyVisual":"[Visual Directing] why 섹션 연출",'
+            '"curriculumTitle":"20자","curriculumSub":"30자",'
+            '"curriculumSteps":[["01","단계명","50자 이상 설명","기간"],["02","단계","50자","기간"],["03","단계","50자","기간"],["04","단계","50자","기간"]],'
+            '"targetTitle":"20자","targetItems":["40자 이상 상황 묘사","상황2","상황3","상황4"],'
+            '"reviews":[["50자 이상 생생한 후기","이름","뱃지"],["후기","이름","뱃지"],["후기","이름","뱃지"]],'
+            '"videoTitle":"20자","videoSub":"40자","videoTag":"OFFICIAL TRAILER"}'
+        ),
+        "이벤트": (
+            '{"bannerSub":"10자","bannerTitle":"반드시 강좌명 포함 이벤트 제목 15자","brandTagline":"분위기 문장",'
+            '"bannerLead":"60-90자 긴박감 리드","bannerTags":["특징1","특징2","특징3"],'
+            '"bannerVisual":"[Visual Directing] 50자","ctaCopy":"10자","ctaTitle":"CTA",'
+            '"ctaSub":"서브문구","ctaBadge":"15자","eventTitle":"20자","eventDesc":"50자 이상",'
+            '"eventDetails":[["일정","날짜"],["대상","값"],["혜택","값"]],'
+            '"benefitsTitle":"20자","eventBenefits":[{"no":"01","title":"혜택명","desc":"50자","badge":"8자"},'
+            '{"no":"02","title":"혜택명","desc":"50자","badge":"8자"},{"no":"03","title":"혜택명","desc":"50자","badge":"8자"}],'
+            '"deadlineTitle":"20자","deadlineMsg":"70자 긴박감"}'
+        ),
+        "기획전": (
+            '{"festHeroTitle":"반드시 강좌/기획전명 포함 15자","festHeroCopy":"30자","festHeroSub":"50자 이상",'
+            '"brandTagline":"분위기 문장","festHeroVisual":"[Visual Directing] 50자",'
+            '"festHeroStats":[["수치","라벨"],["수치","라벨"]],"festLineupTitle":"20자","festLineupSub":"40자",'
+            '"festLineup":[{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지"},'
+            '{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지"}],'
+            '"festBenefitsTitle":"20자","festBenefits":[{"no":"01","title":"혜택명","desc":"50자","badge":"8자"},'
+            '{"no":"02","title":"혜택명","desc":"50자","badge":"8자"}],'
+            '"festCtaTitle":"CTA제목","festCtaSub":"50자 이상"}'
+        ),
+    }
 
     prompt = f"""당신은 대한민국 최고 수능 강사 브랜딩 카피라이터입니다.
 
 ━━━ 절대 규칙 (어기면 전체 무효) ━━━
-① bannerTitle = 반드시 강좌명 "{course_name}" 포함. 15자 이내. 명사형/선언형만.
-   ✅ 좋은 예: "{course_name}" / "{course_name}으로 끝낸다" / "국어의 {course_name}"  
-   ❌ 나쁜 예: 문장형("~하세요"), 질문형("~인가요?"), 강좌명 없는 것
-② 이모지 사용 금지 (brandTagline 영문 슬로건 제외)
+① bannerTitle = 반드시 강좌명 "{course_name}" 포함. 15자 이내. 명사형·선언형만.
+   ✅ 허용: "{course_name}" / "{course_name}으로 끝낸다" / "국어의 {course_name}"
+   ❌ 금지: 문장형("~하세요"), 질문형("~인가요?"), 강좌명 없는 제목
+   ❌ 금지: "4등급→1등급" "3개월만에" 등 근거 없는 수치 약속
+② 이모지 금지 (brandTagline 영문 제외)
 ③ masih, dan, dengan 등 인도네시아어 금지
 ④ "체계적", "최고의", "함께라면", "실력 향상" 등 AI 클리셰 금지
-⑤ 확인 안 된 수치(합격생 수, 만족도%) 지어내기 금지
+⑤ 확인 안 된 수치(합격생 수, 만족도%, 등급 변화 수치) 지어내기 금지
 
 ━━━ 이번 생성 방향 ━━━
 {variation_hint}
 핵심 키워드: [{core_keyword}]
 방향성: {declaration}{metaphor_prompt}
 강좌명: {course_name}
+페이지 맥락: {ctx}
 
 ━━━ 강사 정보 ━━━
 {inst_ctx}
@@ -1124,20 +1150,25 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
 ━━━ 카피 어조 ━━━
 {tone_instruction}
 
-━━━ 금지 패턴 ━━━
-- "~하세요", "~인가요?", "~합니다" 로 끝나는 bannerTitle
-- "포기하지 마세요", "함께해요", "시작하세요" 단독 사용
-- "1등급 올릴 수 있습니다" 등 근거 없는 수치 약속
+━━━ 참고 스타일 (이 수준으로 작성) ━━━
+[bannerTitle 좋은 예]
+- 진또배기
+- 진또배기 — 국어의 본질
+- 뉴런, 이제 다르게 푼다
+- KISS Logic
 
-===문구 및 디렉션 품질 기준===
-1. 카피 길이 제한을 무시하세요. 감정을 흔들 수 있다면 아주 짧거나, 서사적으로 길게 작성하세요.
-2. 이모지(😊, 🎯 등)는 절대 사용하지 마세요. 오직 텍스트의 무게감으로 승부하세요.
-3. [Visual Directing] 필드는 담당 디자이너나 영상팀이 스토리보드를 보고 바로 화면을 스케치할 수 있도록 구체적인 묘사(오브제, 조명, 인물 포즈, 앵글, 질감 등)를 작성하세요.
-4. 반드시 순수 한국어로 작성 (강사 고유명사 제외).
+[bannerLead 좋은 예]
+- 지문은 읽히는데 답이 안 보인다면, 읽는 방법이 틀린 겁니다.
+- 국어 공부는 했는데 모평에서 왜 틀리는지 모르겠다면.
+- 감이 아니라 구조로 읽으면, 수능 국어가 달리 보입니다.
 
-JSON만 반환 (마크다운 금지):
+[whyReasons 좋은 예]
+- "기출을 풀었지만 왜 틀렸는지 모른다면, 다음 시험도 같은 자리에서 틀린다. 진또배기는 답보다 원리를 먼저 가르칩니다."
+- "국어 지문에는 구조가 있습니다. 이 구조를 보는 눈을 만드는 것이 진또배기의 시작입니다."
+
+━━━ JSON만 반환 (마크다운 금지) ━━━
 {schemas.get(ptype, schemas['신규 커리큘럼'])}"""
-    
+
     return safe_json(call_ai(prompt, max_tokens=3500))
 
 SEC_LAYOUT_VARIANTS = {
@@ -1378,6 +1409,7 @@ JSON만 반환:
 def gen_section(sec_id: str) -> dict:
     inst_ctx = _get_instructor_context()
     ptype = st.session_state.purpose_type
+    course_name = st.session_state.get("purpose_label", "").strip()  # ✅ gen_section 전용
 
     # 🌟 부분 재생성 시에도 메인 카피는 짧게 유지 🌟
     schemas = {
@@ -1406,6 +1438,18 @@ def gen_section(sec_id: str) -> dict:
     if sec_id == "banner":
         if ptype == "이벤트":
             purpose_specific_rule = "⚠️ [!!! 절대 규칙 !!!] 제목에 'KISS Logic' 등 강좌명을 절대 쓰지 마세요. 이벤트 성격(예: 3월 학평 특강, 기대평)에 맞는 제목만 출력하세요. bannerTags는 이벤트용 단어(기간한정, 무료제공 등)로 작성하세요."
+    if sec_id == "banner":
+        purpose_specific_rule = (
+            f'⚠️ [절대규칙] bannerTitle에 반드시 강좌명 "{course_name}"이 들어가야 합니다. '
+            f'문장형·질문형 금지. 명사형·선언형만 허용. '
+            f'근거 없는 수치("4등급→1등급", "3개월만에") 금지. '
+            f'좋은 예: "{course_name}" / "{course_name}으로 끝낸다"'
+        )
+    elif sec_id == "banner" and ptype == "이벤트":
+        purpose_specific_rule = (
+            f'⚠️ 이벤트 배너: 강좌명 "{course_name}" 포함. 혜택/기간 키워드 포함. '
+            f'질문형·문장형 금지.'
+        )
     user_course_info = st.session_state.get("course_info", "")
     target_directive = f"\n[⚠️ 절대 규칙]: 강사의 기존 시그니처 커리큘럼(예: KISS Logic 등)을 무작정 섞어 쓰지 마세요. 사용자가 입력한 맥락({st.session_state.purpose_label})과 강좌정보({user_course_info})에만 100% 집중하세요. 특히 '구성 안내(package)'나 '커리큘럼' 생성 시, 추상적인 강좌명을 나열하지 말고 '본교재', '워크북', '모의고사', '학습 Q&A' 같은 구체적인 실물/서비스 위주로 작성하세요."
     purpose_specific_rule += target_directive
