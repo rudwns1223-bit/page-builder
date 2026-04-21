@@ -1006,11 +1006,11 @@ def _get_instructor_context() -> str:
     if ip.get("bio"):
         parts.append(f"이력: {ip['bio']}")
     if sig_methods:
-    if ip.get("slogan"):
-        parts.append(f"슬로건: \"{ip['slogan']}\"")
-    parts.append(f"고유 학습법: {', '.join(sig_methods)}")
-else:
-    parts.append(f"고유 학습법: {plabel} 방법론")
+        if ip.get("slogan"):
+            parts.append(f"슬로건: \"{ip['slogan']}\"")
+        parts.append(f"고유 학습법: {', '.join(sig_methods)}")
+    else:
+        parts.append(f"고유 학습법: {plabel} 방법론")  # 브랜드명으로 대체
     if ip.get("teachingStyle"):
         parts.append(f"강의 스타일: {ip['teachingStyle']}")
     if ip.get("desc"):
