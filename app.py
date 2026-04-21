@@ -2991,6 +2991,37 @@ def sec_intro(d, cp, T):
             f'</div></section>'
         )
 
+    elif v == 3:  # [스타일 4: 임팩트 스탯 강조]
+        stats = [
+            ("수능", "영어 전문"),
+            ("기출", "완전 분석"),  
+            ("실전", "속도 완성"),
+        ]
+        sh = "".join(
+            f'<div style="text-align:center;padding:32px 20px;'
+            f'border-right:1px solid var(--bd)" class="rv d{i+2}">'
+            f'<div style="font-family:var(--fh);font-size:clamp(48px,6vw,80px);'
+            f'font-weight:900;color:var(--c1);line-height:1">{sv}</div>'
+            f'<div style="font-size:12px;font-weight:700;color:var(--t45);'
+            f'letter-spacing:.12em;margin-top:8px">{sl}</div>'
+            f'</div>'
+            for i,(sv,sl) in enumerate(stats)
+        )
+        return (
+            f'<section class="sec" id="intro">'
+            f'<div style="max-width:1100px;margin:0 auto">'
+            f'<div class="rv" style="text-align:center;margin-bottom:64px">'
+            f'<div class="tag-line" style="justify-content:center">{subj} 강좌 소개</div>'
+            f'<h2 style="font-family:var(--fh);font-size:clamp(36px,5vw,64px);'
+            f'font-weight:900;color:var(--text);margin-bottom:24px">{label}</h2>'
+            f'<p style="font-size:18px;line-height:1.9;color:var(--t70);'
+            f'max-width:680px;margin:0 auto">{desc}</p>'
+            f'</div>'
+            f'<div style="display:grid;grid-template-columns:repeat(3,1fr);'
+            f'border:1px solid var(--bd);border-radius:var(--r,8px);overflow:hidden">{sh}</div>'
+            f'</div></section>'
+        )
+
     else:
         # ── 스타일 3: 좌우 비대칭 벤토박스 (설명 넓게 + 포인트 세로 스택) ──
         pt_html = "".join(_point_card(i, no, tt, dc, compact=True)
