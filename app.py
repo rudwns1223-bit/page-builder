@@ -4279,8 +4279,7 @@ def sec_course_intro(d, cp, T):
     level   = strip_hanja(c.get("courseLevel", ""))
     tags    = [strip_hanja(t) for t in c.get("courseTag", [])]
 
-    text_hash = sum(ord(ch) for ch in title + sub)
-    v = (sum(ord(c) for c in str(t or "") + str(s or "")) % 3) + 1
+    v = (sum(ord(c) for c in str(title or "") + str(sub or "")) % 3) + 1
     
     # 메타 뱃지 & 태그 조립
     meta = ""
