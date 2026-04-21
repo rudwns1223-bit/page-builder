@@ -3114,7 +3114,7 @@ def sec_curriculum(d, cp, T):
     if not steps:
         steps = [["01","개념 완성","핵심 개념을 정확히 이해","4주"], ["02","훈련","기출 완전 분석","4주"], ["03","심화","고난도 특훈","3주"], ["04","파이널","실전 완성","3주"]]
 
-    v = (sum(ord(c) for c in str(t or "") + str(s or "")) % 3) + 1
+    v = (sum(ord(c) for c in str(t or "") + str(sub or "")) % 3) + 1
     sh = ""
 
     if v == 1:
@@ -4280,8 +4280,8 @@ def sec_course_intro(d, cp, T):
     tags    = [strip_hanja(t) for t in c.get("courseTag", [])]
 
     text_hash = sum(ord(ch) for ch in title + sub)
-    v = (sum(ord(c) for c in str(t or "") + str(s or "")) % 3) + 1
-
+    v = (sum(ord(c) for c in str(t or "") + str(sub or "")) % 3) + 1
+    
     # 메타 뱃지 & 태그 조립
     meta = ""
     if dur: meta += f'<span style="display:inline-flex;align-items:center;gap:6px;background:var(--bg3);padding:6px 16px;border-radius:var(--r-btn,100px);font-size:11px;font-weight:700;color:var(--text);border:1px solid var(--bd);margin-right:8px">⏱ {dur}</span>'
