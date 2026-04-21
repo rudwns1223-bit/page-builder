@@ -1191,7 +1191,11 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
 ⑥ 수능 D-day 숫자 절대 지어내지 말 것. "D-365", "D-100" 같은 구체적 일수 금지.
    대신 "수능 전", "지금 이 순간", "남은 시간" 등 시간 표현만 사용.
 ⑦ 현재 날짜 기준으로 계산이 필요한 모든 수치는 작성 금지.
-
+⑧ 아래 클리셰 표현 절대 금지:
+   "비밀을 공개", "비법 공개", "급상승의 비밀", "성적 급상승",
+   "함께라면 가능", "살길이다", "유일한 선택", "마지막 기회"
+   → 대신 학생의 현재 상황을 구체적 팩트로 묘사할 것.
+   
 ━━━ 이번 생성 방향 ━━━
 {variation_hint}
 핵심 키워드: [{core_keyword}]
@@ -2241,6 +2245,30 @@ section, .sec { color: var(--text); }
     color: #111111 !important;
 }
 
+/* ── 교재 섹션 다크 배경 보정 (흰 글씨 강제) ── */
+#textbook-sale[style*="background:#050505"] *,
+section[style*="background:#050505"] * {
+    color: #F5F5F0 !important;
+}
+section[style*="background:#050505"] h2,
+section[style*="background:#050505"] h3,
+section[style*="background:#050505"] .tag-line {
+    color: #FFFFFF !important;
+    opacity: 1 !important;
+}
+/* #111 카드 내 텍스트 흰 글씨 강제 */
+[style*="background:#111;"] *,
+[style*="background:#111 "] *,
+div[style*="background:#111"][style*="border"] * {
+    color: #F5F5F0 !important;
+}
+div[style*="background:#111"][style*="border"] h4 {
+    color: #FFFFFF !important;
+}
+div[style*="background:#111"][style*="border"] p {
+    color: #AAAAAA !important;
+}
+
 /* ── 라이트 모드 오버라이드 ── */
 body.light-mode section:not([style*="background:var(--c1)"]):not([style*="linear-gradient"]) {
     background: #F5F5F0;
@@ -2510,6 +2538,14 @@ def sec_intro(d, cp, T):
     subj    = d["subject"]
     tagline = strip_hanja(cp.get("brandTagline", ""))
     desc    = strip_hanja(cp.get("introDesc", f"{label}이 특별한 이유가 있습니다."))
+
+    # ── 인셉션 등 타 커리큘럼명 desc에서 제거 ──
+    _plabel = st.session_state.get("purpose_label", "")
+    _BANNED = ["인셉션", "O.V.S", "OVS", "파노라마", "뉴런", "R'gorithm",
+               "Starting Block", "KICE Anatomy", "세젤쉬", "All Of KICE", "VIC-FLIX"]
+    for _b in _BANNED:
+        if _b.lower() not in _plabel.lower():
+            desc = desc.replace(_b, _plabel if _plabel else d["subject"])
 
     reasons = cp.get("whyReasons", [])
     points  = []
@@ -4043,14 +4079,29 @@ def sec_textbook_sale(d, cp, T):
 def sec_instructor_philosophy(d, cp, T):
     """강사 철학 — 서사형 풀와이드 섹션"""
     ip = st.session_state.get("inst_profile") or {}
+    plabel = st.session_state.get("purpose_label", "")
+    name   = d.get("name","")
+
+    # ── 브랜드명과 무관한 시그니처 메서드 차단 ──
+    raw_methods = [m for m in (ip.get("signatureMethods") or []) if m and m != "없음"]
+    if plabel and raw_methods:
+        plabel_clean = plabel.replace(" ", "").lower()
+        method_match = any(
+            m.replace(" ", "").lower() in plabel_clean or
+            plabel_clean in m.replace(" ", "").lower()
+            for m in raw_methods
+        )
+        if not method_match:
+            # 브랜드명과 무관 → 슬로건/설명도 차단
+            ip = {}  # 빈 dict로 덮어씌워 모든 누수 차단
+
     slogan = strip_hanja(ip.get("slogan",""))
     desc   = strip_hanja(ip.get("desc",""))
     style  = strip_hanja(ip.get("teachingStyle",""))
     methods = [strip_hanja(m) for m in (ip.get("signatureMethods") or []) if m and m != "없음"]
-    name   = d.get("name","")
 
     if not slogan and not desc:
-        return ""  # ← 스페이스 8개 (탭 2번)
+        return ""
 
     ptype = st.session_state.get("purpose_type", "신규 커리큘럼")
     purpose_label = st.session_state.get("purpose_label", "")
