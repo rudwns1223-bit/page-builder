@@ -3959,17 +3959,13 @@ def sec_instructor_philosophy(d, cp, T):
     """강사 철학 — 서사형 풀와이드 섹션"""
     ip = st.session_state.get("inst_profile") or {}
     slogan = strip_hanja(ip.get("slogan",""))
-if slogan and plabel:
-    # 슬로건에 브랜드명이 없으면 사용 안 함
-    if plabel not in slogan:
-        slogan = f"{plabel}으로 (과목)를 완성하다"
     desc   = strip_hanja(ip.get("desc",""))
     style  = strip_hanja(ip.get("teachingStyle",""))
     methods = [strip_hanja(m) for m in (ip.get("signatureMethods") or []) if m and m != "없음"]
     name   = d.get("name","")
 
     if not slogan and not desc:
-        return ""  # 강사 정보 없으면 숨김
+        return ""  # ← 스페이스 8개 (탭 2번)
 
     ptype = st.session_state.get("purpose_type", "신규 커리큘럼")
     purpose_label = st.session_state.get("purpose_label", "")
