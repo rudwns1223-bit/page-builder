@@ -688,6 +688,68 @@ def strip_hanja(text: str) -> str:
     if not isinstance(text, str): return str(text) if text is not None else ""
     import re
 
+    # ── 한국어 조사 자동 교정 ──────────────────────────────────
+def fix_korean_particles(text: str) -> str:
+    """
+    받침 유무에 따라 을/를, 은/는, 으로/로, 과/와를 자동 교정.
+    예) '일리으로' → '일리로', '뉴런을' → '뉴런을'(유지)
+    """
+    if not text:
+        return text
+
+    def _has_batchim(char: str) -> bool:
+        if not char or not ('가' <= char <= '힣'):
+            return False
+        return (ord(char) - ord('가')) % 28 != 0
+
+    def _is_rieul(char: str) -> bool:
+        if not char or not ('가' <= char <= '힣'):
+            return False
+        return (ord(char) - ord('가')) % 28 == 8  # ㄹ받침
+
+    def _fix(m, no_batchim: str, batchim: str) -> str:
+        word = m.group(1)
+        if not word:
+            return m.group(0)
+        last = word[-1]
+        if _has_batchim(last) and not _is_rieul(last):
+            return word + batchim
+        return word + no_batchim
+
+    import re
+    W   = r'([가-힣a-zA-Z0-9]+)'
+    SEP = r'(?=[\s,\.·!\?\"\'()\-]|$)'
+
+    rules = [
+        (W + r'(으로|로)' + SEP,  lambda m: _fix(m, '로',   '으로')),
+        (W + r'(을|를)'   + SEP,  lambda m: _fix(m, '를',   '을'  )),
+        (W + r'(은|는)'   + SEP,  lambda m: _fix(m, '는',   '은'  )),
+        (W + r'(과|와)'   + SEP,  lambda m: _fix(m, '와',   '과'  )),
+    ]
+    for pattern, repl in rules:
+        text = re.sub(pattern, repl, text)
+    return text
+
+
+def remove_series_suffix(text: str, plabel: str) -> str:
+    """
+    '브랜드명 시리즈' 패턴을 브랜드명만으로 축약.
+    예) '일리 시리즈로' → '일리로', '일리 시리즈' → '일리'
+    """
+    if not plabel or not text:
+        return text
+    escaped = re.escape(plabel)
+    # "브랜드명 시리즈" → "브랜드명"  (조사가 붙어도 처리)
+    text = re.sub(escaped + r'\s*시리즈', plabel, text)
+    return text
+
+
+def postprocess_copy(text: str, plabel: str) -> str:
+    """조사 교정 + 시리즈 제거를 한 번에"""
+    text = remove_series_suffix(text, plabel)
+    text = fix_korean_particles(text)
+    return text
+
     # 허용 문자 패턴
     allowed_pattern = r'[^\u3131-\u3163\uAC00-\uD7A3a-zA-Z0-9\s\.\,\!\?\'\"\%\[\]\(\)\-\<\>~·/&+]'
     cleaned = re.sub(allowed_pattern, '', text)
@@ -757,7 +819,17 @@ def ban_other_curricula(result, plabel: str):
             return [_clean(i) for i in obj]
         return obj
 
-    return _clean(result)
+    cleaned = _clean(result)
+    # 조사 교정 + 시리즈 제거를 재귀 적용
+    def _postproc(obj):
+        if isinstance(obj, str):
+            return postprocess_copy(obj, plabel)
+        if isinstance(obj, dict):
+            return {k: _postproc(v) for k, v in obj.items()}
+        if isinstance(obj, list):
+            return [_postproc(i) for i in obj]
+        return obj
+    return _postproc(cleaned)
     
 def safe_json(raw: str) -> dict:
     import json, re
@@ -1181,26 +1253,28 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
 
     schemas = {
         "신규 커리큘럼": (
-            '{"bannerSub":"12자 이내 — 과목+포지셔닝","bannerTitle":"반드시 강좌명 포함 20자 이내 선언형",'
-            '"brandTagline":"영문 슬로건 — 강좌명의 의미를 담은 한 문장",'
-            '"bannerLead":"학생의 현실 상황을 팩트로 찌르는 문장. 최소 80자. 구체적인 상황 묘사 필수",'
+            '{"bannerSub":"12자 이내 — 과목+포지셔닝 한 줄",'
+            '"bannerTitle":"반드시 강좌명 포함. 20자 이내 선언형 단 하나의 문장",'
+            '"brandTagline":"영문 슬로건 — 강좌명의 핵심 의미를 담은 완결된 한 문장 (예: Logical English for the Best)",'
+            '"bannerLead":"수험생의 현실을 팩트로 짚는 리드. 반드시 150자 이상. 지금 상황 묘사 → 이 강의가 필요한 이유 → 수강 후 달라지는 것 3단 구조로 작성",'
             '"bannerTags":["핵심키워드1","핵심키워드2","핵심키워드3"],'
-            '"bannerVisual":"[Visual Directing] 배너 시각 연출 디렉션 60자 이상",'
-            '"ctaCopy":"행동 유도 10자","ctaTitle":"CTA 제목 20자",'
-            '"ctaSub":"수강신청 동기부여 — 최소 50자. 지금 신청해야 하는 이유 구체적으로",'
-            '"ctaBadge":"15자 이내","introTitle":"강사 소개 제목 20자",'
-            '"introDesc":"강사의 차별점과 철학을 담은 본문 — 최소 120자. 학생이 느끼는 변화 중심으로",'
-            '"introBio":"강사 핵심 강점 한줄 요약 — 최소 60자",'
-            '"introVisual":"[Visual Directing] 인트로 시각 연출 60자 이상",'
-            '"whyTitle":"수강 이유 섹션 제목 20자","whySub":"서브 제목 30자 — 구체적 상황 언급",'
-            '"whyReasons":[["01","임팩트 있는 짧은 제목 12자","학생 관점에서 구체적 설명 최소 100자 — 왜 이 강의여야 하는지 팩트 중심"],["02","제목 12자","100자 이상 설명"],["03","제목 12자","100자 이상 설명"]],'
-            '"whyVisual":"[Visual Directing] 수강이유 섹션 시각 연출 60자 이상",'
-            '"curriculumTitle":"커리큘럼 섹션 제목 20자","curriculumSub":"서브 제목 30자",'
-            '"curriculumSteps":[["01","단계명 8자","이 단계를 통해 학생에게 무슨 변화가 생기는지 70자 이상 구체적 설명","기간"],["02","8자","70자 이상","기간"],["03","8자","70자 이상","기간"],["04","8자","70자 이상","기간"]],'
-            '"targetTitle":"수강 대상 제목 20자",'
-            '"targetItems":["이런 학생을 위한 구체적 상황 묘사 50자 이상","50자 이상","50자 이상","50자 이상"],'
-            '"reviews":[["생생하고 구체적인 후기 — 등급·점수·변화 언급 필수 70자 이상","이름","뱃지"],["70자 이상","이름","뱃지"],["70자 이상","이름","뱃지"]],'
-            '"videoTitle":"영상 섹션 제목 20자","videoSub":"영상 설명 40자","videoTag":"OFFICIAL TRAILER"}'
+            '"bannerVisual":"[Visual Directing] 배너 시각 연출 디렉션 — 색감·이미지·분위기·타이포 스타일을 100자 이상 구체적으로",'
+            '"ctaCopy":"행동 유도 버튼 텍스트 10자","ctaTitle":"CTA 섹션 메인 제목 25자 이상",'
+            '"ctaSub":"수강신청을 지금 해야 하는 이유를 감정적으로 설득하는 문장. 반드시 80자 이상. 시간적 긴박감 또는 기회비용 언급 필수",'
+            '"ctaBadge":"15자 이내 뱃지 텍스트","introTitle":"강사 소개 섹션 제목 — 단순 안내가 아닌 신뢰를 주는 한 문장 25자",'
+            '"introDesc":"강사의 차별점·철학·수업 방식을 설명하는 본문. 반드시 200자 이상. 학생이 수강 후 어떻게 달라지는지 구체적 변화 중심으로 서술",'
+            '"introBio":"강사 핵심 강점 한 줄 요약 — 반드시 80자 이상. 구체적인 강의 방식 또는 성과 포함",'
+            '"introVisual":"[Visual Directing] 인트로 섹션 시각 연출 100자 이상",'
+            '"whyTitle":"수강 이유 섹션 제목 — 학생이 클릭하고 싶게 만드는 문장 25자",'
+            '"whySub":"서브 타이틀 — 구체적 상황이나 고민을 직접 언급 40자",'
+            '"whyReasons":[["01","12자 이내 임팩트 제목","이 이유가 왜 중요한지 학생 입장에서 구체적으로 서술. 반드시 150자 이상. 현실 문제 제시 → 이 강의의 해결책 → 수강 후 변화 구조"],["02","12자","150자 이상"],["03","12자","150자 이상"]],'
+            '"whyVisual":"[Visual Directing] 수강이유 섹션 시각 연출 100자 이상",'
+            '"curriculumTitle":"커리큘럼 섹션 제목 25자","curriculumSub":"서브 타이틀 40자",'
+            '"curriculumSteps":[["01","단계명 8자","이 단계를 통해 학생에게 무슨 변화가 생기는지. 반드시 120자 이상. 구체적 학습 내용 + 이후 달라지는 것","기간"],["02","8자","120자 이상","기간"],["03","8자","120자 이상","기간"],["04","8자","120자 이상","기간"]],'
+            '"targetTitle":"수강 대상 섹션 제목 25자",'
+            '"targetItems":["이 강의가 필요한 구체적 상황 묘사. 60자 이상. 학생이 읽고 자신의 이야기라고 느껴야 함","60자 이상","60자 이상","60자 이상"],'
+            '"reviews":[["실제 수강생이 쓴 것처럼 생생하고 구체적인 후기. 반드시 100자 이상. 등급·점수·공부 방식의 변화를 구체적으로 언급","이름","뱃지"],["100자 이상","이름","뱃지"],["100자 이상","이름","뱃지"]],'
+            '"videoTitle":"영상 섹션 제목 20자","videoSub":"영상 설명 50자","videoTag":"OFFICIAL TRAILER"}'
         ),
         "이벤트": (
             '{"bannerSub":"10자","bannerTitle":"반드시 강좌명 포함 이벤트 제목 15자","brandTagline":"분위기 문장",'
@@ -1286,7 +1360,7 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
 ━━━ JSON만 반환 (마크다운 금지) ━━━
 {schemas.get(ptype, schemas['신규 커리큘럼'])}"""
 
-    result = safe_json(call_ai(prompt, max_tokens=3500))
+    result = safe_json(call_ai(prompt, max_tokens=5000))
     plabel = st.session_state.get("purpose_label", "").strip()
     return ban_other_curricula(result, plabel)
 
@@ -1595,25 +1669,100 @@ def gen_section(sec_id: str) -> dict:
 
     # 🌟 부분 재생성 시에도 메인 카피는 짧게 유지 🌟
     schemas = {
-        "banner": '{"bannerSub":"10자","bannerTitle":"15자 이내의 아주 짧고 압도적인 단어/구","brandTagline":"컨셉을 담은 브랜드 한 문장","bannerLead":"60-90자 수험생이 공감하는 구체적 리드","bannerTags":["키워드1","키워드2","키워드3"],"bannerVisual":"[Visual Directing] 배너 시각 연출 디렉션","ctaCopy":"10자","statBadges":[]}',
-        "intro":  '{"introTitle":"20자","introDesc":"80-120자 강사 철학과 차별점","introBio":"강사 학습법 포함 60자","introVisual":"[Visual Directing] 인트로 시각 연출 디렉션","introBadges":[]}',
-        "why":    '{"whyTitle":"20자","whySub":"30자","whyReasons":[["01","직설적인 짧은 제목","학생 입장에서 구체적 설명 최소 80자"],["02","12자","80자"],["03","12자","80자"]],"whyVisual":"[Visual Directing] 수강이유 섹션 시각 연출 디렉션"}',
-        "curriculum": '{"curriculumTitle":"20자","curriculumSub":"30자","curriculumSteps":[["01","8자","이 단계 통해 무엇이 달라지는지 50자 이상 설명","기간"],["02","8자","50자 이상","기간"],["03","8자","50자 이상","기간"],["04","8자","50자 이상","기간"]]}',
-        "target": '{"targetTitle":"20자","targetItems":["이런 학생을 위한 40-50자 구체적 상황","항목2 40자","항목3 40자","항목4 40자"]}',
-        "reviews": '{"reviews":[["지금도 쓸 것 같은 생생한 50-70자 인용문, 구체적 점수·방법 언급","이름","뱃지"],["50-70자 인용문","이름","뱃지"],["50-70자 인용문","이름","뱃지"]]}',
-        "faq":    '{"faqs":[["15자 구체적 질문","명쾌한 답변 50자이상"],["질문","50자 이상 답변"],["질문","50자 이상 답변"]]}',
-        "cta":    '{"ctaTitle":"CTA제목","ctaSub":"40자이상 수강신청 동기부여 문구","ctaCopy":"10자","ctaBadge":"15자"}',
-        "event_overview": '{"eventTitle":"20자","eventDesc":"50자이상 이벤트 핵심 설명","eventDetails":[["📅","이벤트 기간","날짜"],["🎯","대상","값"],["💰","혜택","값"]]}',
-        "event_benefits": '{"benefitsTitle":"20자","eventBenefits":[{"icon":"이모지","title":"혜택명","desc":"50자이상 혜택 설명","badge":"8자","no":"01"},{"icon":"이모지","title":"혜택명","desc":"50자이상","badge":"8자","no":"02"},{"icon":"이모지","title":"혜택명","desc":"50자이상","badge":"8자","no":"03"}]}',
-        "event_deadline": '{"deadlineTitle":"마감 제목 15자","deadlineMsg":"70자이상 긴박감 있는 마감 안내 문구, 학생 심리 자극","ctaCopy":"10자"}',
-        "fest_hero":     '{"festHeroTitle":"20자","festHeroCopy":"30자","festHeroSub":"50자이상","brandTagline":"기획전 분위기 한 문장","festHeroStats":[["수치","라벨"],["수치","라벨"]]}',
-        "fest_lineup":   '{"festLineupTitle":"20자","festLineupSub":"40자","festLineup":[{"name":"강사명","tag":"8자","tagline":"40자 소개","badge":"8자","emoji":"이모지"},{"name":"강사명","tag":"8자","tagline":"40자","badge":"8자","emoji":"이모지"},{"name":"강사명","tag":"8자","tagline":"40자","badge":"8자","emoji":"이모지"},{"name":"강사명","tag":"8자","tagline":"40자","badge":"8자","emoji":"이모지"}]}',
-        "fest_benefits": '{"festBenefitsTitle":"20자","festBenefits":[{"icon":"이모지","title":"혜택명","desc":"50자이상","badge":"8자","no":"01"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"02"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"03"},{"icon":"이모지","title":"혜택명","desc":"50자","badge":"8자","no":"04"}]}',
-        "fest_cta":      '{"festCtaTitle":"CTA 제목 20자","festCtaSub":"50자이상 통합신청 동기부여 문구"}',
-        "video":         '{"videoTitle":"영상 섹션 제목 20자","videoSub":"영상 설명 40자","videoTag":"OFFICIAL TRAILER","videoUrl":""}',
-        "before_after":  '{"baTitle":"수강 전후 비교 제목 20자","baSub":"30자 서브","baBeforeItems":["수강 전 학생이 겪는 구체적 문제 40자","문제2 40자","문제3 40자"],"baAfterItems":["수강 후 달라지는 점 40자","변화2 40자","변화3 40자"]}',
-        "method":        '{"methodTitle":"학습법 제목 20자","methodSub":"30자","methodSteps":[{"step":"STEP 01","label":"단계명","desc":"이 단계에서 무엇을 어떻게 하는지 40자이상"},{"step":"STEP 02","label":"단계명","desc":"40자이상"},{"step":"STEP 03","label":"단계명","desc":"40자이상"}]}',
-        "package":       '{"pkgTitle":"구성 안내 제목 20자","pkgSub":"30자","packages":[{"icon":"📗","name":"구성명","desc":"구성 설명 40자이상","badge":"필수"},{"icon":"📖","name":"구성명","desc":"40자이상","badge":"포함"},{"icon":"🎯","name":"구성명","desc":"40자이상","badge":"포함"},{"icon":"💬","name":"구성명","desc":"40자이상","badge":"특전"}]}',
+        "banner": (
+            '{"bannerSub":"12자","bannerTitle":"강좌명 포함 20자 선언형",'
+            '"brandTagline":"영문 슬로건 완결된 한 문장",'
+            '"bannerLead":"수험생 현실을 팩트로 짚는 리드. 150자 이상. 상황묘사→이유→변화 3단 구조",'
+            '"bannerTags":["키워드1","키워드2","키워드3"],'
+            '"bannerVisual":"[Visual Directing] 배너 연출 100자 이상","ctaCopy":"10자","statBadges":[]}'
+        ),
+        "intro": (
+            '{"introTitle":"25자 신뢰감 주는 제목",'
+            '"introDesc":"강사 철학·차별점·수업방식 200자 이상. 수강 후 변화 중심",'
+            '"introBio":"강사 핵심 강점 80자 이상. 구체적 강의 방식 포함",'
+            '"introVisual":"[Visual Directing] 인트로 연출 100자 이상","introBadges":[]}'
+        ),
+        "why": (
+            '{"whyTitle":"25자","whySub":"40자 — 구체적 고민 직접 언급",'
+            '"whyReasons":[["01","12자 직설적 제목","학생 현실 문제 제시→이 강의 해결책→수강 후 변화. 150자 이상"],'
+            '["02","12자","150자 이상"],["03","12자","150자 이상"]],'
+            '"whyVisual":"[Visual Directing] 100자 이상"}'
+        ),
+        "curriculum": (
+            '{"curriculumTitle":"25자","curriculumSub":"40자",'
+            '"curriculumSteps":[["01","8자","이 단계 학습 내용+달라지는 것 120자 이상","기간"],'
+            '["02","8자","120자 이상","기간"],["03","8자","120자 이상","기간"],'
+            '["04","8자","120자 이상","기간"]]}'
+        ),
+        "target": (
+            '{"targetTitle":"25자",'
+            '"targetItems":["이 강의가 필요한 구체적 상황 60자 이상",'
+            '"60자 이상","60자 이상","60자 이상"]}'
+        ),
+        "reviews": (
+            '{"reviews":[["생생하고 구체적 100자 이상 후기. 등급·점수·방식 변화 언급","이름","뱃지"],'
+            '["100자 이상","이름","뱃지"],["100자 이상","이름","뱃지"]]}'
+        ),
+        "faq": (
+            '{"faqs":[["15자 구체적 질문","명쾌한 답변 70자 이상"],'
+            '["질문","70자 이상"],["질문","70자 이상"]]}'
+        ),
+        "cta": (
+            '{"ctaTitle":"CTA 제목 25자","ctaSub":"지금 신청해야 하는 이유 80자 이상. 감정적 설득",'
+            '"ctaCopy":"10자","ctaBadge":"15자"}'
+        ),
+        "event_overview": (
+            '{"eventTitle":"20자","eventDesc":"이벤트 핵심을 설명하는 60자 이상 완결 문장",'
+            '"eventDetails":[["📅","이벤트 기간","날짜"],["🎯","대상","값"],["💰","혜택","값"]]}'
+        ),
+        "event_benefits": (
+            '{"benefitsTitle":"20자","eventBenefits":['
+            '{"icon":"이모지","title":"혜택명","desc":"혜택 상세 설명 60자 이상","badge":"8자","no":"01"},'
+            '{"icon":"이모지","title":"혜택명","desc":"60자 이상","badge":"8자","no":"02"},'
+            '{"icon":"이모지","title":"혜택명","desc":"60자 이상","badge":"8자","no":"03"}]}'
+        ),
+        "event_deadline": (
+            '{"deadlineTitle":"마감 제목 15자",'
+            '"deadlineMsg":"긴박감 있는 마감 안내 100자 이상. 학생 심리 자극","ctaCopy":"10자"}'
+        ),
+        "fest_hero": (
+            '{"festHeroTitle":"20자","festHeroCopy":"30자","festHeroSub":"70자 이상",'
+            '"brandTagline":"기획전 슬로건 한 문장","festHeroStats":[["수치","라벨"],["수치","라벨"]]}'
+        ),
+        "fest_lineup": (
+            '{"festLineupTitle":"20자","festLineupSub":"50자 이상",'
+            '"festLineup":[{"name":"강사명","tag":"8자","tagline":"50자 이상 소개","badge":"8자","emoji":"이모지"},'
+            '{"name":"강사명","tag":"8자","tagline":"50자 이상","badge":"8자","emoji":"이모지"},'
+            '{"name":"강사명","tag":"8자","tagline":"50자 이상","badge":"8자","emoji":"이모지"},'
+            '{"name":"강사명","tag":"8자","tagline":"50자 이상","badge":"8자","emoji":"이모지"}]}'
+        ),
+        "fest_benefits": (
+            '{"festBenefitsTitle":"20자",'
+            '"festBenefits":[{"icon":"이모지","title":"혜택명","desc":"혜택 상세 60자 이상","badge":"8자","no":"01"},'
+            '{"icon":"이모지","title":"혜택명","desc":"60자 이상","badge":"8자","no":"02"},'
+            '{"icon":"이모지","title":"혜택명","desc":"60자 이상","badge":"8자","no":"03"},'
+            '{"icon":"이모지","title":"혜택명","desc":"60자 이상","badge":"8자","no":"04"}]}'
+        ),
+        "fest_cta": '{"festCtaTitle":"CTA 제목 20자","festCtaSub":"통합신청 동기부여 80자 이상"}',
+        "video": '{"videoTitle":"20자","videoSub":"영상 설명 50자 이상","videoTag":"OFFICIAL TRAILER","videoUrl":""}',
+        "before_after": (
+            '{"baTitle":"25자","baSub":"40자",'
+            '"baBeforeItems":["수강 전 학생이 겪는 구체적 문제 60자 이상","60자 이상","60자 이상"],'
+            '"baAfterItems":["수강 후 달라지는 점 60자 이상","60자 이상","60자 이상"]}'
+        ),
+        "method": (
+            '{"methodTitle":"25자","methodSub":"40자",'
+            '"methodSteps":[{"step":"STEP 01","label":"단계명","desc":"이 단계에서 무엇을 어떻게 하는지 60자 이상"},'
+            '{"step":"STEP 02","label":"단계명","desc":"60자 이상"},'
+            '{"step":"STEP 03","label":"단계명","desc":"60자 이상"}]}'
+        ),
+        "package": (
+            '{"pkgTitle":"25자","pkgSub":"40자",'
+            '"packages":[{"icon":"📗","name":"구성명","desc":"구성 설명 60자 이상","badge":"필수"},'
+            '{"icon":"📖","name":"구성명","desc":"60자 이상","badge":"포함"},'
+            '{"icon":"🎯","name":"구성명","desc":"60자 이상","badge":"포함"},'
+            '{"icon":"💬","name":"구성명","desc":"60자 이상","badge":"특전"}]}'
+        ),
     }
 
     purpose_specific_rule = ""
@@ -1684,7 +1833,7 @@ def gen_section(sec_id: str) -> dict:
     plabel = st.session_state.get("purpose_label", "").strip()
     for attempt in range(3):
         try:
-            result = safe_json(call_ai(prompt, max_tokens=1500))
+            result = safe_json(call_ai(prompt, max_tokens=2500))
             return ban_other_curricula(result, plabel)
         except Exception as e:
             last_err = e
@@ -2697,19 +2846,25 @@ def sec_banner(d, cp, T):
         )
         
 def sec_intro(d, cp, T):
+    """강좌 소개 — 3가지 다이내믹 레이아웃 (콘텐츠 풍부 버전)"""
     label   = st.session_state.get("purpose_label", d["purpose_label"])
     subj    = d["subject"]
     tagline = strip_hanja(cp.get("brandTagline", ""))
     desc    = strip_hanja(cp.get("introDesc", f"{label}이 특별한 이유가 있습니다."))
+    bio     = strip_hanja(cp.get("introBio", ""))
 
-    # ── 인셉션 등 타 커리큘럼명 desc에서 제거 ──
+    # ── 타 커리큘럼명 제거 ──
     _plabel = st.session_state.get("purpose_label", "")
-    _BANNED = ["인셉션", "O.V.S", "OVS", "파노라마", "뉴런", "R'gorithm",
-               "Starting Block", "KICE Anatomy", "세젤쉬", "All Of KICE", "VIC-FLIX",
-               "KISS Logic", "KISSAVE", "KISSCHEMA"]  # ← 이 세 개 추가
+    _BANNED = ["인셉션","O.V.S","OVS","파노라마","뉴런","R'gorithm",
+               "Starting Block","KICE Anatomy","세젤쉬","All Of KICE",
+               "VIC-FLIX","KISS Logic","KISSAVE","KISSCHEMA"]
     for _b in _BANNED:
         if _b.lower() not in _plabel.lower():
-            desc = desc.replace(_b, _plabel if _plabel else d["subject"])
+            desc = desc.replace(_b, _plabel if _plabel else subj)
+
+    # 조사 교정
+    desc = postprocess_copy(desc, _plabel)
+    bio  = postprocess_copy(bio,  _plabel)
 
     reasons = cp.get("whyReasons", [])
     points  = []
@@ -2717,47 +2872,152 @@ def sec_intro(d, cp, T):
         if isinstance(r, (list, tuple)) and len(r) >= 3:
             points.append((str(r[0]), str(r[1]), str(r[2])))
     if not points:
-        points = [("🎯", "핵심만 담았다", f"{label} 한 강좌로 {subj} 완성"),("⚡", "즉시 적용된다", "배운 내용을 바로 실전에 적용"),("📈", "결과가 달라진다", "수강 후 성적 변화 체감")]
+        points = [
+            ("01", "출제 원리 파악", f"감이 아닌 구조로 {subj}를 읽는 눈을 만들어 드립니다."),
+            ("02", "실전 속도 향상", "시간이 남는 경험, 3주차부터 달라집니다."),
+            ("03", "기출 완전 분석", "최근 기출 패턴을 꿰뚫으면 다음 수능이 보입니다."),
+        ]
 
-    point_html = "".join(
-        f'<div class="rv d{i+1}" style="flex:1;min-width:180px;padding:28px 24px;background:var(--bg3);border-radius:var(--r,4px);border:1px solid var(--bd);border-top:3px solid var(--c1)">'
-        f'<div style="font-size:34px;margin-bottom:14px">{ic}</div>'
-        f'<div style="font-family:var(--fh);font-size:15px;font-weight:800;color:var(--text);margin-bottom:8px">{strip_hanja(tt)}</div>'
-        f'<p style="font-size:13px;line-height:1.8;color:var(--text);opacity:0.72;margin:0">{strip_hanja(dc)}</p>'
-        f'</div>'
-        for i, (ic, tt, dc) in enumerate(points)
-    )
+    # 태그라인 유효성 검사
+    _BAD = {"english","korean","math","science","tagline","slogan","없음","none","n/a"}
+    _tl  = tagline.strip().strip('"').strip("'")
+    _tl_ok = _tl and _tl.lower().replace(" ","") not in _BAD and len(_tl) >= 6
 
-    # 무의미한 태그라인 필터링
-    _BAD_TAGLINES = {
-        "english", "korean", "math", "science", "tagline", "slogan",
-        "없음", "없음.", "none", "n/a", "tbd", "미정",
-    }
-    _tagline_clean = tagline.strip().strip('"').strip("'")
-    _tagline_lower = _tagline_clean.lower().replace(" ", "")
-    _is_bad = (
-        not _tagline_clean
-        or _tagline_lower in _BAD_TAGLINES
-        or len(_tagline_clean) < 6
-        or _tagline_clean.lower() == "english"
-        or _tagline_clean.lower() == d["subject"].lower()
-    )
-    tagline_html = (
-        f'<div style="padding:22px 28px;background:var(--c1);border-radius:var(--r,4px);margin-bottom:20px">'
-        f'<p style="font-size:clamp(15px,1.6vw,18px);font-style:italic;font-weight:700;'
-        f'color:#fff;line-height:1.6;margin:0">"{_tagline_clean}"</p></div>'
-    ) if not _is_bad else ""
+    # 레이아웃 변형 선택
+    text_hash = sum(ord(c) for c in label + subj)
+    v = (text_hash % 3) + 1
 
-    return (
-        f'<section class="sec" id="intro"><div style="max-width:1100px;margin:0 auto">'
-        f'<div class="rv" style="display:grid;grid-template-columns:1fr 1.8fr;gap:60px;align-items:center;padding-bottom:40px;border-bottom:2px solid var(--bd);margin-bottom:40px">'
-        f'<div><div class="tag-line">{subj} 강좌 소개</div>'
-        f'<h2 style="font-family:var(--fh);font-size:clamp(28px,4vw,52px);font-weight:900;line-height:1.05;color:var(--text);margin-bottom:14px">{label}</h2>'
-        f'<div style="display:flex;align-items:center;gap:8px;margin-top:16px"><span style="font-size:10px;font-weight:800;background:var(--c1);color:#fff;padding:4px 14px;border-radius:var(--r-btn,100px)">{subj}</span><span style="font-size:10px;font-weight:700;color:var(--t45)">{d["target"]}</span></div></div>'
-        f'<div>{tagline_html}<p style="font-size:15px;line-height:2;color:var(--t70)">{desc}</p></div></div>'
-        f'<div style="display:flex;gap:16px;flex-wrap:wrap">{point_html}</div>'
-        f'</div></section>'
-    )
+    # ── 공통 포인트 카드 HTML ──
+    def _point_card(i, no, tt, dc, compact=False):
+        pad = "20px 22px" if compact else "28px 26px"
+        return (
+            f'<div class="rv d{min(i+1,4)}" style="padding:{pad};background:var(--bg3);'
+            f'border-radius:var(--r,4px);border:1px solid var(--bd);'
+            f'border-top:3px solid var(--c1);transition:transform .25s,box-shadow .25s" '
+            f'onmouseover="this.style.transform=\'translateY(-4px)\';this.style.boxShadow=\'0 12px 32px rgba(0,0,0,.12)\'" '
+            f'onmouseout="this.style.transform=\'none\';this.style.boxShadow=\'none\'">'
+            f'<div style="font-family:var(--fh);font-size:28px;font-weight:900;'
+            f'color:var(--c1);opacity:.25;line-height:1;margin-bottom:12px">{no}</div>'
+            f'<div style="font-family:var(--fh);font-size:{"14px" if compact else "16px"};'
+            f'font-weight:900;color:var(--text);margin-bottom:10px;line-height:1.3">'
+            f'{strip_hanja(tt)}</div>'
+            f'<p style="font-size:{"12.5px" if compact else "14px"};line-height:1.85;'
+            f'color:var(--t70);margin:0">{strip_hanja(dc)}</p>'
+            f'</div>'
+        )
+
+    if v == 1:
+        # ── 스타일 1: 풀와이드 에디토리얼 (좌: 대형 텍스트 / 우: 상세 + 포인트) ──
+        pt_html = "".join(_point_card(i, no, tt, dc) for i, (no, tt, dc) in enumerate(points))
+        tl_html = (
+            f'<div style="margin-bottom:28px;padding:24px 28px;'
+            f'background:var(--c1);border-radius:var(--r,4px)">'
+            f'<p style="font-size:clamp(15px,1.5vw,18px);font-style:italic;font-weight:700;'
+            f'color:#fff;line-height:1.6;margin:0">"{_tl}"</p></div>'
+        ) if _tl_ok else ""
+
+        return (
+            f'<section class="sec" id="intro">'
+            f'<div style="max-width:1200px;margin:0 auto">'
+            # ── 상단: 강좌명 + 설명 2컬럼
+            f'<div class="rv" style="display:grid;grid-template-columns:1fr 1.6fr;'
+            f'gap:72px;align-items:start;padding-bottom:56px;'
+            f'border-bottom:1px solid var(--bd);margin-bottom:48px">'
+            # 좌
+            f'<div style="position:sticky;top:80px">'
+            f'<div class="tag-line">{subj} 강좌 소개</div>'
+            f'<h2 style="font-family:var(--fh);font-size:clamp(36px,5vw,64px);'
+            f'font-weight:900;line-height:1.05;color:var(--text);'
+            f'letter-spacing:-.04em;margin-bottom:20px">{label}</h2>'
+            f'<div style="width:48px;height:4px;background:var(--c1);margin-bottom:24px"></div>'
+            f'{bio and f"""<p style="font-size:14px;line-height:1.9;color:var(--t70);margin-bottom:20px">{bio}</p>""" or ""}'
+            f'<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">'
+            f'<span style="font-size:10px;font-weight:800;background:var(--c1);'
+            f'color:#fff;padding:4px 14px;border-radius:var(--r-btn,100px)">{subj}</span>'
+            f'<span style="font-size:10px;font-weight:700;color:var(--t45);'
+            f'padding:4px 14px;border:1px solid var(--bd);border-radius:var(--r-btn,100px)">'
+            f'{d["target"]}</span></div></div>'
+            # 우
+            f'<div>{tl_html}'
+            f'<p style="font-size:clamp(14px,1.5vw,16px);line-height:2.1;'
+            f'color:var(--t70);margin:0">{desc}</p></div>'
+            f'</div>'
+            # ── 하단: 3개 포인트 카드
+            f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">'
+            f'{pt_html}</div>'
+            f'</div></section>'
+        )
+
+    elif v == 2:
+        # ── 스타일 2: 대형 인용구 중앙 + 하단 3컬럼 ──
+        pt_html = "".join(_point_card(i, no, tt, dc) for i, (no, tt, dc) in enumerate(points))
+        return (
+            f'<section class="sec alt" id="intro">'
+            f'<div style="max-width:1100px;margin:0 auto">'
+            # 태그
+            f'<div class="rv" style="text-align:center;margin-bottom:64px">'
+            f'<div class="tag-line" style="justify-content:center">{subj} 강좌 소개</div>'
+            f'<h2 style="font-family:var(--fh);font-size:clamp(36px,5vw,64px);'
+            f'font-weight:900;color:var(--text);letter-spacing:-.04em;margin-bottom:24px">{label}</h2>'
+            # 큰 인용구
+            f'<div style="position:relative;max-width:800px;margin:0 auto 40px">'
+            f'<div style="position:absolute;top:-32px;left:-16px;font-family:var(--fh);'
+            f'font-size:120px;color:var(--c1);opacity:.08;line-height:1;pointer-events:none">"</div>'
+            + (f'<p style="font-size:clamp(15px,1.7vw,20px);font-style:italic;font-weight:700;'
+               f'color:var(--c1);line-height:1.7;margin-bottom:20px">{_tl}</p>'
+               if _tl_ok else "")
+            + f'<p style="font-size:clamp(13px,1.4vw,16px);line-height:2.1;'
+            f'color:var(--t70)">{desc}</p>'
+            f'</div>'
+            + (f'<p style="font-size:14px;font-weight:600;color:var(--t45);'
+               f'margin-top:20px">{bio}</p>' if bio else "")
+            + f'</div>'
+            # 포인트 카드
+            f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">'
+            f'{pt_html}</div>'
+            f'</div></section>'
+        )
+
+    else:
+        # ── 스타일 3: 좌우 비대칭 벤토박스 (설명 넓게 + 포인트 세로 스택) ──
+        pt_html = "".join(_point_card(i, no, tt, dc, compact=True)
+                          for i, (no, tt, dc) in enumerate(points))
+        tl_html = (
+            f'<div style="background:var(--c1);padding:24px 28px;'
+            f'border-radius:var(--r,4px);margin-bottom:24px">'
+            f'<p style="font-size:clamp(14px,1.5vw,17px);font-style:italic;font-weight:700;'
+            f'color:#fff;line-height:1.65;margin:0">"{_tl}"</p></div>'
+        ) if _tl_ok else ""
+
+        return (
+            f'<section class="sec" id="intro">'
+            f'<div style="max-width:1200px;margin:0 auto;'
+            f'display:grid;grid-template-columns:1.4fr 1fr;gap:56px;align-items:start">'
+            # 좌: 메인 설명
+            f'<div class="rv">'
+            f'<div class="tag-line">{subj} 강좌 소개</div>'
+            f'<h2 style="font-family:var(--fh);font-size:clamp(32px,4.5vw,56px);'
+            f'font-weight:900;color:var(--text);letter-spacing:-.04em;margin-bottom:20px">'
+            f'{label}</h2>'
+            f'{tl_html}'
+            f'<p style="font-size:clamp(13px,1.4vw,15.5px);line-height:2.1;'
+            f'color:var(--t70);margin-bottom:28px">{desc}</p>'
+            + (f'<div style="padding:20px 24px;background:var(--bg3);'
+               f'border-radius:var(--r,4px);border-left:4px solid var(--c1)">'
+               f'<p style="font-size:13.5px;font-weight:600;line-height:1.8;'
+               f'color:var(--text);margin:0">{bio}</p></div>' if bio else "")
+            + f'<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:24px">'
+            f'<span style="font-size:10px;font-weight:800;background:var(--c1);'
+            f'color:#fff;padding:4px 14px;border-radius:var(--r-btn,100px)">{subj}</span>'
+            f'<span style="font-size:10px;font-weight:700;color:var(--t45);'
+            f'padding:4px 14px;border:1px solid var(--bd);border-radius:var(--r-btn,100px)">'
+            f'{d["target"]}</span></div></div>'
+            # 우: 포인트 세로 스택
+            f'<div class="rv d1" style="position:sticky;top:80px">'
+            f'<div style="display:flex;flex-direction:column;gap:12px">{pt_html}</div>'
+            f'</div>'
+            f'</div></section>'
+        )
 
 def sec_why(d, cp, T):
     t = strip_hanja(cp.get('whyTitle', '이 강의가 필요한 이유'))
