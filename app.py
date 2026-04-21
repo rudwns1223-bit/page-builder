@@ -753,6 +753,23 @@ def strip_hanja(text: str) -> str:
 def strip_hanja(text: str) -> str:
     if not isinstance(text, str): return str(text) if text is not None else ""
     import re
+    
+    def _fix_euro(m):
+        word = m.group(1)
+        last = word[-1] if word else ''
+        if not ('가' <= last <= '힣'):
+            # 영문/숫자로 끝나면 "로"
+            return word + '로'
+        code = ord(last) - ord('가')
+        jongseong = code % 28
+        # 받침 없음(0) 또는 ㄹ받침(8) → "로"
+        if jongseong == 0 or jongseong == 8:
+            return word + '로'
+        return word + '으로'
+    
+    text = re.sub(r'([가-힣a-zA-Z0-9]+)(?:으로|로)(?=[\s,\.·!\?]|$)', _fix_euro, text)
+    return text
+    
     allowed_pattern = r'[^\u3131-\u3163\uAC00-\uD7A3a-zA-Z0-9\s\.\,\!\?\'\"\%\[\]\(\)\-\<\>~·/&+]'
     cleaned = re.sub(allowed_pattern, '', text)
     FORBIDDEN_WORDS = [
@@ -1318,6 +1335,11 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
    "비밀을 공개", "비법 공개", "급상승의 비밀", "성적 급상승",
    "함께라면 가능", "살길이다", "유일한 선택", "마지막 기회"
    → 대신 학생의 현재 상황을 구체적 팩트로 묘사할 것.
+⑩ 강좌명 자기 참조 금지: "일리는 일리를", "KISS Logic은 KISS Logic을" 같이\n'
+   강좌명이 주어와 목적어에 동시에 나오는 문장 절대 금지.\n'
+   ❌ "2027 일리는 2027 일리를 통해 지문을..."\n'
+   ✅ "이 커리큘럼은 지문 구조를 논리적으로 파악하도록 설계되었습니다."\n'
+   ✅ "수능까지 남은 시간, 2027 일리가 방향을 잡아드립니다."\n'
    
 ━━━ 이번 생성 방향 ━━━
 {variation_hint}
@@ -3077,6 +3099,35 @@ def sec_why(d, cp, T):
             f'</div><div style="border-top:2px solid var(--c1);">{rh}</div></div></section>'
         )
 
+    elif v == 3:  # [스타일 4: 좌우 대형 텍스트 + 미니 카드]
+        rh = ""
+        for i, (no, tt, dc) in enumerate(safe_r):
+            rh += (
+                f'<div class="rv d{min(i+1,4)}" style="display:grid;'
+                f'grid-template-columns:200px 1fr;gap:32px;'
+                f'padding:40px 0;border-bottom:1px solid var(--bd);">'
+                f'<div style="font-family:var(--fh);font-size:clamp(80px,10vw,120px);'
+                f'font-weight:900;color:var(--c1);opacity:0.15;line-height:0.9;'
+                f'text-align:center">{i+1:02d}</div>'
+                f'<div>'
+                f'<h3 style="font-family:var(--fh);font-size:clamp(22px,2.5vw,32px);'
+                f'font-weight:900;color:var(--text);margin-bottom:16px">{strip_hanja(tt)}</h3>'
+                f'<p style="font-size:15px;line-height:1.9;color:var(--t70)">'
+                f'{strip_hanja(dc)}</p>'
+                f'</div></div>'
+            )
+        return (
+            f'<section class="sec alt" id="why">'
+            f'<div style="max-width:900px;margin:0 auto;">'
+            f'<div class="rv" style="margin-bottom:72px">'
+            f'<div class="tag-line">{s}</div>'
+            f'<h2 style="font-family:var(--fh);font-size:clamp(40px,6vw,72px);'
+            f'font-weight:900;color:var(--text)">{t}</h2>'
+            f'</div>'
+            f'<div style="border-top:3px solid var(--c1)">{rh}</div>'
+            f'</div></section>'
+        )
+
     else: # [스타일 3: 벤토박스 비대칭 그리드]
         rh = ""
         BENTO_PATTERNS = ["bento-wide", "", "bento-tall", ""]
@@ -3119,7 +3170,8 @@ def sec_curriculum(d, cp, T):
     if not steps:
         steps = [["01","개념 완성","핵심 개념을 정확히 이해","4주"], ["02","훈련","기출 완전 분석","4주"], ["03","심화","고난도 특훈","3주"], ["04","파이널","실전 완성","3주"]]
 
-    v = (sum(ord(c) for c in str(t or "") + str(s or "")) % 3) + 1
+    import random
+    v = random.randint(1, 3)
     sh = ""
 
     if v == 1:
@@ -3174,6 +3226,42 @@ def sec_curriculum(d, cp, T):
             f'<div style="position:absolute; top:0; bottom:0; left:50%; transform:translateX(-50%); width:2px; background:var(--bd);"></div>'
             f'{sh}'
             f'</div>'
+            f'</div></section>'
+        )
+
+    elif v == 3:  # [스타일 4: 가로 나열 화살표 스텝퍼]
+        sh = ""
+        for i, step in enumerate(steps):
+            du = str(step[3]) if len(step) > 3 else "4주"
+            sh += (
+                f'<div class="rv d{min(i+1,4)}" style="flex:1;min-width:180px;'
+                f'background:var(--bg);border:1px solid var(--bd);'
+                f'border-top:4px solid var(--c1);padding:28px 20px;'
+                f'position:relative;">'
+                f'<div style="font-family:var(--fh);font-size:11px;font-weight:900;'
+                f'color:var(--c1);letter-spacing:.12em;margin-bottom:12px">STEP {i+1:02d}</div>'
+                f'<h3 style="font-family:var(--fh);font-size:18px;font-weight:900;'
+                f'color:var(--text);margin-bottom:10px">{strip_hanja(str(step[1]))}</h3>'
+                f'<p style="font-size:12.5px;line-height:1.75;color:var(--t70);margin-bottom:16px">'
+                f'{strip_hanja(str(step[2]))}</p>'
+                f'<span style="font-size:10px;background:var(--bg3);color:var(--c1);'
+                f'padding:4px 12px;border-radius:100px;font-weight:800">{du}</span>'
+                + (f'<div style="position:absolute;top:50%;right:-16px;'
+                   f'transform:translateY(-50%);font-size:20px;'
+                   f'color:var(--c1);z-index:2;font-weight:900">›</div>' if i < len(steps)-1 else '')
+                + f'</div>'
+            )
+        return (
+            f'<section class="sec alt" id="curriculum">'
+            f'<div style="max-width:1200px;margin:0 auto">'
+            f'<div class="rv" style="text-align:center;margin-bottom:56px">'
+            f'<div class="tag-line" style="justify-content:center">커리큘럼</div>'
+            f'<h2 style="font-family:var(--fh);font-size:clamp(36px,5vw,64px);'
+            f'font-weight:900;color:var(--text);margin-bottom:16px">{t}</h2>'
+            f'<p style="font-size:16px;color:var(--t70)">{s}</p>'
+            f'</div>'
+            f'<div class="rv d1" style="display:flex;gap:0;align-items:stretch;'
+            f'overflow-x:auto;padding-bottom:16px">{sh}</div>'
             f'</div></section>'
         )
 
