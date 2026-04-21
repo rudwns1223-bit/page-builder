@@ -687,86 +687,15 @@ KO_BG = {
 def strip_hanja(text: str) -> str:
     if not isinstance(text, str): return str(text) if text is not None else ""
     import re
-
-    # ── 한국어 조사 자동 교정 ──────────────────────────────────
-def fix_korean_particles(text: str) -> str:
-    """
-    받침 유무에 따라 을/를, 은/는, 으로/로, 과/와를 자동 교정.
-    예) '일리으로' → '일리로', '뉴런을' → '뉴런을'(유지)
-    """
-    if not text:
-        return text
-
-    def _has_batchim(char: str) -> bool:
-        if not char or not ('가' <= char <= '힣'):
-            return False
-        return (ord(char) - ord('가')) % 28 != 0
-
-    def _is_rieul(char: str) -> bool:
-        if not char or not ('가' <= char <= '힣'):
-            return False
-        return (ord(char) - ord('가')) % 28 == 8  # ㄹ받침
-
-    def _fix(m, no_batchim: str, batchim: str) -> str:
-        word = m.group(1)
-        if not word:
-            return m.group(0)
-        last = word[-1]
-        if _has_batchim(last) and not _is_rieul(last):
-            return word + batchim
-        return word + no_batchim
-
-    import re
-    W   = r'([가-힣a-zA-Z0-9]+)'
-    SEP = r'(?=[\s,\.·!\?\"\'()\-]|$)'
-
-    rules = [
-        (W + r'(으로|로)' + SEP,  lambda m: _fix(m, '로',   '으로')),
-        (W + r'(을|를)'   + SEP,  lambda m: _fix(m, '를',   '을'  )),
-        (W + r'(은|는)'   + SEP,  lambda m: _fix(m, '는',   '은'  )),
-        (W + r'(과|와)'   + SEP,  lambda m: _fix(m, '와',   '과'  )),
-    ]
-    for pattern, repl in rules:
-        text = re.sub(pattern, repl, text)
-    return text
-
-
-def remove_series_suffix(text: str, plabel: str) -> str:
-    """
-    '브랜드명 시리즈' 패턴을 브랜드명만으로 축약.
-    예) '일리 시리즈로' → '일리로', '일리 시리즈' → '일리'
-    """
-    if not plabel or not text:
-        return text
-    escaped = re.escape(plabel)
-    # "브랜드명 시리즈" → "브랜드명"  (조사가 붙어도 처리)
-    text = re.sub(escaped + r'\s*시리즈', plabel, text)
-    return text
-
-
-def postprocess_copy(text: str, plabel: str) -> str:
-    """조사 교정 + 시리즈 제거를 한 번에"""
-    text = remove_series_suffix(text, plabel)
-    text = fix_korean_particles(text)
-    return text
-
-    # 허용 문자 패턴
     allowed_pattern = r'[^\u3131-\u3163\uAC00-\uD7A3a-zA-Z0-9\s\.\,\!\?\'\"\%\[\]\(\)\-\<\>~·/&+]'
     cleaned = re.sub(allowed_pattern, '', text)
-    cleaned = re.sub(r'\s+', ' ', cleaned)
-
-    # ✅ 추가: AI가 자주 생성하는 비한국어 외래어 단어 필터
     FORBIDDEN_WORDS = [
         r'\bmasih\b', r'\bdan\b', r'\bdengan\b', r'\buntuk\b',
         r'\bjuga\b', r'\batau\b', r'\btidak\b', r'\byang\b',
         r'\bini\b', r'\bitu\b', r'\bsaya\b', r'\bkamu\b',
-        r'\bada\b', r'\bbisa\b', r'\bharus\b', r'\bsudah\b',
-        r'\bakan\b', r'\bagar\b', r'\bpada\b', r'\bdari\b',
     ]
     for pattern in FORBIDDEN_WORDS:
         cleaned = re.sub(pattern, '', cleaned, flags=re.IGNORECASE)
-
-    # 연속 공백 다시 정리
     cleaned = re.sub(r'\s+', ' ', cleaned)
     return cleaned.strip()
 
@@ -2732,7 +2661,7 @@ def sec_banner(d, cp, T):
         overlay = ""
 
     # 레이아웃 변형 (해시 기반 고정)
-    text_hash = sum(ord(c) for c in title + lead)
+    text_hash = sum(ord(c) for c in (str(title or "") + str(lead or "")))
     v = (text_hash % 3) + 1
 
     # ──────────────────────────────────────────────
@@ -3128,7 +3057,7 @@ def sec_curriculum(d, cp, T):
     if not steps:
         steps = [["01","개념 완성","핵심 개념을 정확히 이해","4주"], ["02","훈련","기출 완전 분석","4주"], ["03","심화","고난도 특훈","3주"], ["04","파이널","실전 완성","3주"]]
 
-    v = (sum(ord(c) for c in t + s) % 3) + 1
+    v = (sum(ord(c) for c in str(t or "") + str(s or "")) % 3) + 1
     sh = ""
 
     if v == 1:
@@ -4294,7 +4223,7 @@ def sec_course_intro(d, cp, T):
     tags    = [strip_hanja(t) for t in c.get("courseTag", [])]
 
     text_hash = sum(ord(ch) for ch in title + sub)
-    v = (text_hash % 3) + 1
+    v = (sum(ord(c) for c in str(t or "") + str(s or "")) % 3) + 1
 
     # 메타 뱃지 & 태그 조립
     meta = ""
