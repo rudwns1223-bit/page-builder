@@ -113,6 +113,35 @@ FEW_SHOT_EXAMPLES = """
 - 소개: "수능 직전, 딱 필요한 것만 담았습니다"
 - CTA: "수능 전 마지막 강의, 지금이 마지막입니다"
 
+=== AI스러운 표현 절대 금지 목록 ===
+아래 패턴이 나오면 즉시 다시 써라.
+
+❌ "아직도 ~하고 있나요?" → ✅ 강좌명 + 짧은 선언
+❌ "~의 비밀을 공개합니다" → ✅ "~으로 끝낸다" / "~이 달라진다"
+❌ "함께라면 가능합니다" → ✅ 구체적 결과 수치나 상황
+❌ "지금 바로 시작하세요" (단독) → ✅ 왜 지금인지 이유 포함
+❌ "수능까지 함께" → ✅ 남은 기간이나 시험명 직접 언급
+❌ "체계적으로 준비" → ✅ 구체적 방법론명 사용
+❌ "실력이 달라집니다" → ✅ "3주 차부터 지문 구조가 보인다"
+❌ "최고의 강의" → ✅ 강사 시그니처 메서드명
+❌ "성적을 올리세요" → ✅ "모평에서 한 등급 오른다"
+❌ "열심히 하면" → ✅ "이 순서대로 하면"
+
+=== 실제로 통하는 문구 패턴 ===
+[bannerTitle — 강좌명이 반드시 들어가는 형태]
+- 진또배기
+- 진또배기 — 국어의 본질
+- 뉴런으로 끝낸다
+- KISS Logic, 단 하나면 됩니다
+
+[bannerLead — 학생 상황 직격]
+- 지문은 읽히는데 답은 모르겠다. 그게 지금 너의 상황이다.
+- 국어 3등급, 공부는 했는데 왜 안 오르는지 모르겠다면.
+- 감으로 맞추는 건 수능장에서 통하지 않는다.
+
+[whyReasons 설명 — 뼈 때리는 방식]
+- "기출을 풀었지만 '왜 틀렸는지'를 모른다면, 다음 시험도 같은 유형에서 틀린다. 진또배기는 답보다 원리를 먼저 가르친다."
+- "국어 지문은 감으로 읽는 게 아니다. 구조가 있다. 이 구조를 보는 눈을 3주 안에 만들어 드린다."
 """ + """
 
 === 레퍼런스 스타일 핵심 규칙 ===
@@ -1055,21 +1084,32 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
 
     # 🌟 스키마에 Visual(시각적 디렉션) 필드 추가 🌟
     schemas = {
-        "신규 커리큘럼": '{"bannerSub":"과목의 본질을 찌르는 10자 이내","bannerTitle":"25자 이내의 아주 짧고 압도적인 단어/구","brandTagline":"영문 슬로건 한 문장","bannerLead":"뻔한 위로가 아닌 현 상황을 찌르는 팩트폭력 리드문","bannerTags":["키워드1","키워드2","키워드3"],"bannerVisual":"[Visual Directing] 배너 영역의 배경/인물/그래픽 연출 디렉션 (디자이너/영상팀 전달용, 50자 이내)","ctaCopy":"망설임을 없애는 단어","ctaTitle":"강력한 CTA 제목","ctaSub":"지금 안 하면 손해라는 서브 문구","ctaBadge":"10자이내","introTitle":"강사의 절대적 권위 제목","introDesc":"왜 이 강의를 들어야만 하는지 날카롭게 서술 (길게)","introBio":"시그니처 1문장","introVisual":"[Visual Directing] 강사 소개 영역의 디자인/모션 디렉션 (50자 이내)","whyTitle":"파격적 제목","whySub":"30자이내","whyReasons":[["01","직설적인 짧은 제목","학생이 읽고 아차 싶을 만큼 뼈 때리는 구체적 이유와 해결책 서술 (최소 80자 이상)"],["02","제목","서술"],["03","제목","서술"]],"whyVisual":"[Visual Directing] 수강 이유 섹션의 레이아웃이나 오브제 디렉션","curriculumTitle":"20자이내","curriculumSub":"30자이내","curriculumSteps":[["01","단계명","이 시기에 학생들이 하는 착각과, 이 단계가 그걸 어떻게 부수고 점수를 만드는지 서술","기간"],["02","단계","서술","기간"],["03","단계","서술","기간"],["04","단계","서술","기간"]],"targetTitle":"이런 학생이라면 반드시 들어라","targetItems":["구체적인 절망적 상황 묘사 1","상황 묘사 2","상황 묘사 3","상황 묘사 4"],"reviews":[["진짜 학생이 흥분해서 쓴 것 같은 매우 길고 구체적인 후기","이름","변화뱃지"],["후기","이름","뱃지"],["후기","이름","뱃지"]],"videoTitle":"영상 제목","videoSub":"설명","videoTag":"OFFICIAL TRAILER"}',
+        "신규 커리큘럼": '{"bannerSub":"과목의 본질을 찌르는 10자 이내","bannerTitle":"반드시 강좌명을 포함한 15자 이내 — 예) 진또배기, KISS Logic, 뉴런 등 강좌명 그대로 사용. 문장형/질문형 절대 금지","brandTagline":"영문 슬로건 한 문장","bannerLead":"강좌명 없이 학생 상황을 찌르는 팩트폭력 리드문 (강좌명은 bannerTitle에만)","bannerTags":["키워드1","키워드2","키워드3"],"bannerVisual":"[Visual Directing] 배너 영역의 배경/인물/그래픽 연출 디렉션 (50자 이내)","ctaCopy":"망설임을 없애는 단어","ctaTitle":"강력한 CTA 제목","ctaSub":"지금 안 하면 손해라는 서브 문구","ctaBadge":"10자이내","introTitle":"강사의 절대적 권위 제목","introDesc":"왜 이 강의를 들어야만 하는지 날카롭게 서술 (길게)","introBio":"시그니처 1문장","introVisual":"[Visual Directing] 강사 소개 영역의 디자인/모션 디렉션 (50자 이내)","whyTitle":"파격적 제목","whySub":"30자이내","whyReasons":[["01","직설적인 짧은 제목","학생이 읽고 아차 싶을 만큼 뼈 때리는 구체적 이유와 해결책 서술 (최소 80자 이상)"],["02","제목","서술"],["03","제목","서술"]],"whyVisual":"[Visual Directing] 수강 이유 섹션의 레이아웃이나 오브제 디렉션","curriculumTitle":"20자이내","curriculumSub":"30자이내","curriculumSteps":[["01","단계명","이 시기에 학생들이 하는 착각과, 이 단계가 그걸 어떻게 부수고 점수를 만드는지 서술","기간"],["02","단계","서술","기간"],["03","단계","서술","기간"],["04","단계","서술","기간"]],"targetTitle":"이런 학생이라면 반드시 들어라","targetItems":["구체적인 절망적 상황 묘사 1","상황 묘사 2","상황 묘사 3","상황 묘사 4"],"reviews":[["진짜 학생이 흥분해서 쓴 것 같은 매우 길고 구체적인 후기","이름","변화뱃지"],["후기","이름","뱃지"],["후기","이름","뱃지"]],"videoTitle":"영상 제목","videoSub":"설명","videoTag":"OFFICIAL TRAILER"}',
         "이벤트": '{"bannerSub":"10자","bannerTitle":"15자 이내의 짧고 파격적인 이벤트 제목","brandTagline":"이벤트 분위기 한 문장","bannerLead":"참여하지 않으면 손해라는 긴박감 리드","bannerTags":["이벤트특징1","이벤트특징2","이벤트특징3"],"bannerVisual":"[Visual Directing] 이벤트 배너의 시각적 컨셉 및 오브제 연출 (50자 이내)","ctaCopy":"행동 유도","ctaTitle":"CTA","ctaSub":"서브문구","ctaBadge":"15자","eventTitle":"20자","eventDesc":"50자이상","eventDetails":[["일정","날짜"],["대상","값"],["혜택","값"]],"benefitsTitle":"20자","eventBenefits":[{"no":"01","title":"혜택명","desc":"50자이상","badge":"8자"},{"no":"02","title":"혜택명","desc":"50자","badge":"8자"},{"no":"03","title":"혜택명","desc":"50자","badge":"8자"}],"deadlineTitle":"20자","deadlineMsg":"70자 긴박감"}',
         "기획전": '{"festHeroTitle":"15자 이내의 강렬한 기획전 제목","festHeroCopy":"30자","festHeroSub":"50자이상","brandTagline":"분위기 문장","festHeroVisual":"[Visual Directing] 기획전 히어로 영역의 전체 무드 및 강사 라인업 배치 연출 (50자 이내)","festHeroStats":[["수치","라벨"],["수치","라벨"]],"festLineupTitle":"20자","festLineupSub":"40자","festLineup":[{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지"},{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지"}],"festBenefitsTitle":"20자","festBenefits":[{"no":"01","title":"혜택명","desc":"50자이상","badge":"8자"},{"no":"02","title":"혜택명","desc":"50자","badge":"8자"}],"festCtaTitle":"CTA제목","festCtaSub":"50자이상"}'
     }
 
     tone_instruction = COPY_TONES.get(st.session_state.copy_tone, "")
     
-    prompt = f"""당신은 Apple과 Samsung의 런칭 페이지를 기획하는 업계 최고 수준의 브랜드 마케터이자 아트 디렉터입니다.
-단순히 정보를 나열하지 마세요. 수험생의 심장을 울리는 카피와, 디자이너가 즉시 작업할 수 있는 시각적 디렉션(Visual Directing)을 함께 창조해야 합니다.
+    # 강좌명 추출
+    course_name = st.session_state.get("purpose_label", "").strip()
+
+    prompt = f"""당신은 Apple과 Samsung의 런칭 페이지를 기획하는 업계 최고 수준의 브랜드 마케터입니다.
+
+⚠️ [절대 규칙 — 위반 시 전체 실패]
+1. bannerTitle에는 반드시 강좌명 "{course_name}"이 그대로 들어가야 합니다.
+   - 좋은 예: "{course_name}", "국어의 {course_name}", "{course_name}으로 끝낸다"
+   - 나쁜 예: "아직도 감으로 풀고 있나요?" (질문형), "국어 공부의 비밀" (강좌명 없음)
+2. bannerTitle은 문장형/질문형 절대 금지. 명사형 또는 짧은 선언형만 허용.
+3. 이모지 절대 금지.
+4. 인도네시아어/말레이어 단어(masih, dan, dengan 등) 절대 금지.
+5. AI 클리셰 절대 금지: 체계적인, 최고의, 합리적인, 실력 향상, 교수.
 
 ===문구 생성 지침===
 {variation_hint}
 # 이 페이지의 핵심 키워드: [{core_keyword}]
 # 방향성: {declaration}{metaphor_prompt}
-# 절대 금지어: 이모지(절대 쓰지 말 것), 최고의, 체계적인, 합리적인, 실력 향상, 교수
+# 강좌명: {course_name} ← 반드시 bannerTitle에 포함
 
 ===강사 정보===
 {inst_ctx}
@@ -2016,6 +2056,81 @@ section#intro div[style*="bg3"] p {
 body:not(.light-mode) p[style*="var(--t70)"] {
     color: var(--text) !important;
     opacity: 0.7 !important;
+}
+/* =============================================
+   ✅ 텍스트 가독성 완전 보장 시스템
+   ============================================= */
+
+/* 1. 밝은 배경에서 t70이 너무 연해지는 현상 방지 */
+p, span, div {
+    word-break: keep-all;
+}
+
+/* 2. 카드 내 모든 텍스트 강제 가시성 */
+.card p,
+.card span:not([style*="background"]):not([class*="btn"]) {
+    color: var(--text) !important;
+    opacity: 0.75;
+}
+.card h3, .card h4,
+.card div[style*="font-weight:700"],
+.card div[style*="font-weight:800"],
+.card div[style*="font-weight:900"] {
+    color: var(--text) !important;
+    opacity: 1 !important;
+}
+
+/* 3. sec_grade_stats (수능 당일 카드) 텍스트 강제 */
+section#grade-stats div[style*="background:var(--c1)"] p,
+section#grade-stats div[style*="background:var(--c1)"] div {
+    color: #ffffff !important;
+    opacity: 1 !important;
+}
+section#grade-stats div[style*="background:var(--bg3)"] p,
+section#grade-stats div[style*="background:var(--bg3)"] div {
+    color: var(--text) !important;
+    opacity: 0.85 !important;
+}
+
+/* 4. why 섹션 카드 설명 텍스트 */
+section#why p[style*="color"] {
+    color: var(--text) !important;
+    opacity: 0.75 !important;
+}
+
+/* 5. 다크모드 ↔ 라이트모드 전환 시 모든 섹션 텍스트 보장 */
+body.light-mode .card p,
+body.light-mode section p,
+body.light-mode section div:not([style*="background:#"]):not([style*="background:var(--c1)"]) {
+    color: #0A0A0A !important;
+    opacity: 0.75 !important;
+}
+body.light-mode h1,
+body.light-mode h2,
+body.light-mode h3,
+body.light-mode h4 {
+    color: #0A0A0A !important;
+    opacity: 1 !important;
+}
+/* 다크 테마에서 라이트모드 전환 시 네비 글씨 */
+body.light-mode #site-nav a {
+    color: rgba(10,10,10,0.7) !important;
+}
+body.light-mode #site-nav a:hover {
+    color: #0A0A0A !important;
+}
+
+/* 6. 강제 흰색이어야 하는 요소들 (c1 배경 위) 보호 */
+[style*="background:var(--c1)"] p,
+[style*="background:var(--c1)"] span,
+[style*="background:var(--c1)"] div {
+    color: #ffffff !important;
+    opacity: 1 !important;
+}
+[style*="background:linear-gradient"] p,
+[style*="background:linear-gradient"] span {
+    color: #ffffff !important;
+    opacity: 1 !important;
 }
 """
 
@@ -3315,25 +3430,38 @@ def sec_grade_stats(d, cp, T):
         ("수능 당일",  f"배운 대로 정확히 풀어내는 자신감으로 시험장에 들어간다",    True),
     ]
 
-    flow_html = "".join(
-        f'<div class="rv d{i+1}" style="flex:1;min-width:150px;position:relative">'
-        f'<div style="padding:24px 18px;height:100%;'
-        f'background:{"var(--c1)" if is_final else "var(--bg3)"};'
-        f'border-radius:var(--r,4px);'
-        f'border:2px solid {"var(--c1)" if is_final else "var(--bd)"}">'
-        f'<div style="font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;'
-        f'color:{"rgba(255,255,255,.55)" if is_final else "var(--c1)"};margin-bottom:10px">'
-        f'{stage}</div>'
-        f'<p style="font-size:13px;line-height:1.75;margin:0;font-weight:{"700" if is_final else "500"};'
-        f'color:{"rgba(255,255,255,.9)" if is_final else "var(--t70)"}">{desc}</p>'
-        f'</div>'
-        + (f'<div style="position:absolute;top:50%;right:-13px;'
-           f'transform:translateY(-50%);font-size:18px;'
-           f'color:var(--c1);z-index:2;font-weight:900">›</div>'
-           if i < 3 else '')
-        + f'</div>'
-        for i, (stage, desc, is_final) in enumerate(STAGES)
-    )
+    flow_html = ""
+    for i, (stage, desc, is_final) in enumerate(STAGES):
+        # ✅ Python 변수로 미리 색상 결정 (f-string 안에 if 금지)
+        card_bg     = "var(--c1)"    if is_final else "var(--bg3)"
+        card_border = "var(--c1)"    if is_final else "var(--bd)"
+        stage_col   = "rgba(255,255,255,0.6)" if is_final else "var(--c1)"
+        desc_col    = "rgba(255,255,255,0.92)" if is_final else "var(--text)"
+        desc_weight = "700"          if is_final else "500"
+        desc_opacity= "1"            if is_final else "0.72"
+        arrow_html  = (
+            f'<div style="position:absolute;top:50%;right:-13px;'
+            f'transform:translateY(-50%);font-size:18px;'
+            f'color:var(--c1);z-index:2;font-weight:900">›</div>'
+            if i < 3 else ''
+        )
+        flow_html += (
+            f'<div class="rv d{min(i+1,4)}" '
+            f'style="flex:1;min-width:150px;position:relative">'
+            f'<div style="padding:24px 18px;height:100%;'
+            f'background:{card_bg};'
+            f'border-radius:var(--r,4px);'
+            f'border:2px solid {card_border}">'
+            f'<div style="font-size:9px;font-weight:800;letter-spacing:.14em;'
+            f'text-transform:uppercase;color:{stage_col};margin-bottom:10px">'
+            f'{stage}</div>'
+            f'<p style="font-size:13px;line-height:1.75;margin:0;'
+            f'font-weight:{desc_weight};'
+            f'color:{desc_col};opacity:{desc_opacity}">{desc}</p>'
+            f'</div>'
+            + arrow_html
+            + f'</div>'
+        )
 
     card_html = "".join(
         f'<div class="card rv d{min(i+1,3)}" style="padding:28px">'
