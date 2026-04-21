@@ -1093,26 +1093,41 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
     
     # 강좌명 추출
     course_name = st.session_state.get("purpose_label", "").strip()
+    
+    if sec_id == "banner":
+        purpose_specific_rule = (
+            f'⚠️ [절대규칙] bannerTitle에 반드시 강좌명 "{course_name}"이 들어가야 합니다. '
+            f'문장형/질문형 금지. 명사형 선언만 허용. '
+            f'좋은 예: "{course_name}" / "{course_name}으로 끝낸다"'
+        )
 
-    prompt = f"""당신은 Apple과 Samsung의 런칭 페이지를 기획하는 업계 최고 수준의 브랜드 마케터입니다.
+    prompt = f"""당신은 대한민국 최고 수능 강사 브랜딩 카피라이터입니다.
 
-⚠️ [절대 규칙 — 위반 시 전체 실패]
-1. bannerTitle에는 반드시 강좌명 "{course_name}"이 그대로 들어가야 합니다.
-   - 좋은 예: "{course_name}", "국어의 {course_name}", "{course_name}으로 끝낸다"
-   - 나쁜 예: "아직도 감으로 풀고 있나요?" (질문형), "국어 공부의 비밀" (강좌명 없음)
-2. bannerTitle은 문장형/질문형 절대 금지. 명사형 또는 짧은 선언형만 허용.
-3. 이모지 절대 금지.
-4. 인도네시아어/말레이어 단어(masih, dan, dengan 등) 절대 금지.
-5. AI 클리셰 절대 금지: 체계적인, 최고의, 합리적인, 실력 향상, 교수.
+━━━ 절대 규칙 (어기면 전체 무효) ━━━
+① bannerTitle = 반드시 강좌명 "{course_name}" 포함. 15자 이내. 명사형/선언형만.
+   ✅ 좋은 예: "{course_name}" / "{course_name}으로 끝낸다" / "국어의 {course_name}"  
+   ❌ 나쁜 예: 문장형("~하세요"), 질문형("~인가요?"), 강좌명 없는 것
+② 이모지 사용 금지 (brandTagline 영문 슬로건 제외)
+③ masih, dan, dengan 등 인도네시아어 금지
+④ "체계적", "최고의", "함께라면", "실력 향상" 등 AI 클리셰 금지
+⑤ 확인 안 된 수치(합격생 수, 만족도%) 지어내기 금지
 
-===문구 생성 지침===
+━━━ 이번 생성 방향 ━━━
 {variation_hint}
-# 이 페이지의 핵심 키워드: [{core_keyword}]
-# 방향성: {declaration}{metaphor_prompt}
-# 강좌명: {course_name} ← 반드시 bannerTitle에 포함
+핵심 키워드: [{core_keyword}]
+방향성: {declaration}{metaphor_prompt}
+강좌명: {course_name}
 
-===강사 정보===
+━━━ 강사 정보 ━━━
 {inst_ctx}
+
+━━━ 카피 어조 ━━━
+{tone_instruction}
+
+━━━ 금지 패턴 ━━━
+- "~하세요", "~인가요?", "~합니다" 로 끝나는 bannerTitle
+- "포기하지 마세요", "함께해요", "시작하세요" 단독 사용
+- "1등급 올릴 수 있습니다" 등 근거 없는 수치 약속
 
 ===문구 및 디렉션 품질 기준===
 1. 카피 길이 제한을 무시하세요. 감정을 흔들 수 있다면 아주 짧거나, 서사적으로 길게 작성하세요.
@@ -2026,112 +2041,124 @@ section#intro .card p {
     opacity: 0.7;
     font-weight: 500;
 }
-/* =============================================
-   ✅ 카드 텍스트 가독성 강제 보장
-   흰 배경 + 흰 글씨 버그 완전 차단
-   ============================================= */
+/* ================================================
+   ✅ 텍스트 가독성 시스템 — 완전 재설계
+   핵심 원칙: 배경색을 먼저 파악하고 글자색 결정
+   ================================================ */
 
-/* 모든 카드 내 p 태그 강제 색상 */
-.card p {
-    color: var(--text) !important;
-    opacity: 0.78 !important;
+/* --- 기본 텍스트: 테마 변수 사용 --- */
+body { color: var(--text); }
+
+/* --- c1(강조색) 배경 위는 무조건 흰 글씨 --- */
+[style*="background:var(--c1)"] *,
+[style*="background: var(--c1)"] * {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
 }
 
-/* 수강 이유 섹션 카드 설명 */
-section#why p,
-section#why div[style*="t70"],
-section#why p[style*="t70"] {
-    color: var(--text) !important;
-    opacity: 0.75 !important;
+/* --- 그라디언트 배경(CTA 섹션 등) 위는 무조건 흰 글씨 --- */
+[style*="background:linear-gradient"] *:not(a):not(button),
+[style*="background: linear-gradient"] *:not(a):not(button) {
+    color: #ffffff !important;
 }
 
-/* intro 섹션 포인트 카드 */
-section#intro .rv p,
-section#intro div[style*="bg3"] p {
-    color: var(--text) !important;
-    opacity: 0.75 !important;
-}
-
-/* 밝은 테마일 때 t70이 너무 연해지는 현상 방지 */
-body:not(.light-mode) p[style*="var(--t70)"] {
-    color: var(--text) !important;
-    opacity: 0.7 !important;
-}
-/* =============================================
-   ✅ 텍스트 가독성 완전 보장 시스템
-   ============================================= */
-
-/* 1. 밝은 배경에서 t70이 너무 연해지는 현상 방지 */
-p, span, div {
-    word-break: keep-all;
-}
-
-/* 2. 카드 내 모든 텍스트 강제 가시성 */
-.card p,
-.card span:not([style*="background"]):not([class*="btn"]) {
-    color: var(--text) !important;
+/* --- 카드 내 텍스트: var(--text) 강제 (배경이 bg/bg2/bg3이므로) --- */
+.card * { color: var(--text) !important; }
+.card p, .card span:not([style*="background"]) {
     opacity: 0.75;
 }
 .card h3, .card h4,
-.card div[style*="font-weight:700"],
-.card div[style*="font-weight:800"],
-.card div[style*="font-weight:900"] {
-    color: var(--text) !important;
+.card > div[style*="font-weight:7"],
+.card > div[style*="font-weight:8"],
+.card > div[style*="font-weight:9"] {
     opacity: 1 !important;
 }
 
-/* 3. sec_grade_stats (수능 당일 카드) 텍스트 강제 */
-section#grade-stats div[style*="background:var(--c1)"] p,
-section#grade-stats div[style*="background:var(--c1)"] div {
-    color: #ffffff !important;
-    opacity: 1 !important;
-}
-section#grade-stats div[style*="background:var(--bg3)"] p,
-section#grade-stats div[style*="background:var(--bg3)"] div {
+/* --- 섹션 본문 p 태그 --- */
+section p[style*="var(--t70)"] {
     color: var(--text) !important;
-    opacity: 0.85 !important;
+    opacity: 0.7 !important;
 }
 
-/* 4. why 섹션 카드 설명 텍스트 */
-section#why p[style*="color"] {
-    color: var(--text) !important;
-    opacity: 0.75 !important;
+/* ================================================
+   라이트모드 전환 — 최소한의 오버라이드만
+   (c1 배경 위 흰 글씨는 절대 건드리지 않음)
+   ================================================ */
+body.light-mode { background: #F5F5F0 !important; }
+
+/* 라이트모드: 배경이 bg계열인 요소만 텍스트 어둡게 */
+body.light-mode section:not([style*="background:var(--c1)"]):not([style*="linear-gradient"]) {
+    background: #F5F5F0;
+    color: #0A0A0A;
+}
+body.light-mode .card {
+    background: #ffffff !important;
+    border-color: rgba(0,0,0,0.1) !important;
+}
+body.light-mode .card * { color: #0A0A0A !important; }
+body.light-mode .card p { opacity: 0.7; }
+
+/* 라이트모드: 네비 */
+body.light-mode #site-nav {
+    background: rgba(245,245,240,0.95) !important;
+}
+body.light-mode #site-nav a,
+body.light-mode #site-nav div {
+    color: rgba(10,10,10,0.75) !important;
 }
 
-/* 5. 다크모드 ↔ 라이트모드 전환 시 모든 섹션 텍스트 보장 */
-body.light-mode .card p,
-body.light-mode section p,
-body.light-mode section div:not([style*="background:#"]):not([style*="background:var(--c1)"]) {
-    color: #0A0A0A !important;
-    opacity: 0.75 !important;
-}
+/* 라이트모드: 섹션 헤딩 */
 body.light-mode h1,
 body.light-mode h2,
-body.light-mode h3,
-body.light-mode h4 {
+body.light-mode h3 {
     color: #0A0A0A !important;
-    opacity: 1 !important;
 }
-/* 다크 테마에서 라이트모드 전환 시 네비 글씨 */
-body.light-mode #site-nav a {
-    color: rgba(10,10,10,0.7) !important;
+body.light-mode p { color: rgba(10,10,10,0.72) !important; }
+
+/* 라이트모드에서도 c1 배경 위는 흰 글씨 유지 */
+body.light-mode [style*="background:var(--c1)"] *,
+body.light-mode [style*="background: var(--c1)"] * {
+    color: #ffffff !important;
 }
-body.light-mode #site-nav a:hover {
-    color: #0A0A0A !important;
+body.light-mode [style*="background:linear-gradient"] *:not(a):not(button) {
+    color: #ffffff !important;
 }
 
-/* 6. 강제 흰색이어야 하는 요소들 (c1 배경 위) 보호 */
-[style*="background:var(--c1)"] p,
-[style*="background:var(--c1)"] span,
-[style*="background:var(--c1)"] div {
+/* ================================================
+   before/after 섹션 텍스트 강제
+   ================================================ */
+section#before-after [style*="background:#111"] * {
+    color: #ffffff !important;
+    opacity: 0.85;
+}
+section#before-after [style*="background:#111"] h3,
+section#before-after [style*="background:#111"] div[style*="font-weight"] {
+    opacity: 1 !important;
+}
+section#before-after [style*="background:var(--bg3)"] *,
+section#before-after [style*="background:var(--c1)"] p {
+    color: var(--text) !important;
+}
+
+/* ================================================
+   grade_stats 수능당일 카드 — 흰 글씨 보장
+   ================================================ */
+section#grade-stats [style*="background:var(--c1)"] div,
+section#grade-stats [style*="background:var(--c1)"] p {
     color: #ffffff !important;
     opacity: 1 !important;
 }
-[style*="background:linear-gradient"] p,
-[style*="background:linear-gradient"] span {
-    color: #ffffff !important;
-    opacity: 1 !important;
+section#grade-stats [style*="background:var(--bg3)"] div,
+section#grade-stats [style*="background:var(--bg3)"] p {
+    color: var(--text) !important;
+    opacity: 0.82 !important;
 }
+
+/* ================================================
+   BEFORE/AFTER 라벨 텍스트 강제
+   ================================================ */
+.ba-label-before { color: rgba(255,255,255,0.8) !important; }
+.ba-label-after  { color: var(--c1) !important; }
 """
 
 
@@ -3385,7 +3412,49 @@ def sec_before_after(d, cp, T):
 
     else:
         # [스타일 3: 기존 다크/라이트 대조형 블록 다듬기]
-        bh = ''.join(f'<div style="display:flex; gap:12px; margin-bottom:20px;"><div style="color:#D32F2F; font-weight:900;">✕</div><p style="font-size:14.5px; line-height:1.7; color:rgba(255,255,255,0.7); margin:0;">{strip_hanja(b)}</p></div>' for b in befores)
+        bh = "".join(
+            f'<div style="display:flex;gap:12px;margin-bottom:20px;align-items:flex-start">'
+            f'<div style="color:#FF5252;font-weight:900;font-size:16px;flex-shrink:0">✕</div>'
+            f'<p style="font-size:14.5px;line-height:1.75;color:rgba(255,255,255,0.82);'
+            f'margin:0;font-weight:500">{strip_hanja(b)}</p></div>'
+            for b in befores
+        )
+        # ✅ after: var(--bg3) 배경이므로 var(--text) 사용
+        ah = "".join(
+            f'<div style="display:flex;gap:12px;margin-bottom:20px;align-items:flex-start">'
+            f'<div style="color:var(--c1);font-weight:900;font-size:16px;flex-shrink:0">✓</div>'
+            f'<p style="font-size:14.5px;line-height:1.75;color:var(--text);'
+            f'margin:0;font-weight:600;opacity:0.85">{strip_hanja(a)}</p></div>'
+            for a in afters
+        )
+        
+        return (
+            f'<section class="sec" id="before-after">'
+            f'<div style="max-width:1000px;margin:0 auto;">'
+            f'<div class="rv" style="text-align:center;margin-bottom:56px;">'
+            f'<div class="tag-line" style="justify-content:center;">수강 전과 후</div>'
+            f'<h2 style="font-family:var(--fh);font-size:clamp(32px,5vw,56px);'
+            f'font-weight:900;color:var(--text);margin-bottom:16px;">{t}</h2>'
+            f'<p style="font-size:16px;color:var(--text);opacity:0.65;">{sub}</p>'
+            f'</div>'
+            f'<div class="rv d1" style="display:grid;grid-template-columns:1fr 48px 1.2fr;'
+            f'align-items:stretch;border-radius:var(--r,12px);overflow:hidden;'
+            f'box-shadow:0 12px 40px rgba(0,0,0,0.15);">'
+            # BEFORE 패널 — 어두운 배경, 흰 글씨
+            f'<div style="background:#111111;padding:48px 40px;">'
+            f'<div style="font-family:var(--fh);font-size:22px;font-weight:900;'
+            f'color:rgba(255,255,255,0.4);margin-bottom:28px;letter-spacing:0.1em">BEFORE</div>'
+            f'{bh}</div>'
+            # 화살표
+            f'<div style="background:var(--c1);display:flex;align-items:center;'
+            f'justify-content:center;color:#ffffff;font-size:22px;font-weight:900;">→</div>'
+            # AFTER 패널 — 밝은 배경, 어두운 글씨
+            f'<div style="background:var(--bg3);padding:48px 40px;">'
+            f'<div style="font-family:var(--fh);font-size:22px;font-weight:900;'
+            f'color:var(--c1);margin-bottom:28px;letter-spacing:0.1em">AFTER</div>'
+            f'{ah}</div>'
+            f'</div></div></section>'
+        )
         ah = ''.join(f'<div style="display:flex; gap:12px; margin-bottom:20px;"><div style="color:var(--c1); font-weight:900;">✓</div><p style="font-size:14.5px; line-height:1.7; color:var(--text); font-weight:600; margin:0;">{strip_hanja(a)}</p></div>' for a in afters)
         
         return (
