@@ -720,10 +720,19 @@ def remove_series_suffix(text: str, plabel: str) -> str:
     text = re.sub(escaped + r'\s*시리즈', plabel, text)
     return text
 
+# fix_korean_particles 함수의 rules 리스트에서
+# 받침 없는 경우 처리가 잘못된 것 → postprocess_copy 후처리에 아래 추가
+
 def postprocess_copy(text: str, plabel: str) -> str:
     text = remove_series_suffix(text, plabel)
     text = fix_korean_particles(text)
+    # ✅ 추가: 잘못된 "으로" 보정
+    text = re.sub(r'([가-힣])으로', lambda m: m.group(0) if _has_batchim_char(m.group(1)) else m.group(1) + '로', text)
     return text
+
+def _has_batchim_char(char: str) -> bool:
+    if not char or not ('가' <= char <= '힣'): return False
+    return (ord(char) - ord('가')) % 28 != 0
 
 def strip_hanja(text: str) -> str:
     if not isinstance(text, str): return str(text) if text is not None else ""
@@ -1301,15 +1310,11 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
 ③ masih, dan, dengan 등 인도네시아어 금지
 ④ "체계적", "최고의", "함께라면", "실력 향상" 등 AI 클리셰 금지
 ⑤ 확인 안 된 수치(합격생 수, 만족도%, 등급 변화 수치) 지어내기 금지
-⑥ D-day 숫자 절대 금지:
-   "D-100", "D-30", "D-365", "D-50" 등 구체적 숫자가 포함된
-   D-day 표현은 단 하나도 쓰지 마세요.
-   → 대신: "수능 전", "지금 이 순간", "남은 시간", "수능까지" 처럼
-     숫자 없는 시간 표현만 허용.
-   ❌ 금지 패턴 예시: D-\\d+, D-[0-9]+
-   ✅ 허용 표현: "수능 전 마지막", "지금 당장", "수능까지 남은 시간"
-⑦ 현재 날짜 기준으로 계산이 필요한 모든 수치는 작성 금지.
-⑧ 아래 클리셰 표현 절대 금지:
+⑥ "D-숫자" 패턴 완전 금지. "D-100", "D-30", "수능 D-100" 등 전부 금지.\n'
+   → 반드시 "수능 전", "지금 이 순간", "수능까지" 같은 숫자 없는 표현만 사용.\n'
+⑦ bannerSub(뱃지 텍스트)에도 D-숫자 금지. "수능 D-100" → "수능 직전" 으로 대체.'
+⑧ 현재 날짜 기준으로 계산이 필요한 모든 수치는 작성 금지.
+⑨ 아래 클리셰 표현 절대 금지:
    "비밀을 공개", "비법 공개", "급상승의 비밀", "성적 급상승",
    "함께라면 가능", "살길이다", "유일한 선택", "마지막 기회"
    → 대신 학생의 현재 상황을 구체적 팩트로 묘사할 것.
