@@ -72,6 +72,26 @@ GROQ_MODELS = [
 ]
 
 FEW_SHOT_EXAMPLES = """
+=== ❌ 2025년 이후 절대 쓰면 안 되는 구시대 문구 패턴 ===
+
+[감성 도입부 — 완전 금지]
+❌ "새벽에 혼자 공부하는 당신"
+❌ "수험생의 외로움과 막막함을 압니다"  
+❌ "지치고 힘든 당신을 응원합니다"
+❌ "포기하지 마세요, 할 수 있습니다"
+→ 이런 문장은 2010년대 감성. 지금 수험생에게 통하지 않음.
+
+[올드한 도입부 대신 쓸 것]
+✅ "지문은 읽었는데 답이 틀렸다. 방법이 틀린 거다."
+✅ "공부 시간과 성적이 비례하지 않는 이유가 있다."
+✅ "감으로 맞춘 건 실력이 아니다."
+✅ "3등급에서 멈추는 이유는 노력이 아니라 방향이다."
+
+[시그니처 메서드 강요 금지]
+❌ "KISS Logic 방식으로 지문에 접근합니다" (브랜드명과 무관할 때)
+❌ "KISSAVE를 통해 실력을 키웁니다" (입력하지 않은 내용)
+✅ 사용자가 입력한 강좌명과 맥락만으로 문구 생성
+
 === 🏆 인간이 직접 쓴 것 같은 문구의 특징 ===
 좋은 카피는 다음 3가지를 동시에 충족한다:
 1. 수험생의 지금 상황을 정확히 묘사 (추상적 희망 금지)
@@ -1335,10 +1355,16 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
    → 반드시 "수능 전", "지금 이 순간", "수능까지" 같은 숫자 없는 표현만 사용.\n'
 ⑦ bannerSub(뱃지 텍스트)에도 D-숫자 금지. "수능 D-100" → "수능 직전" 으로 대체.'
 ⑧ 현재 날짜 기준으로 계산이 필요한 모든 수치는 작성 금지.
-⑨ 아래 클리셰 표현 절대 금지:
-   "비밀을 공개", "비법 공개", "급상승의 비밀", "성적 급상승",
-   "함께라면 가능", "살길이다", "유일한 선택", "마지막 기회"
-   → 대신 학생의 현재 상황을 구체적 팩트로 묘사할 것.
+⑨ 아래 클리셰 표현 절대 금지 (이 문장이 생각나면 다시 써라):
+   ❌ "새벽에 혼자 공부하는 당신" → ✅ 구체적 학습 상황 묘사
+   ❌ "수험생의 외로움·막막함" → ✅ 성적/시간/방법론 팩트
+   ❌ "당신의 꿈을 응원합니다" → ✅ 결과 중심 선언
+   ❌ "비밀을 공개", "비법 공개" → ✅ 방법론 이름 직접 사용
+   ❌ "성적 급상승", "급상승의 비밀" → ✅ 구체적 등급/점수 변화
+   ❌ "함께라면 가능", "살길이다", "유일한 선택" → ✅ 근거 있는 선언
+   ❌ "~하는 당신에게" 패턴 → ✅ "~이 문제라면" 직격 패턴
+   ❌ 감성·위로 중심 도입부 → ✅ 팩트·구조·방법론 중심 도입부
+   → 대신 학생의 현재 학습 문제를 차갑고 정확하게 짚을 것.
 ⑩ 강좌명 자기 참조 금지: "일리는 일리를", "KISS Logic은 KISS Logic을" 같이\n'
    강좌명이 주어와 목적어에 동시에 나오는 문장 절대 금지.\n'
    ❌ "2027 일리는 2027 일리를 통해 지문을..."\n'
@@ -4305,11 +4331,18 @@ def sec_grade_stats(d, cp, T):
 
 def sec_method(d, cp, T):
     """시그니처 학습법 시각화 — ABPS 'Apply to text' 스타일"""
-    t    = strip_hanja(cp.get("methodTitle", f"{d['name'] or d['subject']} 시그니처 학습법"))
+    t    = strip_hanja(cp.get("methodTitle", f"{d['purpose_label']} 학습법"))
     sub  = strip_hanja(cp.get("methodSub",   "이 방식으로 접근하면 지문이 완전히 달리 보입니다"))
     methods_raw = cp.get("methodSteps",[])
     ip = st.session_state.get("inst_profile") or {}
-    sig = [strip_hanja(m) for m in (ip.get("signatureMethods") or []) if m and m not in ("없음","")]
+    plabel = st.session_state.get("purpose_label", "")
+    
+    # ✅ 핵심 수정: 현재 브랜드명과 일치하는 메서드만 사용
+    all_methods = [strip_hanja(m) for m in (ip.get("signatureMethods") or []) if m and m not in ("없음","")]
+    plabel_lower = plabel.replace(" ", "").lower()
+    sig = [m for m in all_methods if m.replace(" ","").lower() in plabel_lower or plabel_lower in m.replace(" ","").lower()]
+    # 일치하는 메서드가 없으면 빈 리스트 (다른 커리큘럼명 사용 금지)
+    
     if not methods_raw:
         methods_raw = [
             {"step": s, "label": f"{i+1}단계", "desc": f"{s} 방식으로 {d['subject']} 지문에 접근합니다."}
@@ -4684,8 +4717,11 @@ def sec_instructor_philosophy(d, cp, T):
     if ptype == "신규 커리큘럼" and purpose_label:
         # 신규 커리큘럼이면 강의 브랜드명(강좌명)을 핵심 공식으로 사용
         method_flow = purpose_label
-    elif methods: # <--- 💡 여기에 있던 'sig' 오타를 'methods'로 고쳤습니다!
-        method_flow = " → ".join(methods[:3])
+    elif methods:
+        # ✅ 현재 브랜드명과 일치하는 메서드만 사용
+        plabel_clean = plabel.replace(" ", "").lower()
+        matched = [m for m in methods if m.replace(" ","").lower() in plabel_clean or plabel_clean in m.replace(" ","").lower()]
+        method_flow = " → ".join(matched[:3]) if matched else plabel
     else:
         method_flow = f"{d['subject']} 완성"
         
