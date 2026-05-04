@@ -735,9 +735,27 @@ def _has_batchim_char(char: str) -> bool:
     return (ord(char) - ord('가')) % 28 != 0
 
 def strip_hanja(text: str) -> str:
-    if not isinstance(text, str): return str(text) if text is not None else ""
-    allowed_pattern = r'[^\u3131-\u3163\uAC00-\uD7A3a-zA-Z0-9\s\.\,\!\?\'\"\%\[\]\(\)\-\<\>~·/&+]'
-    cleaned = re.sub(allowed_pattern, '', text)
+    """한자·일본어·인도네시아어 제거 + 조사 보정 통합 버전"""
+    if not isinstance(text, str):
+        return str(text) if text is not None else ""
+    import re
+
+    # 1) 조사 보정 (받침 없으면 "로", 있으면 "으로")
+    def _fix_euro(m):
+        word = m.group(1)
+        last = word[-1] if word else ''
+        if not ('가' <= last <= '힣'):
+            return word + '로'
+        code = ord(last) - ord('가')
+        jongseong = code % 28
+        return word + '로' if jongseong == 0 or jongseong == 8 else word + '으로'
+    text = re.sub(r'([가-힣a-zA-Z0-9]+)(?:으로|로)(?=[\s,\.·!\?]|$)', _fix_euro, text)
+
+    # 2) 한자·특수문자 제거 (한글, 영문, 숫자, 기본 구두점만 허용)
+    allowed_pattern = r'[^\u3131-\u3163\uAC00-\uD7A3a-zA-Z0-9\s\.\,\!\?\'\"\%\[\]\(\)\-\<\>~·/&+\n]'
+    text = re.sub(allowed_pattern, '', text)
+
+    # 3) 인도네시아어/말레이어 금지 단어 제거
     FORBIDDEN_WORDS = [
         r'\bmasih\b', r'\bdan\b', r'\bdengan\b', r'\buntuk\b',
         r'\bjuga\b', r'\batau\b', r'\btidak\b', r'\byang\b',
@@ -746,29 +764,11 @@ def strip_hanja(text: str) -> str:
         r'\bakan\b', r'\bagar\b', r'\bpada\b', r'\bdari\b',
     ]
     for pattern in FORBIDDEN_WORDS:
-        cleaned = re.sub(pattern, '', cleaned, flags=re.IGNORECASE)
-    cleaned = re.sub(r'\s+', ' ', cleaned)
-    return cleaned.strip()
-    
-def strip_hanja(text: str) -> str:
-    if not isinstance(text, str): return str(text) if text is not None else ""
-    import re
-    
-    def _fix_euro(m):
-        word = m.group(1)
-        last = word[-1] if word else ''
-        if not ('가' <= last <= '힣'):
-            # 영문/숫자로 끝나면 "로"
-            return word + '로'
-        code = ord(last) - ord('가')
-        jongseong = code % 28
-        # 받침 없음(0) 또는 ㄹ받침(8) → "로"
-        if jongseong == 0 or jongseong == 8:
-            return word + '로'
-        return word + '으로'
-    
-    text = re.sub(r'([가-힣a-zA-Z0-9]+)(?:으로|로)(?=[\s,\.·!\?]|$)', _fix_euro, text)
-    return text
+        text = re.sub(pattern, '', text, flags=re.IGNORECASE)
+
+    # 4) 연속 공백 정리
+    text = re.sub(r'[ \t]+', ' ', text)
+    return text.strip()
     
     allowed_pattern = r'[^\u3131-\u3163\uAC00-\uD7A3a-zA-Z0-9\s\.\,\!\?\'\"\%\[\]\(\)\-\<\>~·/&+]'
     cleaned = re.sub(allowed_pattern, '', text)
@@ -990,9 +990,13 @@ def call_ai(prompt: str, system: str = "", max_tokens: int = 2000) -> str:
     sys_parts = [system] if system else []
     sys_parts.append(
     "Return ONLY valid JSON. No markdown. No extra text. "
-    "CRITICAL: Never use Chinese, Japanese, Indonesian, Malay words. "
-    "Forbidden words: masih, dan, dengan, untuk, juga, atau, tidak, yang, ini. "
-    "Write ALL body text in Korean only. English is allowed ONLY for brand slogans and course names."
+    "CRITICAL RULES: "
+    "1. Never use Chinese characters (漢字), Japanese characters (ひらがな/カタカナ/漢字), Indonesian/Malay words. "
+    "2. Forbidden words: masih, dan, dengan, untuk, juga, atau, tidak, yang, ini, itu, saya. "
+    "3. Write ALL body text in KOREAN only. English allowed ONLY for brand slogans/course names. "
+    "4. Keep ALL text fields concise: bannerLead max 120 chars, introDesc max 150 chars, "
+    "whyReasons desc max 120 chars, ctaSub max 80 chars. "
+    "5. Never repeat the course name as both subject and object in one sentence."
     )
     messages.append({"role":"system","content":"\n\n".join(sys_parts)})
     messages.append({"role":"user","content":prompt})
@@ -1268,21 +1272,21 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
             '{"bannerSub":"12자 이내 — 과목+포지셔닝 한 줄",'
             '"bannerTitle":"반드시 강좌명 포함. 20자 이내 선언형 단 하나의 문장",'
             '"brandTagline":"영문 슬로건 — 강좌명의 핵심 의미를 담은 완결된 한 문장 (예: Logical English for the Best)",'
-            '"bannerLead":"수험생의 현실을 팩트로 짚는 리드. 반드시 150자 이상. 지금 상황 묘사 → 이 강의가 필요한 이유 → 수강 후 달라지는 것 3단 구조로 작성",'
+            '"bannerLead":"수험생의 현실을 팩트로 짚는 리드. 60-80자. 지금 상황 묘사 → 이 강의가 필요한 이유 → 수강 후 달라지는 것 3단 구조로 작성",'
             '"bannerTags":["핵심키워드1","핵심키워드2","핵심키워드3"],'
             '"bannerVisual":"[Visual Directing] 배너 시각 연출 디렉션 — 색감·이미지·분위기·타이포 스타일을 100자 이상 구체적으로",'
             '"ctaCopy":"행동 유도 버튼 텍스트 10자","ctaTitle":"CTA 섹션 메인 제목 25자 이상",'
-            '"ctaSub":"수강신청을 지금 해야 하는 이유를 감정적으로 설득하는 문장. 반드시 80자 이상. 시간적 긴박감 또는 기회비용 언급 필수",'
+            '"ctaSub":"수강신청을 지금 해야 하는 이유를 감정적으로 설득하는 문장. 40-60자. 시간적 긴박감 또는 기회비용 언급 필수",'
             '"ctaBadge":"15자 이내 뱃지 텍스트","introTitle":"강사 소개 섹션 제목 — 단순 안내가 아닌 신뢰를 주는 한 문장 25자",'
-            '"introDesc":"강사의 차별점·철학·수업 방식을 설명하는 본문. 반드시 200자 이상. 학생이 수강 후 어떻게 달라지는지 구체적 변화 중심으로 서술",'
-            '"introBio":"강사 핵심 강점 한 줄 요약 — 반드시 80자 이상. 구체적인 강의 방식 또는 성과 포함",'
+            '"introDesc":"강사의 차별점·철학·수업 방식을 설명하는 본문. 80-120자. 학생이 수강 후 어떻게 달라지는지 구체적 변화 중심으로 서술",'
+            '"introBio":"강사 핵심 강점 한 줄 요약 — 40-60자. 구체적인 강의 방식 또는 성과 포함",'
             '"introVisual":"[Visual Directing] 인트로 섹션 시각 연출 100자 이상",'
             '"whyTitle":"수강 이유 섹션 제목 — 학생이 클릭하고 싶게 만드는 문장 25자",'
             '"whySub":"서브 타이틀 — 구체적 상황이나 고민을 직접 언급 40자",'
-            '"whyReasons":[["01","12자 이내 임팩트 제목","이 이유가 왜 중요한지 학생 입장에서 구체적으로 서술. 반드시 150자 이상. 현실 문제 제시 → 이 강의의 해결책 → 수강 후 변화 구조"],["02","12자","150자 이상"],["03","12자","150자 이상"]],'
+            '"whyReasons":[["01","12자 이내 임팩트 제목","이 이유가 왜 중요한지 학생 입장에서 구체적으로 서술. 60-80자. 현실 문제 제시 → 이 강의의 해결책 → 수강 후 변화 구조"],["02","12자","150자 이상"],["03","12자","150자 이상"]],'
             '"whyVisual":"[Visual Directing] 수강이유 섹션 시각 연출 100자 이상",'
             '"curriculumTitle":"커리큘럼 섹션 제목 25자","curriculumSub":"서브 타이틀 40자",'
-            '"curriculumSteps":[["01","단계명 8자","이 단계를 통해 학생에게 무슨 변화가 생기는지. 반드시 120자 이상. 구체적 학습 내용 + 이후 달라지는 것","기간"],["02","8자","120자 이상","기간"],["03","8자","120자 이상","기간"],["04","8자","120자 이상","기간"]],'
+            '"curriculumSteps":[["01","단계명 8자","이 단계를 통해 학생에게 무슨 변화가 생기는지. 50-80자. 구체적 학습 내용 + 이후 달라지는 것","기간"],["02","8자","120자 이상","기간"],["03","8자","120자 이상","기간"],["04","8자","120자 이상","기간"]],'
             '"targetTitle":"수강 대상 섹션 제목 25자",'
             '"targetItems":["이 강의가 필요한 구체적 상황 묘사. 60자 이상. 학생이 읽고 자신의 이야기라고 느껴야 함","60자 이상","60자 이상","60자 이상"],'
             '"reviews":[["실제 수강생이 쓴 것처럼 생생하고 구체적인 후기. 반드시 100자 이상. 등급·점수·공부 방식의 변화를 구체적으로 언급","이름","뱃지"],["100자 이상","이름","뱃지"],["100자 이상","이름","뱃지"]],'
@@ -1375,6 +1379,8 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
 
     result = safe_json(call_ai(prompt, max_tokens=5000))
     plabel = st.session_state.get("purpose_label", "").strip()
+    result = clean_obj(result)
+    
     return ban_other_curricula(result, plabel)
 
 SEC_LAYOUT_VARIANTS = {
@@ -3677,7 +3683,11 @@ def sec_video(d, cp, T):
     
     # 사이드바에서 입력한 videoUrl 가져오기
     v_url = cp.get("videoUrl", "")
-    
+
+    # ✅ YouTube embed URL이 아니면 무효 처리
+    if v_url and not v_url.startswith("https://www.youtube.com/embed/"):
+        v_url = ""
+        
     if not v_url:
         video_html = (
             f'<div style="width:100%; aspect-ratio:16/9; background:var(--bg3); border-radius:var(--r, 8px); display:flex; align-items:center; justify-content:center; color:var(--t45); border:1px dashed var(--bd);">'
