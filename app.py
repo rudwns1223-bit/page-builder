@@ -743,16 +743,15 @@ def remove_series_suffix(text: str, plabel: str) -> str:
 # fix_korean_particles 함수의 rules 리스트에서
 # 받침 없는 경우 처리가 잘못된 것 → postprocess_copy 후처리에 아래 추가
 
-def postprocess_copy(text: str, plabel: str) -> str:
-    text = remove_series_suffix(text, plabel)
-    text = fix_korean_particles(text)
-    # ✅ 추가: 잘못된 "으로" 보정
-    text = re.sub(r'([가-힣])으로', lambda m: m.group(0) if _has_batchim_char(m.group(1)) else m.group(1) + '로', text)
-    return text
-
 def _has_batchim_char(char: str) -> bool:
     if not char or not ('가' <= char <= '힣'): return False
     return (ord(char) - ord('가')) % 28 != 0
+
+def postprocess_copy(text: str, plabel: str) -> str:
+    text = remove_series_suffix(text, plabel)
+    text = fix_korean_particles(text)
+    text = re.sub(r'([가-힣])으로', lambda m: m.group(0) if _has_batchim_char(m.group(1)) else m.group(1) + '로', text)
+    return text
 
 def strip_hanja(text: str) -> str:
     """한자·일본어·인도네시아어 제거 + 조사 보정 통합 버전"""
@@ -789,18 +788,6 @@ def strip_hanja(text: str) -> str:
     # 4) 연속 공백 정리
     text = re.sub(r'[ \t]+', ' ', text)
     return text.strip()
-    
-    allowed_pattern = r'[^\u3131-\u3163\uAC00-\uD7A3a-zA-Z0-9\s\.\,\!\?\'\"\%\[\]\(\)\-\<\>~·/&+]'
-    cleaned = re.sub(allowed_pattern, '', text)
-    FORBIDDEN_WORDS = [
-        r'\bmasih\b', r'\bdan\b', r'\bdengan\b', r'\buntuk\b',
-        r'\bjuga\b', r'\batau\b', r'\btidak\b', r'\byang\b',
-        r'\bini\b', r'\bitu\b', r'\bsaya\b', r'\bkamu\b',
-    ]
-    for pattern in FORBIDDEN_WORDS:
-        cleaned = re.sub(pattern, '', cleaned, flags=re.IGNORECASE)
-    cleaned = re.sub(r'\s+', ' ', cleaned)
-    return cleaned.strip()
 
 def clean_obj(obj):
     if isinstance(obj, str): return strip_hanja(obj)
@@ -905,27 +892,21 @@ def safe_json(raw: str) -> dict:
     s = re.sub(r",\s*}", "}", s)
     s = re.sub(r",\s*]", "]", s)
     
-    try:
-        return clean_obj(json.loads(s))
-    except Exception as e:
-        raise ValueError(f"JSON 파싱 에러: {e}\n추출된 문자열: {s[:100]}")
-    candidate = s[:end_idx+1]
     def _try(x):
         try: return clean_obj(json.loads(x))
         except Exception: return None
-    r = _try(candidate)
+
+    r = _try(s)
     if r: return r
-    r = _try(candidate.replace("\n"," ").replace("\r",""))
+    r = _try(s.replace("\n", " ").replace("\r", ""))
     if r: return r
-    # 마지막 수단: 일반적인 JSON 수리 시도
-    fixed = re.sub(r",\s*}", "}", candidate)
+    fixed = re.sub(r",\s*}", "}", s)
     fixed = re.sub(r",\s*]", "]", fixed)
     r = _try(fixed)
     if r: return r
     raise ValueError(
-        f"AI 응답 파싱 실패\n"
-        f"원인: JSON 형식 오류 (AI가 올바른 형식으로 응답하지 않음)\n"
-        f"해결: 다시 시도해주세요 (모델이 간헐적으로 실패함)\n"
+        f"AI 응답 파싱 실패 — 다시 시도해주세요\n"
+        f"원인: JSON 형식 오류 (AI 모델이 올바른 형식으로 응답하지 않음)\n"
         f"원본 (처음 200자): {raw[:200]}"
     )
 
@@ -1547,6 +1528,48 @@ COPY_VARIATION_SEEDS = [
         "lead_hint": "다른 강사를 들으면 망할 것처럼, 오직 나만이 구원자라는 뉘앙스로 작성",
         "why_hint": "이유를 묻지도 따지지도 말고 그냥 따라오라는 식의 압도적인 확신",
         "cta_hint": "1등급을 향한 마지막 동아줄임을 강조하는 다급한 문장"
+    },
+    {
+        "style": "📐 건축적 구조형 — 장식 없이 뼈대만",
+        "bannerTitle_hint": "가장 중요한 단어 하나만. 형용사 전면 금지. 명사+동사만으로 끝낼 것",
+        "lead_hint": "3가지 팩트를 마침표로 끊어 나열. 연결어(그래서·하지만·그리고) 없이",
+        "why_hint": "각 이유를 '문제 진단문'으로만. 해결책 언급 없이 팩트만 나열하고 끝내기",
+        "cta_hint": "신청 이유 설명 금지. '지금 결정하라'가 아니라 '이 문이 열려 있다' 방식으로",
+    },
+    {
+        "style": "🗞 조선일보 헤드라인형 — 명사형 종결",
+        "bannerTitle_hint": "신문 1면처럼 명사형으로 끝내기. '의', '한', '을' 같은 조사 최소화",
+        "lead_hint": "기사 리드처럼: 언제·누가·무엇을·왜. 각각 한 문장씩, 순서대로",
+        "why_hint": "대시(—) 뒤에 핵심, 이후 설명 붙이는 역피라미드. '왜냐하면' 금지",
+        "cta_hint": "마감 날짜나 수량을 첫 단어로 시작. 날짜가 없으면 '지금'도 금지",
+    },
+    {
+        "style": "🎬 영화 예고편형 — 3막 구조",
+        "bannerTitle_hint": "상반된 두 세계를 제목 안에 담기. '이전과 이후', '모르는 것과 아는 것'",
+        "lead_hint": "1막: 현재 문제(2문장 이내). 2막: 전환점(1문장). 3막: 이 강의 이후(1문장)",
+        "why_hint": "각 이유 = 각 장면. '그리고·하지만·그래서'로 연결되는 미니 스토리",
+        "cta_hint": "'이제' 혹은 '오늘부터'로 시작하는 전환 선언. 과거-현재-미래 3단",
+    },
+    {
+        "style": "🔬 해부학 반박형 — 오개념 직격",
+        "bannerTitle_hint": "학생이 가장 자주 틀리는 '한 가지 구체적 이유'를 제목으로",
+        "lead_hint": "오답 패턴 3가지 나열 → 공통 원인 하나를 마지막에 찌르기",
+        "why_hint": "'대부분의 학생은 X라고 생각한다. 틀렸다. 실제로는 Y다.' 반박 구조 반복",
+        "cta_hint": "틀린 이유를 알았으니 이제 뭘 해야 하는지 단 하나의 행동으로만",
+    },
+    {
+        "style": "💌 선배의 편지형 — 이미 통과한 사람",
+        "bannerTitle_hint": "수능을 이미 통과한 사람이 보내는 제목. '그때 알았더라면' 뉘앙스",
+        "lead_hint": "과거형으로 시작 → 현재형으로 전환. '나는 그때 이걸 몰랐다. 지금 너는 알 수 있다'",
+        "why_hint": "'내가 후회하는 것'을 이유 형식으로. 선배의 실패 경험 기반 충고 구조",
+        "cta_hint": "1년 후 자신에게 보내는 편지. '지금의 결정이 그 날을 만든다'",
+    },
+    {
+        "style": "⚡ SNS 스레드형 — 짧고 끊기",
+        "bannerTitle_hint": "트윗 제한처럼 핵심만. 한 줄이 너무 길면 잘라내기. 설명 절대 금지",
+        "lead_hint": "3개의 독립된 짧은 문장. 각각 따로 읽혀도 되는 구조. 연결 없이",
+        "why_hint": "각 이유 = 각 트윗. 숫자로 시작하거나 '근데 이게 왜 중요하냐면'으로 연결",
+        "cta_hint": "한 줄로 끝내기. 설명하지 말고 선언만. 마침표로 마무리",
     },
 ]
  
@@ -2777,7 +2800,8 @@ def sec_banner(d, cp, T):
         overlay = ""
 
     # 레이아웃 변형 (해시 기반 고정)
-    text_hash = sum(ord(c) for c in (str(title or "") + str(lead or "")))
+    _seed = st.session_state.get("preview_key", 0)
+    text_hash = sum(ord(c) for c in (str(title or "") + str(lead or ""))) + _seed
     v = (text_hash % 3) + 1
 
     # ──────────────────────────────────────────────
@@ -3886,6 +3910,106 @@ def sec_fest_cta(d, cp, T):
     t = strip_hanja(cp.get("festCtaTitle",f"지금 바로 {d['subject']} 기획전<br>전체 강사 라인업을 만나세요"))
     s = strip_hanja(cp.get("festCtaSub",f"최고의 강사들과 함께 {d['subject']} 1등급 완성."))
     return (f'<section style="padding:clamp(72px,10vw,112px) clamp(28px,6vw,72px);text-align:center;position:relative;overflow:hidden;background:{T["cta"]}"><div style="position:absolute;top:-120px;left:50%;transform:translateX(-50%);width:700px;height:700px;border-radius:50%;background:rgba(255,255,255,.03);pointer-events:none"></div><div style="position:relative;z-index:1"><div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);padding:7px 22px;border-radius:var(--r-btn,4px);font-size:11px;font-weight:800;color:#fff;margin-bottom:26px;border:1px solid rgba(255,255,255,.2)">🏆 {d["subject"]} 기획전 통합 신청</div><h2 style="font-family:var(--fh);font-size:clamp(28px,5vw,60px);font-weight:900;line-height:1.05;letter-spacing:-.04em;color:#fff;margin-bottom:18px">{t}</h2><p style="color:rgba(255,255,255,.6);font-size:15px;line-height:1.85;margin-bottom:44px;max-width:480px;margin-left:auto;margin-right:auto">{s}</p><div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap"><a style="display:inline-flex;align-items:center;gap:8px;background:#fff;color:#0A0A0A;font-weight:800;padding:18px 52px;border-radius:var(--r-btn,4px);font-size:16px;text-decoration:none" href="#">기획전 통합 신청 →</a><a style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);backdrop-filter:blur(8px);color:rgba(255,255,255,.82);font-weight:600;padding:17px 32px;border-radius:var(--r-btn,4px);border:1.5px solid rgba(255,255,255,.3);font-size:14px;text-decoration:none" href="#">강사 개별 신청</a></div></div></section>')
+# ═══════════════════════════════════════════════════════
+# SB 시트 생성
+# ═══════════════════════════════════════════════════════
+def generate_sb_sheet(cp: dict, ordered_secs: list) -> str:
+    LAYOUT_NAMES = {
+        "banner":     ["마키 타이포그래피형", "Apple 중앙정렬형", "매거진 좌정렬형"],
+        "intro":      ["에디토리얼 2컬럼형", "중앙 인용구형", "스탯 강조형", "비대칭 벤토형"],
+        "why":        ["에디토리얼 스택형", "클린 타임라인형", "벤토박스 그리드형", "숫자 대비형"],
+        "curriculum": ["스티키 카드 스택형", "지그재그 타임라인형", "수평 스텝퍼형", "스플릿 고정형"],
+        "target":     ["엇갈린 카드형", "체크리스트형", "페르소나 카드형", "숫자 강조형"],
+        "reviews":    ["SNS 카드형", "인용구 강조형", "점수 카드형", "첫카드 풀와이드형"],
+        "cta":        ["그라디언트 중앙형", "풀와이드 2컬럼형", "카운트다운 긴박형"],
+        "faq":        ["아코디언 2컬럼형", "탭 카테고리형", "채팅 버블형"],
+    }
+
+    lines = [
+        f"# 📋 스토리보드 시트\n",
+        f"| 항목 | 내용 |",
+        f"|------|------|",
+        f"| 강좌명 | **{st.session_state.purpose_label}** |",
+        f"| 강사 | {st.session_state.instructor_name or '—'} |",
+        f"| 과목 | {st.session_state.subject} |",
+        f"| 목적 | {st.session_state.purpose_type} |",
+        f"| 어조 | {st.session_state.copy_tone} |",
+        f"\n---\n",
+    ]
+
+    for i, sec_id in enumerate(ordered_secs):
+        if sec_id == "custom_section":
+            continue
+
+        sec_label = SEC_LABELS.get(sec_id, sec_id)
+
+        # 레이아웃 이름 결정
+        layout_name = "자동 결정"
+        if sec_id in LAYOUT_NAMES:
+            names = LAYOUT_NAMES[sec_id]
+            text_hash = sum(ord(c) for c in str(cp.get("bannerTitle", "")) + sec_id)
+            layout_name = names[text_hash % len(names)]
+
+        lines.append(f"## {i+1:02d}. {sec_label}")
+        lines.append(f"> **레이아웃 컨셉:** {layout_name}\n")
+
+        # 섹션별 핵심 카피 추출
+        if sec_id == "banner":
+            lines.append(f"- **메인 카피:** {cp.get('bannerTitle', '—')}")
+            lines.append(f"- **서브 뱃지:** {cp.get('bannerSub', '—')}")
+            lines.append(f"- **리드 문구:** {(cp.get('bannerLead') or '')[:80]}{'...' if len(cp.get('bannerLead') or '') > 80 else ''}")
+            lines.append(f"- **CTA 버튼:** {cp.get('ctaCopy', '—')}")
+            lines.append(f"- **영문 슬로건:** {cp.get('brandTagline', '—')}")
+            if cp.get("bannerVisual"):
+                lines.append(f"\n🎥 **비주얼 디렉션:** {cp.get('bannerVisual')}")
+
+        elif sec_id == "intro":
+            lines.append(f"- **섹션 제목:** {cp.get('introTitle', '—')}")
+            lines.append(f"- **소개 본문:** {(cp.get('introDesc') or '')[:80]}...")
+            lines.append(f"- **한줄 약력:** {cp.get('introBio', '—')}")
+            if cp.get("introVisual"):
+                lines.append(f"\n🎥 **비주얼 디렉션:** {cp.get('introVisual')}")
+
+        elif sec_id == "why":
+            lines.append(f"- **섹션 제목:** {cp.get('whyTitle', '—')}")
+            lines.append(f"- **서브:** {cp.get('whySub', '—')}")
+            for r in (cp.get("whyReasons") or []):
+                if len(r) >= 3:
+                    lines.append(f"  - 📌 **{r[1]}** — {str(r[2])[:60]}...")
+            if cp.get("whyVisual"):
+                lines.append(f"\n🎥 **비주얼 디렉션:** {cp.get('whyVisual')}")
+
+        elif sec_id == "curriculum":
+            lines.append(f"- **섹션 제목:** {cp.get('curriculumTitle', '—')}")
+            for s in (cp.get("curriculumSteps") or []):
+                if len(s) >= 3:
+                    lines.append(f"  - STEP {s[0]} **{s[1]}** ({s[3] if len(s)>3 else '—'}): {str(s[2])[:50]}...")
+
+        elif sec_id == "target":
+            lines.append(f"- **섹션 제목:** {cp.get('targetTitle', '—')}")
+            for t in (cp.get("targetItems") or []):
+                lines.append(f"  - ✔ {str(t)[:60]}")
+
+        elif sec_id == "reviews":
+            for rv in (cp.get("reviews") or [])[:3]:
+                if isinstance(rv, (list, tuple)) and len(rv) >= 3:
+                    lines.append(f"  - ⭐ \"{str(rv[0])[:50]}...\" — {rv[1]} ({rv[2]})")
+
+        elif sec_id == "cta":
+            lines.append(f"- **CTA 제목:** {cp.get('ctaTitle', '—')}")
+            lines.append(f"- **서브 문구:** {cp.get('ctaSub', '—')}")
+            lines.append(f"- **버튼:** {cp.get('ctaCopy', '—')}")
+            lines.append(f"- **뱃지:** {cp.get('ctaBadge', '—')}")
+
+        elif sec_id == "faq":
+            for fq in (cp.get("faqs") or [])[:3]:
+                if len(fq) >= 2:
+                    lines.append(f"  - Q: {fq[0]}")
+
+        lines.append("\n---\n")
+
+    return "\n".join(lines)
+    
 def gen_custom_sec(topic: str) -> dict:
     inst_ctx = _get_instructor_context()
     EVENT_KWS = ["이벤트", "후기", "수강평", "기대평", "경품", "추첨", "선물", "상품", "이벤", "기념"]
@@ -5677,6 +5801,29 @@ with L:
             sb_text += json.dumps(other_data, ensure_ascii=False, indent=2)
 
             st.code(sb_text, language="markdown")
+    # SB 시트 출력
+    st.markdown("### 📋 SB 시트 출력")
+    if st.session_state.custom_copy and ordered:
+        if st.button("📋 SB 시트 생성", use_container_width=True, key="gen_sb_sheet"):
+            sb_md = generate_sb_sheet(st.session_state.custom_copy, ordered)
+            st.session_state["_sb_sheet"] = sb_md
+
+        if st.session_state.get("_sb_sheet"):
+            st.download_button(
+                "📥 SB 마크다운 다운로드",
+                data=st.session_state["_sb_sheet"].encode("utf-8"),
+                file_name=f"SB_{st.session_state.purpose_label or '페이지'}.md",
+                mime="text/markdown",
+                use_container_width=True,
+                key="dl_sb"
+            )
+            with st.expander("미리보기", expanded=False):
+                st.markdown(st.session_state["_sb_sheet"])
+    else:
+        st.caption("AI 문구 생성 후 활성화됩니다")
+
+    st.divider()
+    
     st.markdown("### 📥 HTML 내보내기")
     cn = (st.session_state.custom_theme.get("name","custom")
           if st.session_state.concept=="custom" and st.session_state.custom_theme
