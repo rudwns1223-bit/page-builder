@@ -65,10 +65,9 @@ COPY_TONES = {
     "🔮 광기·구원": "어조: 학생을 홀리는 듯한 극단적이고 맹신적인 문체. 이 강의만이 유일한 구원이라는 오만함과 확신. 감탄문과 극단적인 단어 사용."
 }
 GROQ_MODELS = [
-    "llama-3.3-70b-versatile",          # 메인 (기존 유지)
-    "meta-llama/llama-4-scout-17b-16e-instruct",  # Llama 4 Scout
-    "qwen/qwen3-32b",                   # Qwen 3 32B
-    "llama-3.1-8b-instant",             # 경량 빠른 모델 (gemma2-9b-it 후계)
+    "openai/gpt-oss-120b",   # 메인 — 품질 좋음
+    "openai/gpt-oss-20b",    # 보조 — 더 빠름
+    "qwen/qwen3.6-27b",      # 최종 백업
 ]
 
 FEW_SHOT_EXAMPLES = """
