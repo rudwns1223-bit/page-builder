@@ -1050,7 +1050,7 @@ def call_ai(prompt: str, system: str = "", max_tokens: int = 2000) -> str:
             resp = requests.post(
                 GROQ_URL,
                 headers={"Authorization":f"Bearer {key}","Content-Type":"application/json"},
-                json={"model":model,"messages":messages,"max_tokens":max_tokens,"temperature":0.6,"reasoning_effort":"low"},
+                json={"model":model,"messages":messages,"max_tokens":max_tokens,"temperature":0.75,"reasoning_effort":"none"},
                 timeout=60,
             )
         except Exception as e:
