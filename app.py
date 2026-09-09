@@ -789,17 +789,23 @@ def strip_hanja(text: str) -> str:
     return text.strip()
 
 _DDAY_RE = re.compile(
-    r'(D[\-–—]?\s?\d{1,4}(?:일)?)|(디\s?[\-–—]?\s?데이\s?\d{0,4})|(\d{1,4}\s?일\s?(?:전|남)[\w가-힣]*)',
+    r'(D[\-–—]?\s?\d{1,4}(?:일)?)'
+    r'|(남은\s?\d{1,4}\s?(?:일|주|개월))'
+    r'|(\d{1,4}\s?(?:일|주|개월)\s?(?:전|후|남[가-힣]*|앞[가-힣]*))',
     re.IGNORECASE
 )
 
 def strip_dday_claims(text: str) -> str:
-    """근거 없는 D-day/카운트다운 숫자를 전부 제거하고 안전한 표현으로 치환"""
+    """근거 없는 D-day/카운트다운 숫자를 문장에서 통째로 제거"""
     if not isinstance(text, str) or not text:
         return text
-    if _DDAY_RE.search(text):
-        text = _DDAY_RE.sub("지금", text)
-        text = re.sub(r'\s{2,}', ' ', text).strip()
+    if not _DDAY_RE.search(text):
+        return text
+    text = _DDAY_RE.sub("", text)
+    text = re.sub(r'\s*,\s*,', ',', text)
+    text = re.sub(r'(^|[\s(])[,·]\s*', r'\1', text)
+    text = re.sub(r'\s*,\s*$', '', text)
+    text = re.sub(r'\s{2,}', ' ', text).strip()
     return text
     
 def clean_obj(obj):
@@ -816,6 +822,29 @@ _GLOBAL_BANNED_CURRICULA = [
     "KISS Logic", "KISSAVE", "KISSCHEMA",
 ]
 
+def ensure_course_name_in_title(result: dict, plabel: str) -> dict:
+    """
+    AI가 강좌명을 임의로 합성·변형해 새 단어를 만드는 것을 방지.
+    (예: "KISS Logic" → "KISSENCE" 처럼 원본에 없는 단어를 지어내는 경우)
+    bannerTitle에 강좌명이 원문 그대로 없으면 강좌명으로 교정한다.
+    """
+    if not plabel or not isinstance(result, dict):
+        return result
+    plabel_norm = plabel.replace(" ", "").lower()
+    if not plabel_norm:
+        return result
+
+    bt = str(result.get("bannerTitle", ""))
+    if plabel_norm not in bt.replace(" ", "").lower():
+        result["bannerTitle"] = plabel
+
+    if "festHeroTitle" in result:
+        fh = str(result.get("festHeroTitle", ""))
+        if plabel_norm not in fh.replace(" ", "").lower():
+            result["festHeroTitle"] = plabel
+
+    return result
+    
 def ban_other_curricula(result, plabel: str):
     """
     AI 출력 전체(dict/list/str)를 재귀 탐색해,
@@ -1349,7 +1378,7 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
 ⑥ [최우선] "D-숫자" 표현 완전 금지. "D-100", "D-30", "D+7", "며칠 남음" 등 
    구체적 날짜·기간 숫자는 단 하나도 쓰지 마세요.
    → 대신 "수능 전", "지금 이 순간", "더 늦기 전에" 같은 숫자 없는 표현만 사용하세요.
-   → 오늘이 며칠인지, 수능까지 며칠 남았는지 당신은 알 수 없습니다. 절대 추측해서 숫자를 만들지 마세요.
+   → 금지 예시: "D-100", "D-30", "남은 90일", "90일 남음", "이제 3주 남았다"
 ⑦ bannerSub(뱃지 텍스트)에도 D-숫자 금지. "수능 D-100" → "수능 직전"으로 대체하세요.
 ⑧ 날짜 계산이 필요한 모든 수치(경과일·잔여일·회차 등)는 절대 지어내지 마세요.
 ⑨ 아래 클리셰 표현 절대 금지 (이 문장이 생각나면 다시 써라):
@@ -1367,6 +1396,10 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
    ❌ "2027 일리는 2027 일리를 통해 지문을..."\n'
    ✅ "이 커리큘럼은 지문 구조를 논리적으로 파악하도록 설계되었습니다."\n'
    ✅ "수능까지 남은 시간, 2027 일리가 방향을 잡아드립니다."\n'
+⑪ 강좌명을 변형·합성해서 존재하지 않는 새 단어를 만들지 마세요.
+   ❌ "KISS Logic" → "KISSENCE" (없는 신조어)
+   ❌ "일리" → "일리즘", "일리쉬" 등 임의 변형
+   ✅ bannerTitle에는 강좌명 "{course_name}"을 원문 그대로 정확히 사용하세요.
    
 ━━━ 이번 생성 방향 ━━━
 {variation_hint}
@@ -1403,8 +1436,9 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
     result = safe_json(call_ai(prompt, max_tokens=5000))
     plabel = st.session_state.get("purpose_label", "").strip()
     result = clean_obj(result)
-    
-    return ban_other_curricula(result, plabel)
+    result = ban_other_curricula(result, plabel)
+    result = ensure_course_name_in_title(result, plabel)
+    return result
 
 SEC_LAYOUT_VARIANTS = {
     "why": [
@@ -1918,7 +1952,10 @@ def gen_section(sec_id: str) -> dict:
     for attempt in range(3):
         try:
             result = safe_json(call_ai(prompt, max_tokens=2500))
-            return ban_other_curricula(result, plabel)
+            result = ban_other_curricula(result, plabel)
+            if sec_id == "banner":
+                result = ensure_course_name_in_title(result, plabel)
+            return result
         except Exception as e:
             last_err = e
             time.sleep(1)
