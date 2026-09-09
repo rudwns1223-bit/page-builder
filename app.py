@@ -1852,19 +1852,19 @@ def gen_section(sec_id: str) -> dict:
     purpose_specific_rule = ""
     if sec_id == "banner":
         if ptype == "이벤트":
-        purpose_specific_rule = (
-            f'⚠️ [절대규칙] 이벤트 배너입니다. bannerTitle에는 강좌명이 아니라 '
-            f'이벤트 성격(예: 수강후기 이벤트, 모의고사 대비 특강)에 맞는 제목을 쓰세요. '
-            f'강좌명 "{course_name}"을 억지로 넣지 마세요. '
-            f'bannerTags는 이벤트용 단어(기간한정, 무료제공 등)로 작성하세요.'
-        )
-    else:
-        purpose_specific_rule = (
-            f'⚠️ [절대규칙] bannerTitle에 반드시 강좌명 "{course_name}"이 들어가야 합니다. '
-            f'문장형·질문형 금지. 명사형·선언형만 허용. '
-            f'근거 없는 수치("4등급→1등급", "3개월만에") 금지. '
-            f'좋은 예: "{course_name}" / "{course_name}으로 끝낸다"'
-        )
+            purpose_specific_rule = (
+                f'⚠️ [절대규칙] 이벤트 배너입니다. bannerTitle에는 강좌명이 아니라 '
+                f'이벤트 성격(예: 수강후기 이벤트, 모의고사 대비 특강)에 맞는 제목을 쓰세요. '
+                f'강좌명 "{course_name}"을 억지로 넣지 마세요. '
+                f'bannerTags는 이벤트용 단어(기간한정, 무료제공 등)로 작성하세요.'
+            )
+        else:
+            purpose_specific_rule = (
+                f'⚠️ [절대규칙] bannerTitle에 반드시 강좌명 "{course_name}"이 들어가야 합니다. '
+                f'문장형·질문형 금지. 명사형·선언형만 허용. '
+                f'근거 없는 수치("4등급→1등급", "3개월만에") 금지. '
+                f'좋은 예: "{course_name}" / "{course_name}으로 끝낸다"'
+            )
     user_course_info = st.session_state.get("course_info", "")
     target_directive = f"\n[⚠️ 절대 규칙]: 강사의 기존 시그니처 커리큘럼(예: KISS Logic 등)을 무작정 섞어 쓰지 마세요. 사용자가 입력한 맥락({st.session_state.purpose_label})과 강좌정보({user_course_info})에만 100% 집중하세요. 특히 '구성 안내(package)'나 '커리큘럼' 생성 시, 추상적인 강좌명을 나열하지 말고 '본교재', '워크북', '모의고사', '학습 Q&A' 같은 구체적인 실물/서비스 위주로 작성하세요."
     purpose_specific_rule += target_directive
