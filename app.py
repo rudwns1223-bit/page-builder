@@ -788,8 +788,22 @@ def strip_hanja(text: str) -> str:
     text = re.sub(r'[ \t]+', ' ', text)
     return text.strip()
 
+_DDAY_RE = re.compile(
+    r'(D[\-–—]?\s?\d{1,4}(?:일)?)|(디\s?[\-–—]?\s?데이\s?\d{0,4})|(\d{1,4}\s?일\s?(?:전|남)[\w가-힣]*)',
+    re.IGNORECASE
+)
+
+def strip_dday_claims(text: str) -> str:
+    """근거 없는 D-day/카운트다운 숫자를 전부 제거하고 안전한 표현으로 치환"""
+    if not isinstance(text, str) or not text:
+        return text
+    if _DDAY_RE.search(text):
+        text = _DDAY_RE.sub("지금", text)
+        text = re.sub(r'\s{2,}', ' ', text).strip()
+    return text
+    
 def clean_obj(obj):
-    if isinstance(obj, str): return strip_hanja(obj)
+    if isinstance(obj, str): return strip_dday_claims(strip_hanja(obj))
     if isinstance(obj, dict): return {k: clean_obj(v) for k,v in obj.items()}
     if isinstance(obj, list): return [clean_obj(i) for i in obj]
     return obj
@@ -1007,7 +1021,7 @@ def call_ai(prompt: str, system: str = "", max_tokens: int = 2000) -> str:
             resp = requests.post(
                 GROQ_URL,
                 headers={"Authorization":f"Bearer {key}","Content-Type":"application/json"},
-                json={"model":model,"messages":messages,"max_tokens":max_tokens,"temperature":0.75,"reasoning_effort":"low"},
+                json={"model":model,"messages":messages,"max_tokens":max_tokens,"temperature":0.6,"reasoning_effort":"low"},
                 timeout=60,
             )
         except Exception as e:
@@ -1332,10 +1346,12 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
 ③ masih, dan, dengan 등 인도네시아어 금지
 ④ "체계적", "최고의", "함께라면", "실력 향상" 등 AI 클리셰 금지
 ⑤ 확인 안 된 수치(합격생 수, 만족도%, 등급 변화 수치) 지어내기 금지
-⑥ "D-숫자" 패턴 완전 금지. "D-100", "D-30", "수능 D-100" 등 전부 금지.\n'
-   → 반드시 "수능 전", "지금 이 순간", "수능까지" 같은 숫자 없는 표현만 사용.\n'
-⑦ bannerSub(뱃지 텍스트)에도 D-숫자 금지. "수능 D-100" → "수능 직전" 으로 대체.'
-⑧ 현재 날짜 기준으로 계산이 필요한 모든 수치는 작성 금지.
+⑥ [최우선] "D-숫자" 표현 완전 금지. "D-100", "D-30", "D+7", "며칠 남음" 등 
+   구체적 날짜·기간 숫자는 단 하나도 쓰지 마세요.
+   → 대신 "수능 전", "지금 이 순간", "더 늦기 전에" 같은 숫자 없는 표현만 사용하세요.
+   → 오늘이 며칠인지, 수능까지 며칠 남았는지 당신은 알 수 없습니다. 절대 추측해서 숫자를 만들지 마세요.
+⑦ bannerSub(뱃지 텍스트)에도 D-숫자 금지. "수능 D-100" → "수능 직전"으로 대체하세요.
+⑧ 날짜 계산이 필요한 모든 수치(경과일·잔여일·회차 등)는 절대 지어내지 마세요.
 ⑨ 아래 클리셰 표현 절대 금지 (이 문장이 생각나면 다시 써라):
    ❌ "새벽에 혼자 공부하는 당신" → ✅ 구체적 학습 상황 묘사
    ❌ "수험생의 외로움·막막함" → ✅ 성적/시간/방법론 팩트
@@ -1475,10 +1491,10 @@ COPY_VARIATION_SEEDS = [
     },
     {
         "style": "긴박감·시간압박형",
-        "bannerTitle_hint": "수능까지 남은 기간의 긴박함을 제목에 직접 숫자 또는 시간으로 표현",
-        "lead_hint": "지금 당장 시작하지 않으면 수능에서 손해 보는 이유를 구체적으로",
-        "why_hint": "각 이유를 '지금 이 시기에 반드시 해야 하는 이유'로 작성",
-        "cta_hint": "오늘 신청하는 것이 내일 신청하는 것보다 유리한 이유",
+        "bannerTitle_hint": "지금 시작해야 하는 이유를 선언형으로 짧게. 절대 D-30/D-100/며칠 남음 같은 구체적 숫자·날짜는 쓰지 말 것 — '지금', '더 늦기 전에', '마지막 기회' 같은 비수치 표현만 사용",
+        "lead_hint": "지금 시작하지 않으면 손해 보는 이유를 구체적으로 (단, 날짜·기간 숫자는 절대 지어내지 말 것)",
+        "why_hint": "각 이유를 '지금 이 시기에 반드시 해야 하는 이유'로 작성 (숫자 기반 시한 언급 금지)",
+        "cta_hint": "오늘 신청하는 것이 내일보다 유리한 이유 (구체적 날짜·기간 숫자 없이)",
     },
     {
         "style": "브랜드·프리미엄형",
@@ -1836,18 +1852,18 @@ def gen_section(sec_id: str) -> dict:
     purpose_specific_rule = ""
     if sec_id == "banner":
         if ptype == "이벤트":
-            purpose_specific_rule = "⚠️ [!!! 절대 규칙 !!!] 제목에 'KISS Logic' 등 강좌명을 절대 쓰지 마세요. 이벤트 성격(예: 3월 학평 특강, 기대평)에 맞는 제목만 출력하세요. bannerTags는 이벤트용 단어(기간한정, 무료제공 등)로 작성하세요."
-    if sec_id == "banner":
+        purpose_specific_rule = (
+            f'⚠️ [절대규칙] 이벤트 배너입니다. bannerTitle에는 강좌명이 아니라 '
+            f'이벤트 성격(예: 수강후기 이벤트, 모의고사 대비 특강)에 맞는 제목을 쓰세요. '
+            f'강좌명 "{course_name}"을 억지로 넣지 마세요. '
+            f'bannerTags는 이벤트용 단어(기간한정, 무료제공 등)로 작성하세요.'
+        )
+    else:
         purpose_specific_rule = (
             f'⚠️ [절대규칙] bannerTitle에 반드시 강좌명 "{course_name}"이 들어가야 합니다. '
             f'문장형·질문형 금지. 명사형·선언형만 허용. '
             f'근거 없는 수치("4등급→1등급", "3개월만에") 금지. '
             f'좋은 예: "{course_name}" / "{course_name}으로 끝낸다"'
-        )
-    elif sec_id == "banner" and ptype == "이벤트":
-        purpose_specific_rule = (
-            f'⚠️ 이벤트 배너: 강좌명 "{course_name}" 포함. 혜택/기간 키워드 포함. '
-            f'질문형·문장형 금지.'
         )
     user_course_info = st.session_state.get("course_info", "")
     target_directive = f"\n[⚠️ 절대 규칙]: 강사의 기존 시그니처 커리큘럼(예: KISS Logic 등)을 무작정 섞어 쓰지 마세요. 사용자가 입력한 맥락({st.session_state.purpose_label})과 강좌정보({user_course_info})에만 100% 집중하세요. 특히 '구성 안내(package)'나 '커리큘럼' 생성 시, 추상적인 강좌명을 나열하지 말고 '본교재', '워크북', '모의고사', '학습 Q&A' 같은 구체적인 실물/서비스 위주로 작성하세요."
