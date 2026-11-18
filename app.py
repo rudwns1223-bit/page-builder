@@ -920,14 +920,27 @@ def build_bg_url(mood: str) -> str:
 #  [v8] 버그 수정: gpt-oss 모델은 reasoning_effort="none"을 받지 않아 매번 400 에러가 나고
 #       조용히 백업 모델로 넘어가고 있었습니다. 모델별로 올바른 파라미터를 보냅니다.
 # ══════════════════════════════════════════════════════
+GROQ_FREE_TPM = 8000   # 무료 요금제: 모델마다 분당 8,000토큰 (입력 + 요청한 최대 출력 합계로 계산됨)
+
+def _groq_free() -> bool:
+    return not str(st.session_state.get("groq_tier", "")).startswith("Developer")
+
+def _est_tokens(text: str) -> int:
+    """대략적인 토큰 수 (한글 ≈ 1.3자/토큰, 그 외 ≈ 3.5자/토큰) — 넉넉하게 10% 더"""
+    ko = len(re.findall(r"[가-힣]", text))
+    return int((ko / 1.3 + (len(text) - ko) / 3.5) * 1.1) + 60
+
 def _model_params(model: str) -> dict:
     if model.startswith("openai/gpt-oss"):
-        return {"reasoning_effort": "medium", "include_reasoning": False}
+        # 무료 요금제에선 생각(추론) 토큰이 출력 한도를 잡아먹으므로 low
+        return {"reasoning_effort": "low" if _groq_free() else "medium", "include_reasoning": False}
     if model.startswith("qwen/"):
         return {"reasoning_effort": "none"}
     return {}
 
 def call_ai(prompt: str, system: str = "", max_tokens: int = 2000, temperature: float = 0.8) -> str:
+    """[v14] 무료 요금제 한도(분당 8천 토큰)에 맞춰 출력 길이를 자동 조절하고,
+    한도에 걸리면 다른 모델로 넘어갔다가 필요하면 잠시 기다려 다시 시도합니다."""
     key = st.session_state.api_key.strip()
     if not key:
         raise ValueError("API 키가 없습니다. 사이드바에서 gsk_... 키를 입력해주세요.")
@@ -940,41 +953,76 @@ def call_ai(prompt: str, system: str = "", max_tokens: int = 2000, temperature: 
     )
     messages = [{"role": "system", "content": "\n\n".join(sys_parts)},
                 {"role": "user", "content": prompt}]
-    errors = []
-    for model in GROQ_MODELS:
-        body = {"model": model, "messages": messages, "temperature": temperature,
-                "max_tokens": max_tokens + (3000 if model.startswith("openai/gpt-oss") else 0),
-                "response_format": {"type": "json_object"}, **_model_params(model)}
-        for attempt in range(2):
-            try:
-                resp = requests.post(GROQ_URL,
-                                     headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-                                     json=body, timeout=90)
-            except Exception as e:
-                errors.append(f"{model}: 네트워크 오류 {e}"); break
-            if resp.status_code == 401:
-                raise Exception("🔑 API 키 오류 — console.groq.com에서 확인해주세요.")
-            if resp.status_code == 429:
-                errors.append(f"{model}: 한도 초과"); time.sleep(2); break
-            if resp.status_code == 400 and attempt == 0:
-                # JSON 모드나 파라미터를 지원하지 않는 모델 → 한 번 더 단순하게 시도
-                body.pop("response_format", None)
-                body.pop("include_reasoning", None)
-                continue
-            if not resp.ok:
-                try: msg = resp.json().get("error", {}).get("message", resp.text[:150])
-                except Exception: msg = resp.text[:150]
-                errors.append(f"{model}: HTTP {resp.status_code} {msg}"); break
-            try:
-                text = resp.json()["choices"][0]["message"]["content"]
-            except Exception as e:
-                errors.append(f"{model}: 응답 파싱 실패 {e}"); break
-            if text and text.strip():
-                st.session_state["_last_model"] = model
-                st.session_state["_last_model_errors"] = errors
-                return text
-            errors.append(f"{model}: 빈 응답"); break
-    raise Exception("모든 모델 실패 — " + " / ".join(errors[-4:]))
+    free = _groq_free()
+    est_in = _est_tokens(messages[0]["content"] + prompt)
+    errors, waits = [], []
+    for rnd in range(2):                      # 1회차: 모델 순서대로 / 2회차: 한도 풀릴 때까지 기다린 뒤 다시
+        if rnd == 1:
+            if not waits:
+                break
+            time.sleep(min(max(waits), 45))
+            waits = []
+        for model in GROQ_MODELS:
+            want = max_tokens + (1500 if model.startswith("openai/gpt-oss") else 0)
+            if free:
+                want = min(want, GROQ_FREE_TPM - est_in - 150)
+                if want < 900:
+                    errors.append(f"{model}: 입력이 길어 무료 한도(분당 8천 토큰) 안에 답할 공간이 부족"); continue
+            body = {"model": model, "messages": messages, "temperature": temperature, "max_tokens": int(want),
+                    "response_format": {"type": "json_object"}, **_model_params(model)}
+            for attempt in range(3):
+                try:
+                    resp = requests.post(GROQ_URL,
+                                         headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                                         json=body, timeout=120)
+                except Exception as e:
+                    errors.append(f"{model}: 네트워크 오류 {e}"); break
+                if resp.status_code == 401:
+                    raise Exception("🔑 API 키 오류 — console.groq.com에서 확인해주세요.")
+                try:
+                    msg = resp.json().get("error", {}).get("message", "") if not resp.ok else ""
+                except Exception:
+                    msg = resp.text[:200]
+                if resp.status_code == 429:
+                    if "per day" in msg or "(TPD)" in msg or "(RPD)" in msg:
+                        errors.append(f"{model}: 오늘 사용량 소진"); break
+                    try:
+                        waits.append(float(resp.headers.get("retry-after") or 20))
+                    except Exception:
+                        waits.append(20)
+                    errors.append(f"{model}: 분당 한도 — 다른 모델로"); break
+                if resp.status_code == 413 and attempt < 2:
+                    # 요청이 분당 한도보다 큼 → 출력 길이를 줄여 다시
+                    m = re.search(r"Limit (\d+), Requested (\d+)", msg)
+                    if m:
+                        over = int(m.group(2)) - int(m.group(1))
+                        body["max_tokens"] = int(body["max_tokens"]) - over - 200
+                        if body["max_tokens"] >= 900:
+                            continue
+                    errors.append(f"{model}: 요청이 한도보다 큼"); break
+                if resp.status_code == 400 and "response_format" in body:
+                    # JSON 모드나 파라미터를 지원하지 않는 모델 → 한 번 더 단순하게 시도
+                    body.pop("response_format", None)
+                    body.pop("include_reasoning", None)
+                    continue
+                if not resp.ok:
+                    errors.append(f"{model}: HTTP {resp.status_code} {(msg or resp.text)[:150]}"); break
+                try:
+                    data = resp.json()
+                    text = data["choices"][0]["message"]["content"]
+                    finish = data["choices"][0].get("finish_reason")
+                except Exception as e:
+                    errors.append(f"{model}: 응답 파싱 실패 {e}"); break
+                if text and text.strip():
+                    if finish == "length" and not text.rstrip().endswith("}"):
+                        errors.append(f"{model}: 답이 길이 한도에서 잘림"); break
+                    st.session_state["_last_model"] = model
+                    st.session_state["_last_model_errors"] = errors
+                    return text
+                errors.append(f"{model}: 빈 응답"); break
+    hint = (" · 무료 요금제 한도일 가능성이 큽니다. 1분 뒤 다시 누르거나, Groq에 카드를 등록해 Developer 요금제로 바꾸면 해결됩니다."
+            if free and any("한도" in e or "소진" in e for e in errors) else "")
+    raise Exception("모든 모델 실패 — " + " / ".join(errors[-4:]) + hint)
 
 # ══════════════════════════════════════════════════════
 # AI 생성 함수
@@ -4751,6 +4799,29 @@ ED_KEY_FIELDS = {
     "video": {"title": "OT 영상 제목"},
 }
 
+# 편집 화면에 보이는 칸 이름 (영문 키 → 한글)
+ED_FIELD_LABELS = {
+    "kicker": "윗줄 문구", "sub": "부제 · 한 줄 설명", "title": "제목", "title_ko": "한글 제목", "title_en": "영문 제목",
+    "closing": "마무리 한 줄", "line": "선언 문장", "body": "본문", "wordmark": "워드마크 (강좌명)", "script": "필기체 영단어",
+    "notes": "사진 주변 짧은 문구", "band": "띠 문구", "lead": "첫 문장", "chapter": "챕터 라벨", "nav": "메뉴 이름",
+    "eyebrow": "영문 윗줄", "points": "포인트 목록", "items": "항목 목록", "tiles": "타일 목록", "stages": "단계 목록",
+    "label": "영문 라벨", "box": "강조 박스 문장", "stat": "핵심 수치", "tags": "태그", "caption": "설명 한 줄",
+    "bridge": "연결 문장", "features": "특징 목록", "books": "교재 목록", "structure": "구성 목록", "rows": "혜택 표",
+    "pill": "영문 라벨", "conclusion": "결론", "left": "왼쪽 (A)", "right": "오른쪽 (B)", "no": "번호",
+}
+
+# 정보가 있어야 쓸 수 있는 섹션 — 어디에 무엇을 적으면 되는지
+ED_NEEDS_HELP = {
+    "feature_stat": "① 강좌 정보 › 기획 메모에 회차·문항 수를 적어주세요. 예: 총 20강 · 160문항 · 주 2회",
+    "balance": "① 강좌 정보 › 기획 메모에 비율을 적어주세요. 예: 개념 40% · 실전 60%",
+    "index_tiles": "① 강좌 정보 › 강좌 라인업 칸에 강좌명을 한 줄에 하나씩, 3개 이상 적어주세요.",
+    "course_stages": "① 강좌 정보 › 강좌 라인업 칸에 강좌명과 단계를 적어주세요. 예: KEY STEP (기초)",
+    "lineup": "① 강좌 정보 › 교재 정보 칸에 교재명·구성을 적거나, 사이드바에 교재 이미지를 올려주세요.",
+    "video": "사이드바 › 🎬 OT 영상에 유튜브 링크를 넣어주세요.",
+    "pass_box": "② 구매 · 혜택 › 상품명을 적어주세요.",
+    "benefit": "② 구매 · 혜택 › 혜택·이벤트 칸을 채워주세요.",
+}
+
 ED_BLOCK_SPECS = {
     "hero": ('히어로(항상 첫 블록)',
              '{"type":"hero","variant":"wordmark_photo|bottom_wordmark|split_motif|framed_spaced|fullbleed|light_editorial","kicker":"워드마크 위/아래 한 줄 — 컨셉 동사 문장 (예: 통합의 시대를 설계하다)",'
@@ -5578,7 +5649,9 @@ def ed_generate_full(avoid: str = "") -> dict:
     정보가 없는 섹션은 내용을 지어내지 않고 '숨김 + 필요한 정보' 상태로 자리만 만들어 둔다."""
     needs = ed_block_needs()
     ai_types = [t for t in ED_FULL_ORDER if t != "hero" and not needs.get(t)]
-    g1, g2 = ai_types[:6], ai_types[6:]
+    n1 = 5 if _groq_free() else 7          # 무료 요금제는 한 번에 쓸 양을 줄여 여러 번 나눠 씀
+    g1, rest = ai_types[:n1], ai_types[n1:]
+    chunks = [rest[k:k + n1] for k in range(0, len(rest), n1)]
     packs = ", ".join(f"{k}({v['name']})" for k, v in ED_PACKS.items())
     cat = lambda ts: "\n".join(f"- {t}: {ED_BLOCK_SPECS[t][0]}\n  {ED_BLOCK_SPECS[t][1]}" for t in ["hero"] + ts if t in ED_BLOCK_SPECS)
     rules = ("[작성 규칙]\n"
@@ -5593,7 +5666,7 @@ def ed_generate_full(avoid: str = "") -> dict:
           '"keywords":["「키워드」1","2","3"],"antithesis":"대구 한 줄"},"pack":"팩 키","blocks":[hero, ' + ", ".join(g1) + ']}')
     plan = safe_json(call_ai(p1, max_tokens=7000, temperature=0.85))
     blocks = [b for b in (plan.get("blocks") or []) if isinstance(b, dict)]
-    if g2:
+    for g2 in chunks:
         done = [{k: b.get(k) for k in ("type", "title", "title_ko", "kicker", "line", "closing") if b.get(k)} for b in blocks]
         p2 = (f"{ed_brief()}\n\n[이 페이지의 컨셉 키트]\n{json.dumps(plan.get('kit', {}), ensure_ascii=False)}\n"
               f"[이미 쓴 섹션 — 이 표현들과 겹치지 않게]\n{json.dumps(done, ensure_ascii=False)}\n\n"
@@ -5652,7 +5725,10 @@ def ed_copy_workshop(plan: dict, only_idx=None) -> dict:
             if isinstance(v, str) and v.strip():
                 fid = f"f{len(fields)}"
                 fields.append((i, k))
-                flat[fid] = {"역할": role, "현재": v}
+                ctx_txt = " / ".join(str(vv) for kk, vv in b.items()
+                                     if isinstance(vv, str) and kk not in ("type", "layout", "variant", "nav", k) and vv.strip())[:160]
+                flat[fid] = {"섹션": ED_BLOCK_SPECS.get(b.get("type"), ("",))[0].split(" (")[0], "역할": role,
+                             "현재": v, "같은 섹션의 다른 문구": ctx_txt}
     if not fields:
         return plan
     kit = plan.get("kit") or {}
@@ -5669,7 +5745,9 @@ def ed_copy_workshop(plan: dict, only_idx=None) -> dict:
         "   ① 읽자마자 뜻이 통하는가 ② 구체적인가 ③ 다른 강좌에 붙이면 어색한가(이 강좌에만 맞는 말인가)\n"
         "   ④ 과장·상투어·억지 비유가 없는가 ⑤ 소리 내 읽었을 때 리듬이 좋은가\n"
         "- 길이는 현재 문구와 비슷하게(±40%). 숫자·사실은 강좌 정보에 있는 것만. 「 」·[[ ]] 표시는 써도 된다.\n"
-        "- 문구끼리도 비교해, 같은 어미·같은 문장 구조가 페이지에서 반복되지 않게 고른다.\n\n"
+        "- 문구끼리도 비교해, 같은 어미·같은 문장 구조가 페이지에서 반복되지 않게 고른다.\n"
+        "- 후보는 그 칸의 '섹션'과 '역할'에만 맞게 쓴다. 히어로 첫 줄과 메시지 섹션 윗줄처럼 칸이 다르면 후보도 완전히 달라야 하며, "
+        "한 칸의 후보를 다른 칸에 다시 쓰지 않는다. '같은 섹션의 다른 문구'와 자연스럽게 이어져야 한다.\n\n"
         f"{json.dumps(flat, ensure_ascii=False)}\n\n"
         'JSON만 반환: {"f0":{"cands":["A안","B안","C안"],"pick":0,"why":"고른 이유 한 줄"}, ...}  (pick: 0=현재 유지, 1~3=후보 번호)'
     )
@@ -5677,13 +5755,22 @@ def ed_copy_workshop(plan: dict, only_idx=None) -> dict:
         res = safe_json(call_ai(prompt, max_tokens=5000, temperature=0.8))
     except Exception:
         return plan
+    used = set()                       # 다른 칸에 이미 나온 후보는 빼기 (칸마다 다른 후보만 남게)
+    for b in blocks:
+        for kk, vv in b.items():
+            if isinstance(vv, str) and kk in ED_KEY_FIELDS.get(b.get("type"), {}):
+                used.add(re.sub(r"\s", "", vv))
     for n, (i, k) in enumerate(fields):
         r = res.get(f"f{n}")
         if not isinstance(r, dict):
             continue
         orig = blocks[i][k]
         cands = [strip_hanja(str(c)).strip() for c in (r.get("cands") or [])][:3]
-        ok = [c for c in cands if _ed_cand_ok(c, orig) and c != orig]
+        ok = []
+        for c in cands:
+            sig = re.sub(r"\s", "", c)
+            if _ed_cand_ok(c, orig) and c != orig and sig not in used:
+                ok.append(c); used.add(sig)
         try:
             pick = int(r.get("pick", 0))
         except Exception:
@@ -6030,7 +6117,8 @@ def _ed_field_editor(b: dict, i: int):
             opts = [o for o in alts[k].get("opts", []) if o != v]
             if opts:
                 KEEP = "(지금 문구 유지)"
-                sel = st.selectbox(f"💡 {k} — 다른 후보로 바꾸기", [KEEP] + opts, key=f"edalt_{i}_{k}",
+                role = ED_KEY_FIELDS.get(b.get("type"), {}).get(k, ED_FIELD_LABELS.get(k, k))
+                sel = st.selectbox(f"💡 {role} — 다른 후보 {len(opts)}개 (고르면 바로 바뀜)", [KEEP] + opts, key=f"edalt_{i}_{k}",
                                    help=("디렉터 선택 이유: " + alts[k].get("why", "")) if alts[k].get("why") else None)
                 if sel != KEEP:
                     b[k] = sel
@@ -6047,11 +6135,12 @@ def _ed_field_editor(b: dict, i: int):
             nv = st.selectbox("히어로 레이아웃", opts, index=opts.index(v) if v in opts else 0,
                               format_func=lambda o: ED_HERO_VARIANTS[o], key=key)
         elif isinstance(v, str):
-            nv = (st.text_area(k, v, key=key, height=80) if len(v) > 40 else st.text_input(k, v, key=key))
+            lab = ED_FIELD_LABELS.get(k, k)
+            nv = (st.text_area(lab, v, key=key, height=80) if len(v) > 40 else st.text_input(lab, v, key=key))
         elif isinstance(v, list) and all(isinstance(t, str) for t in v):
-            nv = [t for t in st.text_area(f"{k} (한 줄에 하나)", "\n".join(v), key=key, height=90).splitlines() if t.strip()]
+            nv = [t for t in st.text_area(f"{ED_FIELD_LABELS.get(k, k)} (한 줄에 하나)", "\n".join(v), key=key, height=90).splitlines() if t.strip()]
         else:
-            raw = st.text_area(f"{k} (JSON)", json.dumps(v, ensure_ascii=False, indent=1), key=key, height=140)
+            raw = st.text_area(f"{ED_FIELD_LABELS.get(k, k)} (고급 · JSON 형식)", json.dumps(v, ensure_ascii=False, indent=1), key=key, height=140)
             try:
                 nv = json.loads(raw)
             except Exception:
@@ -6336,12 +6425,13 @@ def render_editorial_mode():
                 st.rerun()
 
             st.markdown("**④ 문구 편집** — 💡 후보 바꾸기 · 직접 수정 · 이 블록만 다시 쓰기")
+            _needs_now = ed_block_needs()
+            waiting = [(i, b) for i, b in enumerate(plan["blocks"]) if b.get("_needs") and _ed_is_empty(b)]
             for i, b in enumerate(list(plan["blocks"])):
+                if b.get("_needs") and _ed_is_empty(b):
+                    continue          # 아래 '정보가 필요한 섹션'에 모아서 보여줌
                 label = ED_BLOCK_SPECS.get(b.get("type"), (b.get("type"),))[0]
                 with st.expander(f"{i + 1:02d}. {label}{'  (숨김)' if b.get('hidden') else ''}", expanded=False):
-                    if b.get("_needs") and _ed_is_empty(b):
-                        st.info(f"이 섹션은 **{b['_needs']}** 정보가 있어야 지어낸 내용 없이 쓸 수 있어요. "
-                                "① 강좌 정보(또는 ② 구매·혜택, 사이드바)에 입력한 뒤 아래 '✍️ 이 블록만 다시 쓰기'를 누르세요.")
                     if _ed_field_editor(b, i):
                         pass
                     rq = st.text_input("이 블록 다시 쓰기 요청 (선택)", key=f"edrq{i}", placeholder="예: 더 짧게 / 키워드를 '각도'로")
@@ -6353,6 +6443,25 @@ def render_editorial_mode():
                                 st.rerun()
                             except Exception as e:
                                 st.error(f"실패: {e}")
+            if waiting:
+                with st.expander(f"⚠️ 정보가 더 있어야 쓸 수 있는 섹션 {len(waiting)}개 — 이 강좌에 해당 없으면 그냥 두세요", expanded=False):
+                    st.caption("내용을 지어내지 않도록, 필요한 정보가 입력될 때까지 비워 둔 섹션이에요. 숨김 상태라 페이지에는 나오지 않습니다. "
+                               "정보를 적은 뒤 '✍️ 채우기'를 누르면 문구가 써지고 페이지에 켜져요.")
+                    for i, b in waiting:
+                        label = ED_BLOCK_SPECS.get(b.get("type"), (b.get("type"),))[0].split(" (")[0]
+                        miss = _needs_now.get(b.get("type"), "")
+                        cA, cB = st.columns([3, 1])
+                        cA.markdown(f"**{i + 1:02d}. {label}**  \n<small>{'✅ 정보 입력됨 — 채우기를 누르세요' if not miss else ED_NEEDS_HELP.get(b.get('type'), b['_needs'])}</small>",
+                                    unsafe_allow_html=True)
+                        if cB.button("✍️ 채우기", key=f"edfill{i}", use_container_width=True, disabled=bool(miss),
+                                     help="필요한 정보를 먼저 입력해야 눌러져요" if miss else None):
+                            with st.spinner("작성 중..."):
+                                try:
+                                    plan["blocks"][i] = ed_regen_block(plan, i, "이 블록을 새로 작성")
+                                    _ed_clear_widgets(f"edf_{i}_", f"edalt_{i}_")
+                                    st.rerun()
+                                except Exception as e:
+                                    st.error(f"실패: {e}")
             add_opts = [t for t in ED_BLOCK_SPECS if t != "hero"]
             a1, a2 = st.columns([2, 1])
             add_t = a1.selectbox("블록 추가", add_opts, format_func=lambda t: ED_BLOCK_SPECS[t][0], label_visibility="collapsed")
@@ -6389,6 +6498,9 @@ def render_editorial_mode():
 
 # ── [v10] 작업 모드 선택 ───────────────────────────────────
 APP_MODE = st.sidebar.radio("작업 모드", ["✨ 시안형 PR 페이지", "🖼 PR 페이지 빌더 (기존)", "📝 강좌 특징 HTML (관리자용)"], key="app_mode")
+st.sidebar.selectbox("Groq 요금제", ["무료 (분당 8천 토큰)", "Developer (카드 등록 · 사용한 만큼 결제)"], key="groq_tier",
+                     help="console.groq.com → Settings → Billing 에서 카드를 등록했다면 Developer를 고르세요. "
+                          "무료는 한 번에 쓸 수 있는 양이 작아서, 문구를 나눠 쓰고 한도에 걸리면 잠시 기다립니다.")
 if APP_MODE.startswith("📝"):
     render_feature_mode()
     st.stop()
