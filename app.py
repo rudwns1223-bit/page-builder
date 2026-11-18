@@ -1,5 +1,6 @@
 """
 강사 페이지 빌더 Pro v14 — 실무용 정리판
+[v16] ✨ 시안형: SB 모드(섹션 번호표·빈 자리 표시) / 스크롤 효과 / 흐르는 키워드 띠 / 카피 톤 / 챕터 자동 번호 / 검수 패널 / 사진 저장 버그 수정
 [v15] ✨ 시안형: CMS 삽입용 코드(CSS 범위 제한·이미지 자리표시) / Pretendard 기본 서체 / 고정 메뉴바 / 수강 대상 섹션 / 상투어 금지 강화
 [v14] ✨ 시안형: 모든 섹션을 먼저 펼쳐 놓고 순서·표시를 직접 고르기 / 핵심 문구 후보 3개 + 디렉터 선택(카피 워크숍)
 [v10] ✨ 시안형 PR 페이지 모드: 컨셉 키트 + 블록 구성 + 스타일 팩 (실제 PR 시안 문법)
@@ -4795,7 +4796,7 @@ ED_CRAFT_GUIDE = """
 """
 
 ED_FULL_ORDER = ["hero", "prologue", "statement", "points", "quote", "three_col", "course_stages", "index_tiles",
-                 "combo", "feature_stat", "balance", "manifesto", "target", "video", "lineup", "pass_box", "benefit"]
+                 "marquee", "combo", "feature_stat", "balance", "manifesto", "target", "video", "lineup", "pass_box", "benefit"]
 
 # 핵심 문구(후보를 여러 개 써 볼 가치가 있는 칸)와 그 역할
 ED_KEY_FIELDS = {
@@ -4818,7 +4819,7 @@ ED_FIELD_LABELS = {
     "notes": "사진 주변 짧은 문구", "band": "띠 문구", "lead": "첫 문장", "chapter": "챕터 라벨", "nav": "메뉴 이름",
     "eyebrow": "영문 윗줄", "points": "포인트 목록", "items": "항목 목록", "tiles": "타일 목록", "stages": "단계 목록",
     "label": "영문 라벨", "box": "강조 박스 문장", "stat": "핵심 수치", "tags": "태그", "caption": "설명 한 줄",
-    "bridge": "연결 문장", "checks": "체크리스트", "features": "특징 목록", "books": "교재 목록", "structure": "구성 목록", "rows": "혜택 표",
+    "bridge": "연결 문장", "checks": "체크리스트", "words": "키워드 (한 줄에 하나)", "features": "특징 목록", "books": "교재 목록", "structure": "구성 목록", "rows": "혜택 표",
     "pill": "영문 라벨", "conclusion": "결론", "left": "왼쪽 (A)", "right": "오른쪽 (B)", "no": "번호",
 }
 
@@ -4873,6 +4874,8 @@ ED_BLOCK_SPECS = {
     "target": ('수강 대상 — 이런 학생에게 (체크리스트)',
                '{"type":"target","nav":"수강 대상","chapter":"Chapter 04. 수강 대상","title":"대상 학생을 부르는 제목 (예: 이런 학생이라면 지금 시작하세요 ✗ → 구체적인 상황으로)",'
                '"sub":"한 줄","checks":[{"title":"학생이 실제로 겪는 상황 한 줄 (15~30자)","desc":"이 강좌가 그 상황에서 해주는 일 (20~45자)"}],"closing":"(선택) 한 줄"}  — checks는 4개, [강좌 정보]의 대상·메모에 근거'),
+    "marquee": ('흐르는 키워드 띠 (섹션 사이 장식 · 가로로 흐름)',
+                '{"type":"marquee","words":["영문 또는 짧은 한글 키워드 4~6개 — 강좌명·컨셉어·학습 내용어"]}'),
     "video": ('OT 영상', '{"type":"video","nav":"OT","chapter":"Chapter 00. 오리엔테이션","title":"컨셉 명사구 (예: 설계자의 가이드)","label":"영문 (예: Orientation)"}'),
     "lineup": ('교재 라인업·구성 (교재 정보가 있을 때)',
                '{"type":"lineup","nav":"교재","chapter":"Chapter 03. 교재 구성","title_en":"영문 (예: A clear GUIDELINE)","title_ko":"서술 한 줄",'
@@ -5284,16 +5287,36 @@ def ed_r_manifesto(b, x):
             + (f'<p class="ed-closing" style="text-align:left">{_ed_esc(b.get("closing"))}</p>' if b.get("closing") else "")
             + '</div></div></section>')
 
+def _ed_safe_url(u: str) -> str:
+    """https:// 로 시작하는 주소만 허용 (그 외는 빈 값)"""
+    u = str(u or "").strip()
+    return u if re.match(r"^https://[^\s\"'<>]+$", u) else ""
+
 def ed_r_video(b, x):
-    url = x.get("video", "")
-    m = re.search(r"(?:youtu\.be/|v=|embed/|shorts/)([A-Za-z0-9_-]{11})", url or "")
-    inner = (f'<iframe src="https://www.youtube.com/embed/{m.group(1)}" allowfullscreen style="width:100%;height:100%;border:0"></iframe>' if m else
-             f'<div style="text-align:center"><p class="ed-serif-en" style="font-size:20px;margin:0">{_ed_esc(x["label"])}</p>'
-             f'<p class="ed-serif-en" style="font-size:36px;margin:4px 0 20px">{_ed_esc(b.get("label") or "Orientation")}</p>'
-             '<div class="ed-play"></div></div>')
+    """[v16] 유튜브 링크가 있으면 실제 영상(지연 로딩), 없으면 SB 모드에서만 '영상 영역' 와이어 표시 — 가짜 재생 버튼 없음"""
+    m = re.search(r"(?:youtu\.be/|v=|embed/|shorts/)([A-Za-z0-9_-]{11})", x.get("video") or "")
+    if m:
+        inner = (f'<iframe src="https://www.youtube.com/embed/{m.group(1)}" title="{_ehtml.escape(x.get("label", ""))} OT 영상" loading="lazy" '
+                 'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen '
+                 'style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>')
+    elif x.get("sb"):
+        inner = ('<div class="ed-wire"><b>OT 영상 영역 · 16:9</b><span>사이드바 › 🎬 OT 영상에 유튜브 링크를 넣으면 실제 영상이 들어갑니다</span></div>')
+    else:
+        return ""
     return (f'<section class="ed-sec" style="text-align:center"><div class="ed-in" style="max-width:860px">'
             + _ed_head(b.get("chapter", ""), b.get("title", ""))
-            + f'<div class="ed-video">{inner}</div></div></section>')
+            + f'<div class="ed-video" style="position:relative;aspect-ratio:16/9;height:auto">{inner}</div></div></section>')
+
+def ed_r_marquee(b, x):
+    """[v16] 가로로 흐르는 키워드 띠"""
+    words = [str(w).strip() for w in (b.get("words") or []) if str(w).strip()]
+    if not words:
+        kit_words = [x.get("concept_en", ""), x.get("label", "")]
+        words = [w for w in kit_words if w]
+    if not words:
+        return ""
+    unit = "".join(f'<span>{_ed_esc(w)}</span><i>✦</i>' for w in words)
+    return (f'<div class="ed-mq" aria-hidden="true"><div class="ed-mq-t">{unit * 4}</div></div>')
 
 def ed_r_lineup(b, x):
     imgs = x.get("books") or ([_ed_img(x, "key_visual")] if _ed_img(x, "key_visual") else [])
@@ -5335,6 +5358,8 @@ def ed_r_target(b, x):
 
 def ed_r_pass_box(b, x):
     p = x.get("pass") or {}
+    if not (p.get("name") or p.get("price")) and not x.get("sb"):
+        return ""                                 # 구매 정보가 없으면 실제 시안에서는 숨김
     name = p.get("name") or "[상품명 입력]"
     inc = [t for t in (p.get("includes") or "").splitlines() if t.strip()]
     orig, price, disc = _ed_won(p.get("orig", "")), _ed_won(p.get("price", "")), str(p.get("disc", "") or "").strip()
@@ -5350,7 +5375,9 @@ def ed_r_pass_box(b, x):
             + (f'<span class="ed-disc">{_ed_esc(disc)}</span>' if disc else "")
             + (f'<s>{_ed_esc(orig)}</s>' if orig else "")
             + f'<b>{_ed_esc(price or "[판매가 입력]")}</b></div>'
-            f'<a class="ed-buy" href="{_ehtml.escape(p.get("link") or "#")}">구매하기</a></div></div>'
+            + (f'<a class="ed-buy" href="{_ehtml.escape(_ed_safe_url(p.get("link")))}" data-cta="purchase">구매하기</a>' if _ed_safe_url(p.get("link"))
+               else '<span class="ed-buy ed-buy-off" title="구매 링크 미입력">구매 링크 입력 필요</span>')
+            + '</div></div>'
             + (f'<p class="ed-hsub" style="font-size:13px">{_ed_esc(p.get("note"))}</p>' if p.get("note") else "")
             + '</div></section>')
 
@@ -5372,6 +5399,7 @@ def ed_r_notice(x):
 
 ED_RENDERERS = {
     "target": ed_r_target,
+    "marquee": ed_r_marquee,
     "hero": ed_r_hero, "prologue": ed_r_prologue, "index_tiles": ed_r_index_tiles, "course_stages": ed_r_course_stages,
     "points": ed_r_points, "statement": ed_r_statement, "quote": ed_r_quote, "three_col": ed_r_three_col, "balance": ed_r_balance, "combo": ed_r_combo,
     "feature_stat": ed_r_feature_stat, "manifesto": ed_r_manifesto, "video": ed_r_video, "lineup": ed_r_lineup,
@@ -5564,9 +5592,40 @@ body{{margin:0;font-family:var(--sans);color:var(--ink);background:#fff;-webkit-
 .ed-tg-ck{{flex:0 0 30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px}}
 .ed-tg-c b{{display:block;font-size:17px;font-weight:700;color:var(--ink);line-height:1.5}}.ed-tg-c span{{display:block;font-size:14.5px;color:var(--muted);line-height:1.7;margin-top:4px}}
 @media(max-width:720px){{.ed-tg{{grid-template-columns:1fr}}}}
+
+/* [v16] 흐르는 띠 */
+.ed-mq{{background:var(--accent2);color:#fff;overflow:hidden;white-space:nowrap;padding:18px 0;position:relative}}
+.ed-mq-t{{display:inline-block;animation:edmq 38s linear infinite}}
+.ed-mq span{{font-family:var(--en);font-size:clamp(22px,3vw,36px);font-weight:700;letter-spacing:.04em;margin:0 26px;text-transform:uppercase}}
+.ed-mq i{{font-style:normal;opacity:.55;font-size:18px;vertical-align:middle}}
+@keyframes edmq{{from{{transform:translateX(0)}}to{{transform:translateX(-50%)}}}}
+/* [v16] 스크롤 효과 (JS가 켜졌을 때만 숨김 → 스크립트가 막혀도 내용은 보임) */
+.fx-on .ed-rv{{opacity:0;transform:translateY(28px);transition:opacity .8s ease,transform .8s cubic-bezier(.2,.7,.2,1)}}
+.fx-on .ed-rv.on{{opacity:1;transform:none}}
+.fx-on .ed-hero .ed-wm{{animation:edrise 1.1s cubic-bezier(.2,.7,.2,1) both}}
+@keyframes edrise{{from{{opacity:0;transform:translateY(30px) scale(.98);letter-spacing:.06em}}to{{opacity:1;transform:none}}}}
+.ed-tg-c,.ed-pcard,.ed-col,.ed-tile{{transition:transform .25s ease,box-shadow .25s ease}}
+.ed-tg-c:hover,.ed-pcard:hover,.ed-col:hover{{transform:translateY(-4px);box-shadow:0 14px 30px rgba(10,20,40,.12)}}
+.ed-prog{{position:sticky;top:0;height:3px;z-index:101;background:transparent}}.ed-prog i{{display:block;height:100%;width:0;background:var(--accent)}}
+.ed-buy-off{{opacity:.55;cursor:not-allowed;border:1px dashed currentColor}}
+.ed-wire{{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border:2px dashed rgba(255,255,255,.35);color:rgba(255,255,255,.8);background:repeating-linear-gradient(45deg,transparent 0 14px,rgba(255,255,255,.04) 14px 28px)}}
+.ed-wire b{{font-size:20px}}.ed-wire span{{font-size:13px;opacity:.75}}
+/* [v16] 모바일 하단 고정 구매 버튼 (구매 박스로 이동) */
+.ed-mcta{{display:none}}
+@media(max-width:720px){{.ed-mcta{{display:flex;position:sticky;bottom:0;z-index:99;justify-content:center;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:color-mix(in srgb,var(--dark) 92%,transparent);backdrop-filter:blur(10px)}}
+.ed-mcta a{{flex:1;max-width:420px;text-align:center;background:var(--accent);color:#fff;text-decoration:none;font-weight:800;font-size:16px;padding:15px;border-radius:10px}}}}
+@media(max-width:720px){{.ed-spaced{{letter-spacing:.16em}}}}
+/* [v16] SB 모드 — 섹션 번호표 */
+.ed-sbw{{position:relative}}
+.ed-sbtag{{position:absolute;left:10px;top:10px;z-index:60;background:#FF2D6F;color:#fff;font:700 12px/1.3 ui-monospace,Menlo,Consolas,monospace;padding:6px 10px;border-radius:4px;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.25)}}
+.ed-sbtag em{{font-style:normal;opacity:.8;font-weight:500}}
+.ed-sbw + .ed-sbw{{border-top:2px dashed #FF2D6F}}
+a:focus-visible,button:focus-visible{{outline:3px solid var(--accent);outline-offset:3px}}
+@media (prefers-reduced-motion: reduce){{.ed-mq-t{{animation:none}}.fx-on .ed-rv{{opacity:1;transform:none;transition:none}}.fx-on .ed-hero .ed-wm{{animation:none}}}}
 """
 
 ED_WRAP_ID = "dm-promo-wrap"
+_ED_RENDER_ERRORS = []
 
 def _ed_scope_css(css: str, scope: str = "#" + ED_WRAP_ID) -> str:
     """[v15] 모든 선택자 앞에 #dm-promo-wrap — 사이트 GNB·푸터에 영향 없게.
@@ -5675,7 +5734,30 @@ def ed_build_html(plan: dict, x: dict, export: bool = False, img_mode: str = "em
     blocks = plan.get("blocks") or []
     x = dict(x); x["motif"] = " ".join(str((plan.get("kit") or {}).get(k, "")) for k in ("motif", "concept_en"))
     x["concept_en"] = str((plan.get("kit") or {}).get("concept_en", "")); x["deco"] = plan.get("deco", True)
-    _show = lambda b: not b.get("hidden") and (b.get("type") in ("hero", "pass_box", "video") or not _ed_is_empty(b))
+    x["sb"] = bool(plan.get("sb")) and not fragment
+    _ok_video = bool(re.search(r"(?:youtu\.be/|v=|embed/|shorts/)[A-Za-z0-9_-]{11}", x.get("video") or ""))
+    _ok_pass = bool((x.get("pass") or {}).get("name") or (x.get("pass") or {}).get("price"))
+    def _show(b):
+        if b.get("hidden"):
+            return False
+        t = b.get("type")
+        if t == "video":
+            return _ok_video or x["sb"]
+        if t == "pass_box":
+            return _ok_pass or x["sb"]
+        return t == "hero" or not _ed_is_empty(b)
+    # 챕터 번호를 실제 순서대로 다시 매김 (Chapter 00/02/02… 뒤죽박죽 방지)
+    _blocks2, _ch = [], 0
+    for b in blocks:
+        if _show(b) and str(b.get("chapter") or "").strip():
+            _ch += 1
+            b = dict(b)
+            rest = re.sub(r"^\s*chapter\s*\d+\s*[.:·-]?\s*", "", str(b["chapter"]), flags=re.I)
+            b["chapter"] = f"Chapter {_ch:02d}. {rest}".strip()
+        _blocks2.append(b)
+    blocks = _blocks2
+    global _ED_RENDER_ERRORS
+    _ED_RENDER_ERRORS = []
     navs, seen = [], set()
     for i, b in enumerate(blocks):
         lab = str(b.get("nav") or "").strip()
@@ -5691,13 +5773,39 @@ def ed_build_html(plan: dict, x: dict, export: bool = False, img_mode: str = "em
         try:
             h = fn(b, x)
         except Exception as e:
+            _ED_RENDER_ERRORS.append((i, b.get("type"), str(e)))
             h = "" if export else f'<div style="padding:12px;color:#c00;font-size:12px">[{b.get("type")}] 렌더 오류: {_ehtml.escape(str(e))}</div>'
         if h:
-            secs.append(f'<div id="ed-b{i}">{h}</div>')
+            if x["sb"]:
+                lab = ED_BLOCK_SPECS.get(b.get("type"), (b.get("type"),))[0].split(" (")[0].split(" —")[0]
+                lay = ED_LAYOUT_BLOCKS.get(b.get("type"), "").split(" / ")
+                lay_t = lay[["a", "b", "c"].index(b["layout"])] if b.get("layout") in ("a", "b", "c") and len(lay) > ["a", "b", "c"].index(b["layout"]) else \
+                        (ED_HERO_VARIANTS.get(b.get("variant"), "") if b.get("type") == "hero" else "")
+                _sbn = sum(1 for z in secs if 'class="ed-sbw' in z) + 1
+                h = f'<div class="ed-sbtag">S{_sbn:02d} · {_ehtml.escape(lab)}{(" <em>/ " + _ehtml.escape(lay_t) + "</em>") if lay_t else ""}</div>' + h
+                secs.append(f'<div id="ed-b{i}" class="ed-sbw">{h}</div>')
+            else:
+                secs.append(f'<div id="ed-b{i}">{h}</div>')
             if b.get("type") == "hero":
                 secs.append(ed_r_anchor_bar(navs))
+    # 모바일 하단 고정 버튼 → 구매 박스로 이동 (페이지 안 이동이라 링크가 없어도 안전)
+    _pi = next((f"ed-b{i}" for i, b in enumerate(blocks) if b.get("type") == "pass_box" and _show(b)), "")
+    mcta = f'<div class="ed-mcta"><a href="#{_pi}" data-cta="mobile-bottom">수강 신청하기</a></div>' if _pi and _ok_pass else ""
+    fx_on = plan.get("fx", True)
     css = _ed_scope_css(ed_css(pk)) + f"#{ED_WRAP_ID}{{overflow-x:clip;scroll-behavior:smooth}}"
-    inner = f'<div id="{ED_WRAP_ID}">{"".join(secs)}{ed_r_notice(x)}</div>'
+    fx_js = ("<script>(function(){var w=document.getElementById('" + ED_WRAP_ID + "');if(!w)return;"
+             "var rm=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;"
+             "var pr=w.querySelector('.ed-prog i');function sp(){if(!pr)return;var r=w.getBoundingClientRect();var t=r.height-innerHeight;"
+             "pr.style.width=Math.max(0,Math.min(100,(-r.top)/t*100))+'%'}addEventListener('scroll',sp,{passive:true});sp();"
+             "w.addEventListener('click',function(e){var a=e.target.closest('[data-cta]');if(a){(window.dataLayer=window.dataLayer||[]).push({event:'promo_cta_click',cta:a.getAttribute('data-cta')})}});"
+             + ("" if not fx_on else
+                "if(rm||!('IntersectionObserver' in window))return;w.classList.add('fx-on');"
+                "var els=w.querySelectorAll('.ed-sec .ed-in > *, .ed-tg-c, .ed-pcard, .ed-col');"
+                "var io=new IntersectionObserver(function(es){es.forEach(function(en){if(en.isIntersecting){en.target.classList.add('on');io.unobserve(en.target)}})},{threshold:.12});"
+                "els.forEach(function(el){el.classList.add('ed-rv');io.observe(el)});")
+             + "})();</script>")
+    prog = '<div class="ed-prog"><i></i></div>'
+    inner = f'<div id="{ED_WRAP_ID}">{prog}{"".join(secs)}{ed_r_notice(x)}{mcta}</div>{fx_js}'
     if fragment:
         out = ("<!-- ▼ 대성마이맥 PR 페이지 본문 시작 — 이 블록 전체를 에디터의 HTML(소스) 모드에 붙여넣으세요 -->\n"
                + _ed_font_links(pk) + f"\n<style>{css}</style>\n" + inner + "\n<!-- ▲ PR 페이지 본문 끝 -->")
@@ -5725,11 +5833,19 @@ def _ed_inputs_text() -> str:
 
 ED_EXAMPLE = json.dumps({'kit': {'concept_en': 'STEP', 'verb': '오르다', 'motif': '계단·디딤돌', 'keywords': ['어휘', '구문', '완독'], 'antithesis': '어려운 건 덜고, 쉬운 것부터 쌓고'}, 'blocks': [{'type': 'hero', 'variant': 'split_motif', 'kicker': '영어가 가장 막막한 과목이라면', 'sub': '수능 영어, 첫 계단부터 다시', 'wordmark': 'KEY STEP'}, {'type': 'prologue', 'nav': '프롤로그', 'script': 'Prologue', 'title': '첫 계단의 영어', 'sub': '6~8등급에게 필요한 건 더 높은 계단이 아닙니다', 'body': ['단어가 낯설고 문장이 끊겨 보이면, 수능 지문은 펼치는 순간부터 벽이 됩니다.', 'KEY STEP은 중학 영어 수준에서 출발해 어휘, 구문, 독해를 한 칸씩 쌓아 올리는 입문 강좌입니다.'], 'closing': '높이보다 순서. 한 계단씩 오릅니다.'}, {'type': 'points', 'nav': '기획 의도', 'title_en': 'KEY STEP', 'title_ko': '기획 의도', 'points': [{'label': 'Step Point 01', 'desc': '수능에 반복해서 나오는 기초 어휘부터 정리합니다.', 'line': '낯선 단어부터 줄여 가는', 'keyword': '어휘'}, {'label': 'Step Point 02', 'desc': '주어와 동사를 찾아 문장의 뼈대를 세웁니다.', 'line': '문장의 뼈대를 세우는', 'keyword': '구문'}, {'label': 'Step Point 03', 'desc': '짧은 지문부터 끝까지 읽어 내는 경험을 쌓습니다.', 'line': '지문을 끝까지 읽어 내는', 'keyword': '완독'}]}]}, ensure_ascii=False)
 
+ED_TONES = {
+    "담백 · 정확": "설명은 짧고 정확하게. 꾸밈보다 사실과 학습 방법이 먼저 보이게 쓴다.",
+    "감각 · 트렌디": "짧은 명사형 제목과 리듬감 있는 끊어 쓰기. 영문 라벨을 적극적으로, 문장은 더 짧게. 단 유행어·과장은 쓰지 않는다.",
+    "단호 · 강사 목소리": "강사가 학생에게 직접 말하듯 단정형으로. '~입니다/~하세요' 대신 '~다/~하자'를 섞어도 된다. 근거 없는 약속은 금지.",
+    "질문형 · 공감": "섹션 제목을 학생이 속으로 하는 질문으로 시작하고, 본문이 그 질문에 답하게 쓴다. 질문은 섹션마다 다른 형태로.",
+}
+
 def ed_brief() -> str:
     concept = st.session_state.get("ed_concept", "").strip()
+    tone = st.session_state.get("ed_tone") or list(ED_TONES)[0]
     return "\n".join([
         "당신은 대성마이맥 컨텐츠기획실의 시니어 카피라이터 겸 PR 페이지 기획자입니다.",
-        ED_STYLE_GUIDE, ED_CRAFT_GUIDE, season_prompt_block(),
+        ED_STYLE_GUIDE, ED_CRAFT_GUIDE, f"[카피 톤 — {tone}] {ED_TONES.get(tone, '')}", season_prompt_block(),
         "[강좌 정보 — 여기에 없는 사실·숫자·가격·기간은 쓰지 않는다]", _ed_inputs_text(),
         (f"[컨셉 지정] {concept} — 이 단어/이미지로 컨셉 키트를 만든다." if concept else ""),
         "[모범 예시 — 6~8등급 입문 강좌 'KEY STEP'의 앞부분. 컨셉 동사·「키워드」가 이어지는 방식과 말맛만 참고하고, 문장은 재사용하지 말 것]",
@@ -6241,7 +6357,7 @@ _ED_DEFAULTS = {"ed_inst": "", "ed_label": "", "ed_subject": "영어", "ed_targe
                 "ed_books": "", "ed_pass_name": "", "ed_pass_inc": "", "ed_pass_orig": "", "ed_pass_price": "", "ed_pass_disc": "",
                 "ed_pass_link": "", "ed_pass_note": "", "ed_benefit": "", "ed_video": "", "ed_concept": "",
                 "ed_notice": "", "ed_plan": None, "ed_photo": "", "ed_books_img": [],
-                "ed_imgs": {}, "ed_img_prompts": {}, "ed_img_provider": "gemini", "ed_full": True}
+                "ed_imgs": {}, "ed_img_prompts": {}, "ed_img_provider": "gemini", "ed_full": True, "ed_tone": "담백 · 정확"}
 
 def _ed_img_b64(f, max_w=1400) -> str:
     from PIL import Image
@@ -6378,6 +6494,34 @@ def ed_package_zip(plan: dict, x: dict) -> bytes:
     return buf.getvalue()
 
 
+def ed_review_items(plan: dict, x: dict) -> list:
+    """[v16] 내보내기 전 검수 필요 항목: (등급, 내용)"""
+    out = []
+    p = x.get("pass") or {}
+    shown = [b for b in plan.get("blocks") or [] if not b.get("hidden")]
+    types = [b.get("type") for b in shown]
+    if "pass_box" in types:
+        if not (p.get("name") or p.get("price")):
+            out.append(("⚠️", "구매 박스가 켜져 있지만 상품명·가격이 비어 있어요 → ② 구매·혜택 입력 (SB 모드가 아니면 자동으로 숨겨짐)"))
+        if p.get("link") and not _ed_safe_url(p.get("link")):
+            out.append(("⚠️", "구매 링크가 https:// 로 시작하지 않아 버튼에 넣지 않았어요"))
+        elif not p.get("link"):
+            out.append(("ℹ️", "구매 링크 미입력 → 버튼이 '구매 링크 입력 필요'로 표시돼요"))
+        if p.get("price") and not p.get("orig"):
+            out.append(("ℹ️", "정가가 비어 있어 할인 전 가격이 표시되지 않아요"))
+    if "video" in types and not re.search(r"(?:youtu\.be/|v=|embed/|shorts/)[A-Za-z0-9_-]{11}", x.get("video") or ""):
+        out.append(("ℹ️", "OT 영상 링크가 없어요 → 실제 시안에선 영상 섹션이 숨겨지고, SB 모드에선 '영상 영역'으로 표시돼요"))
+    if not x.get("photo"):
+        out.append(("ℹ️", "강사 사진이 없어요 → 사이드바에 실제 사진(누끼 PNG)을 올리면 히어로·메시지 섹션에 들어가요"))
+    if not (x.get("imgs") or {}).get("hero_bg"):
+        out.append(("ℹ️", "히어로 배경 이미지가 없어요 → 🎨 AI 이미지에서 만들거나 업로드"))
+    blob = json.dumps(shown, ensure_ascii=False)
+    if "입력]" in blob:
+        out.append(("⚠️", "[○○ 입력] 자리표시가 남아 있는 섹션이 있어요"))
+    for i, t, err in _ED_RENDER_ERRORS:
+        out.append(("❌", f"{i + 1:02d}번 섹션({ED_BLOCK_SPECS.get(t, (t,))[0].split(' (')[0]}) 표시 오류: {err} → ④ 문구 편집에서 그 블록의 목록 칸(JSON) 형식을 확인하거나 '이 블록만 다시 쓰기'"))
+    return out
+
 def _ed_clear_widgets(*prefixes):
     """블록 순서·내용이 바뀌면 입력칸 위젯 상태를 지워 새 값이 보이게"""
     prefixes = prefixes or ("edf_", "edalt_", "edrq")
@@ -6400,14 +6544,22 @@ def render_editorial_mode():
             st.caption("✓ API 키 연결됨")
         st.markdown('<div class="sec-hdr">🖼 이미지</div>', unsafe_allow_html=True)
         ph = st.file_uploader("강사 사진 (누끼 PNG 권장)", type=["png", "jpg", "jpeg", "webp"], key="ed_photo_up")
-        S.ed_photo = _ed_img_b64(ph) if ph else ""
+        if ph is not None and S.get("_ed_ph_sig") != ph.name + str(ph.size):      # 새로 올렸을 때만 교체 (불러온 사진 유지)
+            S.ed_photo = _ed_img_b64(ph); S["_ed_ph_sig"] = ph.name + str(ph.size)
         bks = st.file_uploader("교재·키비주얼 이미지 (여러 장)", type=["png", "jpg", "jpeg", "webp"],
                                accept_multiple_files=True, key="ed_books_up")
-        S.ed_books_img = [_ed_img_b64(f, 900) for f in (bks or [])]
+        _bsig = "|".join(f.name + str(f.size) for f in (bks or []))
+        if bks and S.get("_ed_bk_sig") != _bsig:
+            S.ed_books_img = [_ed_img_b64(f, 900) for f in bks]; S["_ed_bk_sig"] = _bsig
+        if S.ed_photo or S.ed_books_img:
+            st.caption(f"현재: 강사 사진 {'있음' if S.ed_photo else '없음'} · 교재 이미지 {len(S.ed_books_img or [])}장")
+            if st.button("사진·교재 이미지 비우기", key="ed_img_clear"):
+                S.ed_photo, S.ed_books_img = "", []
+                st.rerun()
         st.markdown('<div class="sec-hdr">🎬 OT 영상</div>', unsafe_allow_html=True)
         S.ed_video = st.text_input("유튜브 링크", S.ed_video, placeholder="https://youtu.be/...", label_visibility="collapsed")
         st.markdown('<div class="sec-hdr">💾 저장 / 불러오기</div>', unsafe_allow_html=True)
-        save = {k: S[k] for k in _ED_DEFAULTS if k not in ("ed_photo", "ed_books_img")}
+        save = {k: S[k] for k in _ED_DEFAULTS}          # [v16] 강사 사진·교재 이미지까지 저장
         st.download_button("작업 파일 저장 (.json)", json.dumps(save, ensure_ascii=False, indent=1).encode("utf-8"),
                            file_name=f"시안형_{S.ed_label or '작업'}.json", mime="application/json", use_container_width=True)
         up = st.file_uploader("작업 파일 불러오기", type=["json"], key="ed_proj_up", label_visibility="collapsed")
@@ -6433,6 +6585,8 @@ def render_editorial_mode():
             c3, c4 = st.columns(2)
             S.ed_subject = c3.text_input("과목", S.ed_subject)
             S.ed_target = c4.text_input("대상", S.ed_target)
+            S["ed_tone"] = st.selectbox("카피 톤", list(ED_TONES), index=list(ED_TONES).index(S.get("ed_tone")) if S.get("ed_tone") in ED_TONES else 0,
+                                        help="같은 강좌도 톤에 따라 제목·문장 스타일이 달라집니다. 바꾼 뒤 '구성 다시 짜기'를 누르세요.")
             S.ed_concept = st.text_input("컨셉 단어 (선택)", S.ed_concept,
                                          placeholder="비우면 AI가 강좌명에서 뽑음 · 예: 설계, 접점, 밸런스")
             S.ed_memo = st.text_area("기획 메모 · 원고", S.ed_memo, height=130,
@@ -6654,7 +6808,20 @@ def render_editorial_mode():
                     "· 강사 사진(누끼)과 교재 이미지를 사이드바에 올리면 히어로·교재 섹션에 들어갑니다.\n"
                     "· 가격·혜택·비율 같은 숫자는 입력한 값만 쓰입니다.")
             return
+        t1, t2 = st.columns(2)
+        _sb = t1.toggle("🧩 SB 모드 (섹션 번호표 · 빈 자리 표시)", value=bool(S.ed_plan.get("sb")), key="ed_sb_tg",
+                        help="스토리보드 그릴 때 켜세요. 섹션마다 S01·S02 번호와 레이아웃 이름이 붙고, 영상·구매 정보가 없어도 자리가 표시됩니다.")
+        _fx = t2.toggle("✨ 스크롤 효과", value=S.ed_plan.get("fx", True), key="ed_fx_tg",
+                        help="스크롤하면 섹션이 떠오르는 효과, 진행 바, 카드 호버, 흐르는 키워드 띠")
+        if _sb != bool(S.ed_plan.get("sb")) or _fx != S.ed_plan.get("fx", True):
+            S.ed_plan["sb"], S.ed_plan["fx"] = _sb, _fx
+            st.rerun()
         html_out = ed_build_html(S.ed_plan, _ed_ctx())
+        _rv = ed_review_items(S.ed_plan, _ed_ctx())
+        if _rv:
+            with st.expander(f"🔎 검수 필요 항목 {len(_rv)}개", expanded=any(g in ("❌", "⚠️") for g, _ in _rv)):
+                for g, t in _rv:
+                    st.markdown(f"{g} {t}")
         d1, d2, d3, d4 = st.columns([1.15, 1.25, 1.2, .9])
         _ctx = _ed_ctx()
         d1.download_button("📋 CMS 삽입용 코드", ed_build_html(S.ed_plan, _ctx, export=True, img_mode="placeholder", fragment=True).encode("utf-8"),
