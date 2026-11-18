@@ -1,5 +1,6 @@
 """
 강사 페이지 빌더 Pro v14 — 실무용 정리판
+[v15] ✨ 시안형: CMS 삽입용 코드(CSS 범위 제한·이미지 자리표시) / Pretendard 기본 서체 / 고정 메뉴바 / 수강 대상 섹션 / 상투어 금지 강화
 [v14] ✨ 시안형: 모든 섹션을 먼저 펼쳐 놓고 순서·표시를 직접 고르기 / 핵심 문구 후보 3개 + 디렉터 선택(카피 워크숍)
 [v10] ✨ 시안형 PR 페이지 모드: 컨셉 키트 + 블록 구성 + 스타일 팩 (실제 PR 시안 문법)
 [v9] 📝 강좌 특징 HTML 모드 추가: 원고 → 관리자 페이지용 인라인 CSS HTML(.txt) + 미리보기(.html)
@@ -1172,6 +1173,8 @@ CLICHE_WORDS = [
     "체계적", "최고의", "함께라면", "의 비밀", "비법", "극대화", "혁신", "여정", "첫걸음",
     "새로운 차원", "한계를 넘어", "잠재력", "꿈을 응원", "놀라운 변화", "성공의 열쇠",
     "하는 당신", "당신을 위한", "지금 바로 시작하세요", "압도적인 결과", "차원이 다른",
+    "와 함께하면", "과 함께하면", "와 함께라면", "과 함께라면", "두렵지 않", "해답을 찾", "자신감을 얻", "한 걸음 나아",
+    "잡아드립니다", "책임지겠습니다", "완벽하게 대비",
 ]
 _SKIP_LINT_KEYS = {"bannerVisual", "introVisual", "whyVisual", "concept", "videoUrl",
                    "bg_photo_url", "custom_section_data", "course_copy", "textbook_copy",
@@ -4719,19 +4722,24 @@ import math
 import random as _erandom
 
 ED_PACKS = {
+    # head: 한글 제목 서체 — sans(Pretendard 800) / serif(명조, 프리미엄·클래식 팩에서 큰 제목에만). 본문은 항상 Pretendard.
     "noir_navy":    {"name": "누아르 네이비 (Deviser형)",   "dark": "#0D0E11", "alt": "#EEF0F4", "accent": "#2C4A8C", "accent2": "#1E3570",
-                     "en": "'Playfair Display'", "wm": "silver"},
+                     "en": "'Playfair Display'", "wm": "silver", "head": "serif"},
     "silver_mono":  {"name": "실버 모노 (GUIDANCE형)",      "dark": "#1B1B1C", "alt": "#F2F2F2", "accent": "#5E5E5E", "accent2": "#2B2B2B",
-                     "en": "'Bodoni Moda'", "wm": "fade"},
+                     "en": "'Montserrat'", "wm": "fade", "head": "sans"},
     "dusty_rose":   {"name": "더스티 로즈 (CONTACT형)",     "dark": "#2F2E2F", "alt": "#F3EFEE", "accent": "#A57A80", "accent2": "#8A6066",
-                     "en": "'Cormorant Garamond'", "wm": "white"},
+                     "en": "'Playfair Display'", "wm": "white", "head": "serif"},
     "blue_final":   {"name": "딥 블루 (REAL CLOSING형)",    "dark": "#0C1120", "alt": "#E8EDF6", "accent": "#2F5BEA", "accent2": "#1C3FB8",
-                     "en": "'Playfair Display'", "wm": "white"},
+                     "en": "'Space Grotesk'", "wm": "white", "head": "sans"},
+    "ocean_mint":   {"name": "오션 민트 (입문·청량)",        "dark": "#06161C", "alt": "#E8F5F4", "accent": "#0E9AA7", "accent2": "#0B6E7A",
+                     "en": "'Bebas Neue'", "wm": "white", "head": "sans"},
     "forest_ivory": {"name": "포레스트 아이보리",            "dark": "#13221C", "alt": "#F2F0E8", "accent": "#4E7A5C", "accent2": "#365A42",
-                     "en": "'Cormorant Garamond'", "wm": "silver"},
+                     "en": "'Montserrat'", "wm": "silver", "head": "sans"},
     "burgundy":     {"name": "버건디 클래식",                "dark": "#1A0E11", "alt": "#F5EEEF", "accent": "#8C2F42", "accent2": "#6C2232",
-                     "en": "'Bodoni Moda'", "wm": "white"},
+                     "en": "'Playfair Display'", "wm": "white", "head": "serif"},
 }
+ED_EN_FONTS = {"'Playfair Display'": "Playfair+Display:wght@500;600;700", "'Montserrat'": "Montserrat:wght@500;600;700;800",
+               "'Space Grotesk'": "Space+Grotesk:wght@500;600;700", "'Bebas Neue'": "Bebas+Neue"}
 ED_HERO_VARIANTS = {
     "wordmark_photo": "중앙 워드마크 + 강사 사진 (Deviser형)",
     "bottom_wordmark": "하단 대형 워드마크 + 풀사진 (GUIDANCE형)",
@@ -4745,7 +4753,7 @@ ED_LAYOUT_BLOCKS = {"prologue": "가운데 정렬 / 이미지+텍스트 2단 / �
                     "quote": "밝은 배경 / 어두운 배경 / 좌우 분할",
                     "three_col": "이미지 띠 / 카드형 / 지그재그 행",
                     "statement": "밝은 배경 / 어두운 배경"}
-ED_COPIED_PHRASES = ["빈칸은 감이 아니라 근거", "주어부터 찾는 습관", "통합의 시대를 설계", "파이널은 밸런스 싸움", "허점은 닫고", "감각은 열고", "A distinct INSIGHT",
+ED_COPIED_PHRASES = ["왜 첫 문장에서 손이 멈출까", "빈칸은 감이 아니라 근거", "주어부터 찾는 습관", "통합의 시대를 설계", "파이널은 밸런스 싸움", "허점은 닫고", "감각은 열고", "A distinct INSIGHT",
                      "A clear GUIDELINE", "완성도를 설계", "깊이감을 설계", "무엇을 알고, 어디까지 이해하고"]
 
 ED_STYLE_GUIDE = """
@@ -4753,7 +4761,7 @@ ED_STYLE_GUIDE = """
 A. 컨셉 동사 하나를 정해 섹션 '제목'에서만 변주한다. (예: 설계하다 → ~의 시대를 설계하다 / ~을 설계하다)
 B. 영문 타이틀 + 한글 서술 한 줄의 짝. 영문은 강좌 내용과 직접 관련된 단어로, 페이지 안에서 같은 영문 패턴을 두 번 쓰지 않는다.
 C. 대구는 페이지 전체에서 1번만. 두 구절이 모두 '이 강좌가 실제로 하는 일'이어야 한다. 말이 안 되는 대구(예: '해설은 멈춘다')는 쓰지 않는다.
-D. 컨셉 메타포에서 나온 「키워드」 3개를 기획 의도 포인트마다 하나씩 붙인다. 키워드는 학습 내용과 바로 연결돼야 한다.
+D. 「키워드」 3개는 실제 학습 내용을 가리키는 짧은 말(예: 구문·적용·완독)로 정하고 기획 의도 포인트마다 하나씩 붙인다. 비유어(파도·보드 등)를 키워드로 쓰지 않는다.
 
 [★ 메타포 사용 규칙 — AI 티가 나는 가장 큰 원인]
 1. 컨셉 비유어(파도·보드·계단·설계도 같은 단어)는 히어로, 프롤로그 제목, 「키워드」, 마지막 한 줄에만 쓴다. 페이지 전체에서 5번 이하.
@@ -4767,12 +4775,15 @@ D. 컨셉 메타포에서 나온 「키워드」 3개를 기획 의도 포인트
 - 지어낸 1인칭 수강생 고백("나는 ~가 필요했습니다")을 쓰지 않는다.
 - 짧은 서술형 종결(~합니다, ~입니다)이 기본. 본문은 2~3문장 안쪽.
 - 숫자·가격·기간·비율은 [강좌 정보]에 있는 것만. 없으면 그 블록을 쓰지 않는다.
-- 쓰지 않는 표현: 체계적인, 최고의, 함께라면, 비법, 여정, 첫걸음, 잠재력, 한계를 넘어, ~하는 당신.
+- 쓰지 않는 표현: 체계적인, 최고의, 함께라면, ~와 함께하면, ~가 두렵지 않습니다, 해답을 찾으세요, 자신감을 얻는다, 비법, 여정, 첫걸음, 잠재력, 한계를 넘어, ~하는 당신, ~해드립니다.
+- 히어로 아래 설명은 '이 강좌를 들으면 무엇이 달라지는지'를 학생의 실제 장면으로 쓴다. 광고 맺음말(함께하면 ~합니다)로 끝내지 않는다.
 """
 
 ED_CRAFT_GUIDE = """
 [세련된 카피 — 시니어 카피라이터가 실제로 고민하는 지점. 예시 문장은 그대로 쓰지 말 것]
 1. 먼저 '이 강좌를 들을 학생이 속으로 하는 말'을 찾는다. 히어로·프롤로그는 그 말에서 출발한다.
+   좋은 방향: 시험장에서 실제로 멈추는 순간을 짚는 질문 — 예) 단어는 다 아는데, 왜 첫 문장에서 손이 멈출까 (그대로 쓰지 말 것)
+   컨셉 비유는 그 고민에 '답하는 쪽'에만 짧게 붙인다. 비유를 두 개 이상 겹치지 않는다(조각배·보드·파도를 한 문장에 함께 쓰는 식 ✗).
    (방향 예: "해석은 되는데 답이 안 보인다면" 처럼 학생이 실제로 겪는 상황)
 2. 형용사 대신 구체적인 행동을 쓴다. '확실한 실력' ✗ → '처음 보는 지문에서도 주어와 동사부터 찾는다' ✓
 3. 이 강좌에만 맞는 말인지 확인한다. 강좌명만 바꿔 다른 강좌에 붙여도 말이 되면 다시 쓴다.
@@ -4784,7 +4795,7 @@ ED_CRAFT_GUIDE = """
 """
 
 ED_FULL_ORDER = ["hero", "prologue", "statement", "points", "quote", "three_col", "course_stages", "index_tiles",
-                 "combo", "feature_stat", "balance", "manifesto", "video", "lineup", "pass_box", "benefit"]
+                 "combo", "feature_stat", "balance", "manifesto", "target", "video", "lineup", "pass_box", "benefit"]
 
 # 핵심 문구(후보를 여러 개 써 볼 가치가 있는 칸)와 그 역할
 ED_KEY_FIELDS = {
@@ -4797,6 +4808,7 @@ ED_KEY_FIELDS = {
     "index_tiles": {"title": "라인업 제목"}, "combo": {"title": "구성 다이어그램 제목"},
     "feature_stat": {"title": "구성 수치 섹션 제목"}, "lineup": {"title_ko": "교재 섹션 한글 제목"},
     "video": {"title": "OT 영상 제목"},
+    "target": {"title": "수강 대상 섹션 제목"},
 }
 
 # 편집 화면에 보이는 칸 이름 (영문 키 → 한글)
@@ -4806,7 +4818,7 @@ ED_FIELD_LABELS = {
     "notes": "사진 주변 짧은 문구", "band": "띠 문구", "lead": "첫 문장", "chapter": "챕터 라벨", "nav": "메뉴 이름",
     "eyebrow": "영문 윗줄", "points": "포인트 목록", "items": "항목 목록", "tiles": "타일 목록", "stages": "단계 목록",
     "label": "영문 라벨", "box": "강조 박스 문장", "stat": "핵심 수치", "tags": "태그", "caption": "설명 한 줄",
-    "bridge": "연결 문장", "features": "특징 목록", "books": "교재 목록", "structure": "구성 목록", "rows": "혜택 표",
+    "bridge": "연결 문장", "checks": "체크리스트", "features": "특징 목록", "books": "교재 목록", "structure": "구성 목록", "rows": "혜택 표",
     "pill": "영문 라벨", "conclusion": "결론", "left": "왼쪽 (A)", "right": "오른쪽 (B)", "no": "번호",
 }
 
@@ -4858,6 +4870,9 @@ ED_BLOCK_SPECS = {
                   '{"type":"manifesto","nav":"메시지","kicker":"대구 한 줄","title":"선언형 제목","box":"강조 박스 문장","body":["문장","문장"],"closing":"마무리 한 줄"}'),
     "statement": ('한 줄 선언 (섹션 사이 전환용, 큰 타이포)',
                   '{"type":"statement","layout":"a|b","line":"이 강좌의 핵심을 평이하게 말하는 한 문장 (18~32자)","sub":"그 문장을 받는 한 줄 (20~40자)"}'),
+    "target": ('수강 대상 — 이런 학생에게 (체크리스트)',
+               '{"type":"target","nav":"수강 대상","chapter":"Chapter 04. 수강 대상","title":"대상 학생을 부르는 제목 (예: 이런 학생이라면 지금 시작하세요 ✗ → 구체적인 상황으로)",'
+               '"sub":"한 줄","checks":[{"title":"학생이 실제로 겪는 상황 한 줄 (15~30자)","desc":"이 강좌가 그 상황에서 해주는 일 (20~45자)"}],"closing":"(선택) 한 줄"}  — checks는 4개, [강좌 정보]의 대상·메모에 근거'),
     "video": ('OT 영상', '{"type":"video","nav":"OT","chapter":"Chapter 00. 오리엔테이션","title":"컨셉 명사구 (예: 설계자의 가이드)","label":"영문 (예: Orientation)"}'),
     "lineup": ('교재 라인업·구성 (교재 정보가 있을 때)',
                '{"type":"lineup","nav":"교재","chapter":"Chapter 03. 교재 구성","title_en":"영문 (예: A clear GUIDELINE)","title_ko":"서술 한 줄",'
@@ -5049,7 +5064,7 @@ def ed_r_hero(b, x):
 def ed_r_anchor_bar(navs):
     if not navs:
         return ""
-    links = "".join(f'<a href="#{i}">{_ed_esc(l)}</a>' for i, l in navs[:4])
+    links = "".join(f'<a href="#{i}">{_ed_esc(l)}</a>' for i, l in navs)
     return f'<nav class="ed-anchor">{links}</nav>'
 
 def ed_r_prologue(b, x):
@@ -5299,11 +5314,32 @@ def ed_r_lineup(b, x):
             + (f'<h4 class="ed-lh" style="margin-top:56px">교재 구성</h4><div class="ed-structs">{struct}</div>' if struct else "")
             + '</div></div></section>')
 
+def _ed_won(v) -> str:
+    """48000 → 48,000원 (이미 쉼표·원이 있으면 그대로)"""
+    t = str(v or "").strip()
+    return f"{int(t):,}원" if re.fullmatch(r"\d{4,}", t) else t
+
+def ed_r_target(b, x):
+    """[v15] 수강 대상 — 이런 학생에게 (체크 카드)"""
+    items = [it for it in (b.get("checks") or []) if it]
+    cards = ""
+    for it in items:
+        t, d = (it.get("title", ""), it.get("desc", "")) if isinstance(it, dict) else (str(it), "")
+        cards += (f'<div class="ed-tg-c"><div class="ed-tg-ck">✓</div><div><b>{_ed_esc(t)}</b>'
+                  + (f'<span>{_ed_esc(d)}</span>' if d else "") + '</div></div>')
+    return (f'<section class="ed-sec ed-alt ed-ov">{_ed_deco_motif(x, "bl", "var(--accent)", .35, 460)}<div class="ed-in">'
+            + _ed_head(b.get("chapter", ""), b.get("title") or "이런 학생에게 추천합니다", b.get("sub", ""))
+            + f'<div class="ed-tg">{cards}</div>'
+            + (f'<p class="ed-closing" style="text-align:center">{_ed_esc(b.get("closing"))}</p>' if b.get("closing") else "")
+            + '</div></section>')
+
 def ed_r_pass_box(b, x):
     p = x.get("pass") or {}
     name = p.get("name") or "[상품명 입력]"
     inc = [t for t in (p.get("includes") or "").splitlines() if t.strip()]
-    orig, price, disc = p.get("orig", ""), p.get("price", ""), p.get("disc", "")
+    orig, price, disc = _ed_won(p.get("orig", "")), _ed_won(p.get("price", "")), str(p.get("disc", "") or "").strip()
+    if re.fullmatch(r"\d+(\.\d+)?", disc):
+        disc += "%"
     img = (x.get("books") or [None])[0]
     lis = "".join(f"<li>{_ed_esc(t)}</li>" for t in inc) or "<li>[구성 입력]</li>"
     return (f'<section class="ed-sec" style="text-align:center"><div class="ed-in" style="max-width:860px">'
@@ -5335,6 +5371,7 @@ def ed_r_notice(x):
             + "".join(f"<li>{_ehtml.escape(t)}</li>" for t in items) + "</ul></div></section>")
 
 ED_RENDERERS = {
+    "target": ed_r_target,
     "hero": ed_r_hero, "prologue": ed_r_prologue, "index_tiles": ed_r_index_tiles, "course_stages": ed_r_course_stages,
     "points": ed_r_points, "statement": ed_r_statement, "quote": ed_r_quote, "three_col": ed_r_three_col, "balance": ed_r_balance, "combo": ed_r_combo,
     "feature_stat": ed_r_feature_stat, "manifesto": ed_r_manifesto, "video": ed_r_video, "lineup": ed_r_lineup,
@@ -5347,7 +5384,7 @@ def ed_css(pk: dict) -> str:
     return f"""
 :root{{--dark:{pk['dark']};--alt:{pk['alt']};--accent:{pk['accent']};--accent2:{pk['accent2']};--accent-light:{_mix(pk['accent'],.55)};
 --ink:#1E2228;--muted:#6B7280;--line:#D9DCE1;--line-strong:#B8BDC6;
---en:{pk['en']},'Noto Serif KR',serif;--ko:'Noto Serif KR',serif;--sans:'Pretendard Variable',Pretendard,-apple-system,'Apple SD Gothic Neo',sans-serif}}
+--sans:'Pretendard Variable',Pretendard,-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;--ko:var(--sans);--en:{pk['en']},var(--sans);--head:{"'Noto Serif KR',serif" if pk.get('head') == 'serif' else 'var(--sans)'};--hw:{600 if pk.get('head') == 'serif' else 800};--hls:{'-.02em' if pk.get('head') == 'serif' else '-.03em'}}}
 *{{box-sizing:border-box}}html{{scroll-behavior:smooth}}
 body{{margin:0;font-family:var(--sans);color:var(--ink);background:#fff;-webkit-font-smoothing:antialiased;word-break:keep-all}}
 .ed-in{{max-width:1000px;margin:0 auto;position:relative}}
@@ -5363,10 +5400,10 @@ body{{margin:0;font-family:var(--sans);color:var(--ink);background:#fff;-webkit-
 .ed-hsub{{color:var(--muted);font-size:15.5px;margin:10px 0 0;line-height:1.7}}
 .ed-rule{{height:1px;background:var(--line);max-width:620px;margin:26px auto 0}}
 .ed-serif{{font-family:var(--ko)}}.ed-serif-en{{font-family:var(--en)}}
-.ed-script{{font-family:'Great Vibes',cursive;font-weight:400}}
+.ed-script{{font-family:var(--en);font-weight:600;letter-spacing:.02em}}
 .ed-acc{{color:var(--accent)}}.ed-acc2{{color:var(--accent)}}.ed-acc-l{{color:var(--accent-light)}}
 .ed-eyebrow{{font-family:var(--en);font-size:15px;letter-spacing:.04em;color:var(--muted);margin:0}}
-.ed-body p{{font-family:var(--ko);font-size:16px;line-height:1.95;color:var(--muted);margin:0 0 18px}}
+.ed-body p{{font-family:var(--sans);font-weight:400;font-size:16px;line-height:1.75;color:var(--muted);margin:0 0 18px}}
 .ed-closing{{font-family:var(--ko);font-weight:700;font-size:19px;color:var(--ink);margin-top:28px}}
 /* hero */
 .ed-hero{{position:relative;padding:100px 24px}}
@@ -5384,8 +5421,8 @@ body{{margin:0;font-family:var(--sans);color:var(--ink);background:#fff;-webkit-
 .ed-frame{{height:clamp(220px,32vw,330px);border-radius:14px;position:relative;overflow:hidden;filter:grayscale(.15)}}
 .ed-band{{position:absolute;left:0;right:0;bottom:22%;background:color-mix(in srgb,var(--accent) 72%,transparent);color:#fff;font-family:var(--ko);font-size:clamp(16px,2vw,24px);padding:10px;letter-spacing:.3em}}
 .ed-herobody p{{font-family:var(--ko);color:rgba(255,255,255,.75);font-size:15.5px;margin:6px 0}}
-.ed-anchor{{display:flex;background:var(--accent2)}}
-.ed-anchor a{{flex:1;text-align:center;color:#fff;text-decoration:none;font-family:var(--ko);font-size:15px;padding:20px 8px;border-right:1px solid rgba(255,255,255,.18)}}
+.ed-anchor{{display:flex;position:sticky;top:0;z-index:100;background:color-mix(in srgb,var(--accent2) 88%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);overflow-x:auto;scrollbar-width:none}}.ed-anchor::-webkit-scrollbar{{display:none}}
+.ed-anchor a{{flex:1 0 auto;min-width:96px;white-space:nowrap;text-align:center;color:#fff;text-decoration:none;font-family:var(--sans);font-weight:600;font-size:15px;padding:18px 14px;border-right:1px solid rgba(255,255,255,.18)}}
 .ed-anchor a:last-child{{border-right:0}}.ed-anchor a:hover{{background:rgba(255,255,255,.08)}}
 /* tiles & courses */
 .ed-tiles{{display:grid;gap:4px;margin-top:44px}}
@@ -5515,16 +5552,135 @@ body{{margin:0;font-family:var(--sans);color:var(--ink);background:#fff;-webkit-
  .ed-tl-row{{grid-template-columns:70px 1fr}}.ed-tl-no{{font-size:38px;padding-left:14px}}.ed-deco-word{{font-size:90px}}.ed-prolog-img{{min-height:260px}}
  .ed-note,.ed-corner.ml,.ed-corner.mr,.ed-side,.ed-mani-ph{{display:none}}.ed-boxline{{padding:28px 20px}}
  .ed-combo{{flex-direction:column;align-items:center}}.ed-plus{{margin:0}}.ed-structs{{padding-left:0}}
- .ed-pass-top,.ed-pass-bot,.ed-benefit{{flex-direction:column}}.ed-buy{{padding:18px;clip-path:none}}.ed-anchor{{flex-wrap:wrap}}
-}}"""
+ .ed-pass-top,.ed-pass-bot,.ed-benefit{{flex-direction:column}}.ed-buy{{padding:18px;clip-path:none}}.ed-anchor a{{font-size:13.5px;padding:15px 12px;min-width:auto}}
+}}
+/* [v15] 한글 제목 서체 · 굵기 */
+.ed-h,.ed-h3,.ed-pkw,.ed-zz-t h4,.ed-col h4,.ed-halves h4,.ed-lh,.ed-stage-h,.ed-conclusion p,.ed-pline{{font-family:var(--head);font-weight:var(--hw);letter-spacing:var(--hls)}}
+.ed-h{{line-height:1.3}}
+/* [v15] 수강 대상 */
+.ed-tg{{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;max-width:880px;margin:0 auto}}
+.ed-tg-c{{display:flex;gap:16px;align-items:flex-start;background:#fff;border:1px solid var(--line);padding:24px 24px;text-align:left}}
+.ed-dark .ed-tg-c,.ed-alt .ed-tg-c{{background:transparent}}
+.ed-tg-ck{{flex:0 0 30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px}}
+.ed-tg-c b{{display:block;font-size:17px;font-weight:700;color:var(--ink);line-height:1.5}}.ed-tg-c span{{display:block;font-size:14.5px;color:var(--muted);line-height:1.7;margin-top:4px}}
+@media(max-width:720px){{.ed-tg{{grid-template-columns:1fr}}}}
+"""
 
-def ed_build_html(plan: dict, x: dict, export: bool = False) -> str:
-    pk = ED_PACKS.get(plan.get("pack"), ED_PACKS["noir_navy"])
+ED_WRAP_ID = "dm-promo-wrap"
+
+def _ed_scope_css(css: str, scope: str = "#" + ED_WRAP_ID) -> str:
+    """[v15] 모든 선택자 앞에 #dm-promo-wrap — 사이트 GNB·푸터에 영향 없게.
+    :root/html/body → 래퍼 자신, * → 래퍼 안쪽 전체. @media 안쪽도 처리, @keyframes는 그대로."""
+    out, i, n = [], 0, len(css)
+    def _pref(sel):
+        parts = []
+        for one in sel.split(","):
+            t = one.strip()
+            if not t:
+                continue
+            if t in (":root", "html", "body"):
+                parts.append(scope)
+            elif t == "*":
+                parts += [scope, f"{scope} *"]
+            elif t.startswith(scope):
+                parts.append(t)
+            else:
+                parts.append(f"{scope} {t}")
+        return ",".join(parts)
+    def _block(txt):
+        res, k = [], 0
+        while k < len(txt):
+            ob = txt.find("{", k)
+            if ob == -1:
+                res.append(txt[k:]); break
+            head = txt[k:ob].strip()
+            depth, m = 1, ob + 1
+            while m < len(txt) and depth:
+                depth += {"{": 1, "}": -1}.get(txt[m], 0); m += 1
+            body = txt[ob + 1:m - 1]
+            if head.startswith("@media") or head.startswith("@supports"):
+                res.append(f"{head}{{{_block(body)}}}")
+            elif head.startswith("@"):
+                res.append(f"{head}{{{body}}}")
+            else:
+                res.append(f"{_pref(head)}{{{body}}}")
+            k = m
+        return "".join(res)
+    css = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
+    css = css.replace("html{scroll-behavior:smooth}", "")
+    return _block(css)
+
+def _ed_img_dims(uri: str):
+    try:
+        from PIL import Image
+        import io
+        m = re.match(r"data:image/\w+;base64,(.+)", uri, re.S)
+        im = Image.open(io.BytesIO(base64.b64decode(m.group(1))))
+        return im.width, im.height
+    except Exception:
+        return 1000, 560
+
+ED_IMG_NAMES = {"hero_bg": "히어로 배경", "key_visual": "키 비주얼", "texture": "섹션 텍스처"}
+
+def _ed_img_registry(x: dict) -> list:
+    """(data URI, 파일명, 설명) 목록"""
+    reg = []
+    if x.get("photo"):
+        reg.append((x["photo"], "instructor", "강사 사진(누끼)"))
+    for k, u in enumerate(x.get("books") or []):
+        reg.append((u, f"book_{k + 1}", f"교재·키비주얼 {k + 1}"))
+    for slot, u in (x.get("imgs") or {}).items():
+        if u:
+            reg.append((u, slot, ED_IMG_NAMES.get(slot, slot)))
+    return reg
+
+def _ed_swap_images(html: str, x: dict, mode: str) -> str:
+    """mode: embed(그대로) / path(images/파일) / placeholder(placehold.co + 주석)"""
+    if mode == "embed":
+        return html
+    notes = []
+    for uri, name, desc in _ed_img_registry(x):
+        if not uri or uri not in html:
+            continue
+        w, h = _ed_img_dims(uri)
+        ext = "png" if uri.startswith("data:image/png") else "jpg"
+        if mode == "path":
+            url = f"images/{name}.{ext}"
+        else:
+            url = f"https://placehold.co/{w}x{h}/16181c/FFFFFF?text={desc.replace(' ', '+')}+({w}x{h})"
+        # <img> 바로 앞에 교체 안내 주석
+        html = re.sub(r'(<img\b[^>]*?src=")' + re.escape(uri) + '"',
+                      lambda m: f'<!-- [이미지 교체 영역] {desc} · 권장 사이즈: {w}x{h}px · {name}.{ext} -->' + m.group(1) + url + '"', html)
+        html = html.replace(uri, url)      # CSS 배경(url(...)) 등 나머지
+        notes.append(f"  - {name}.{ext} : {desc} · 권장 {w}x{h}px")
+    if notes:
+        head = "<!-- [이미지 교체 목록]\n" + "\n".join(notes) + "\n  ※ 실제 이미지 경로(CDN 주소)로 바꿔 넣으세요. 강사 사진은 실제 촬영본만 사용 -->\n"
+        html = html.replace(f'<div id="{ED_WRAP_ID}">', head + f'<div id="{ED_WRAP_ID}">', 1)
+    return html
+
+def _ed_font_links(pk: dict) -> str:
+    fam = ED_EN_FONTS.get(pk.get("en"), "Playfair+Display:wght@500;600;700")
+    serif = "&family=Noto+Serif+KR:wght@500;600;700" if pk.get("head") == "serif" else ""
+    return ('<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
+            f'<link href="https://fonts.googleapis.com/css2?family={fam}{serif}&display=swap" rel="stylesheet">'
+            '<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">')
+
+def ed_build_html(plan: dict, x: dict, export: bool = False, img_mode: str = "embed", fragment: bool = False) -> str:
+    """미리보기·내보내기 공통.
+    img_mode: embed(이미지 내장) / path(images/ 경로, 전달 패키지용) / placeholder(자리표시 + 교체 주석)
+    fragment: True면 <html>·<head>·<body> 없이 CMS 본문에 붙여넣는 코드만"""
+    pk = dict(ED_PACKS.get(plan.get("pack"), ED_PACKS["noir_navy"]))
+    if plan.get("head") in ("sans", "serif"):
+        pk["head"] = plan["head"]
     blocks = plan.get("blocks") or []
     x = dict(x); x["motif"] = " ".join(str((plan.get("kit") or {}).get(k, "")) for k in ("motif", "concept_en"))
     x["concept_en"] = str((plan.get("kit") or {}).get("concept_en", "")); x["deco"] = plan.get("deco", True)
     _show = lambda b: not b.get("hidden") and (b.get("type") in ("hero", "pass_box", "video") or not _ed_is_empty(b))
-    navs = [(f"ed-b{i}", b.get("nav")) for i, b in enumerate(blocks) if b.get("nav") and b.get("type") != "hero" and _show(b)]
+    navs, seen = [], set()
+    for i, b in enumerate(blocks):
+        lab = str(b.get("nav") or "").strip()
+        if lab and b.get("type") != "hero" and _show(b) and lab not in seen:
+            seen.add(lab); navs.append((f"ed-b{i}", lab))
     secs = []
     for i, b in enumerate(blocks):
         if not _show(b):
@@ -5540,20 +5696,17 @@ def ed_build_html(plan: dict, x: dict, export: bool = False) -> str:
             secs.append(f'<div id="ed-b{i}">{h}</div>')
             if b.get("type") == "hero":
                 secs.append(ed_r_anchor_bar(navs))
-    side = ""
-    if len(navs) >= 3:
-        side = '<nav class="ed-side">' + "".join(f'<a href="#{a}">{_ed_esc(l)}</a>' for a, l in navs) + "</nav>"
-    title = strip_hanja(str(x.get("label", "")))
-    return ('<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
-            f'<title>{_ehtml.escape(title)}</title>'
-            '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
-            '<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Bodoni+Moda:wght@400;500;600&'
-            'family=Cormorant+Garamond:wght@400;500;600&family=Great+Vibes&family=Noto+Serif+KR:wght@400;500;600;700&display=swap" rel="stylesheet">'
-            '<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">'
-            f'<style>{ed_css(pk)}</style></head><body>{"".join(secs)}{ed_r_notice(x)}{side}'
-            '<script>(function(){var s=document.querySelector(".ed-side");if(!s)return;'
-            'function f(){s.classList.toggle("on",window.scrollY>window.innerHeight*0.8)}'
-            'window.addEventListener("scroll",f,{passive:true});f();})();</script></body></html>')
+    css = _ed_scope_css(ed_css(pk)) + f"#{ED_WRAP_ID}{{overflow-x:clip;scroll-behavior:smooth}}"
+    inner = f'<div id="{ED_WRAP_ID}">{"".join(secs)}{ed_r_notice(x)}</div>'
+    if fragment:
+        out = ("<!-- ▼ 대성마이맥 PR 페이지 본문 시작 — 이 블록 전체를 에디터의 HTML(소스) 모드에 붙여넣으세요 -->\n"
+               + _ed_font_links(pk) + f"\n<style>{css}</style>\n" + inner + "\n<!-- ▲ PR 페이지 본문 끝 -->")
+    else:
+        title = strip_hanja(str(x.get("label", "")))
+        out = ('<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+               f'<title>{_ehtml.escape(title)}</title>{_ed_font_links(pk)}<style>{css}</style>'
+               '<style>body{margin:0}</style></head><body>' + inner + '</body></html>')
+    return _ed_swap_images(out, x, img_mode)
 
 
 # ── AI: 컨셉 키트 + 구성 ──────────────────────────────────
@@ -5570,7 +5723,7 @@ def _ed_inputs_text() -> str:
     ]
     return "\n".join(rows)
 
-ED_EXAMPLE = json.dumps({'kit': {'concept_en': 'STEP', 'verb': '오르다', 'motif': '계단·디딤돌', 'keywords': ['첫 칸', '디딤', '한 걸음'], 'antithesis': '어려운 건 덜고, 쉬운 것부터 쌓고'}, 'blocks': [{'type': 'hero', 'variant': 'split_motif', 'kicker': '영어가 가장 막막한 과목이라면', 'sub': '수능 영어, 첫 계단부터 다시', 'wordmark': 'KEY STEP'}, {'type': 'prologue', 'nav': '프롤로그', 'script': 'Prologue', 'title': '첫 계단의 영어', 'sub': '6~8등급에게 필요한 건 더 높은 계단이 아닙니다', 'body': ['단어가 낯설고 문장이 끊겨 보이면, 수능 지문은 펼치는 순간부터 벽이 됩니다.', 'KEY STEP은 중학 영어 수준에서 출발해 어휘, 구문, 독해를 한 칸씩 쌓아 올리는 입문 강좌입니다.'], 'closing': '높이보다 순서. 한 계단씩 오릅니다.'}, {'type': 'points', 'nav': '기획 의도', 'title_en': 'KEY STEP', 'title_ko': '기획 의도', 'points': [{'label': 'Step Point 01', 'desc': '수능에 반복해서 나오는 기초 어휘부터 정리합니다.', 'line': '낯선 단어를 줄이는', 'keyword': '첫 칸'}, {'label': 'Step Point 02', 'desc': '주어와 동사를 찾아 문장의 뼈대를 세웁니다.', 'line': '문장 위에 발을 딛는', 'keyword': '디딤'}, {'label': 'Step Point 03', 'desc': '짧은 지문부터 끝까지 읽어 내는 경험을 쌓습니다.', 'line': '지문 끝까지 나아가는', 'keyword': '한 걸음'}]}]}, ensure_ascii=False)
+ED_EXAMPLE = json.dumps({'kit': {'concept_en': 'STEP', 'verb': '오르다', 'motif': '계단·디딤돌', 'keywords': ['어휘', '구문', '완독'], 'antithesis': '어려운 건 덜고, 쉬운 것부터 쌓고'}, 'blocks': [{'type': 'hero', 'variant': 'split_motif', 'kicker': '영어가 가장 막막한 과목이라면', 'sub': '수능 영어, 첫 계단부터 다시', 'wordmark': 'KEY STEP'}, {'type': 'prologue', 'nav': '프롤로그', 'script': 'Prologue', 'title': '첫 계단의 영어', 'sub': '6~8등급에게 필요한 건 더 높은 계단이 아닙니다', 'body': ['단어가 낯설고 문장이 끊겨 보이면, 수능 지문은 펼치는 순간부터 벽이 됩니다.', 'KEY STEP은 중학 영어 수준에서 출발해 어휘, 구문, 독해를 한 칸씩 쌓아 올리는 입문 강좌입니다.'], 'closing': '높이보다 순서. 한 계단씩 오릅니다.'}, {'type': 'points', 'nav': '기획 의도', 'title_en': 'KEY STEP', 'title_ko': '기획 의도', 'points': [{'label': 'Step Point 01', 'desc': '수능에 반복해서 나오는 기초 어휘부터 정리합니다.', 'line': '낯선 단어부터 줄여 가는', 'keyword': '어휘'}, {'label': 'Step Point 02', 'desc': '주어와 동사를 찾아 문장의 뼈대를 세웁니다.', 'line': '문장의 뼈대를 세우는', 'keyword': '구문'}, {'label': 'Step Point 03', 'desc': '짧은 지문부터 끝까지 읽어 내는 경험을 쌓습니다.', 'line': '지문을 끝까지 읽어 내는', 'keyword': '완독'}]}]}, ensure_ascii=False)
 
 def ed_brief() -> str:
     concept = st.session_state.get("ed_concept", "").strip()
@@ -5865,7 +6018,14 @@ def ed_naturalize(plan: dict) -> dict:
     rep = ed_metaphor_report(plan)
     total = sum(rep.values())
     copied = {i for i, b in enumerate(blocks) if any(p in json.dumps(b, ensure_ascii=False) for p in ED_COPIED_PHRASES)}
-    targets = sorted(set([i for i, n in rep.items() if n >= 2] if total > 5 else []) | copied)
+    simile = set()
+    _mw = _ed_metaphor_words(plan)
+    for i, b in enumerate(blocks):
+        txt = json.dumps({k: v for k, v in b.items() if k in ED_DESC_KEYS}, ensure_ascii=False)
+        if re.search(r"(" + "|".join(map(re.escape, _mw or ["@@"])) + r")[^\"]{0,8}(처럼|같이|듯)", txt) or \
+           re.search(r"(처럼|같이)[^\"]{0,12}(" + "|".join(map(re.escape, _mw or ["@@"])) + r")", txt):
+            simile.add(i)
+    targets = sorted(set([i for i, n in rep.items() if n >= 2] if total > 5 else []) | copied | simile)
     if targets and st.session_state.get("api_key"):
         sub = {f"b{i}": blocks[i] for i in targets}
         prompt = (
@@ -6197,21 +6357,26 @@ def ed_package_zip(plan: dict, x: dict) -> bytes:
     import io, zipfile
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
-        z.writestr("01_시안_미리보기.html", ed_build_html(plan, x, export=True))
-        z.writestr("02_문구_원고.md", ed_copy_md(plan, x))
-        for slot, uri in (x.get("imgs") or {}).items():
+        z.writestr("01_시안_미리보기.html", ed_build_html(plan, x, export=True, img_mode="path"))
+        z.writestr("02_CMS_삽입용_코드.txt", ed_build_html(plan, x, export=True, img_mode="placeholder", fragment=True))
+        z.writestr("03_문구_원고.md", ed_copy_md(plan, x))
+        for uri, name, desc in _ed_img_registry(x):
             m = re.match(r"data:image/(\w+);base64,(.+)", uri or "", re.S)
             if m:
-                z.writestr(f"03_이미지/{slot}.{ 'jpg' if m.group(1) == 'jpeg' else m.group(1)}", base64.b64decode(m.group(2)))
+                z.writestr(f"images/{name}.{'png' if m.group(1) == 'png' else 'jpg'}", base64.b64decode(m.group(2)))
         z.writestr("00_읽어주세요.txt",
                    "[실무 적용 순서]\n"
-                   "1. 01_시안_미리보기.html 을 크롬으로 열어 MD 검수 (문구·가격·일정 확인)\n"
-                   "2. 02_문구_원고.md 의 [확인 필요]·가격·날짜를 최종 확인\n"
-                   "3. 디자이너에게 이 폴더 전체 전달 → 시안 HTML을 레퍼런스로 실제 PR 이미지/퍼블리싱 작업\n"
-                   "   - 03_이미지 의 AI 이미지는 '방향 시안'입니다. 최종 사용 전 디자이너 보정 및 사내 검수\n"
+                   "1. 01_시안_미리보기.html 을 크롬으로 열어 MD 검수 (images 폴더와 같은 위치에 있어야 이미지가 보입니다)\n"
+                   "2. 03_문구_원고.md 의 가격·날짜·수치를 최종 확인\n"
+                   "3. 퍼블리싱: 02_CMS_삽입용_코드.txt 를 에디터 HTML(소스) 모드에 붙여넣고,\n"
+                   "   [이미지 교체 목록] 주석에 적힌 자리표시 이미지(placehold.co)를 실제 CDN 이미지 주소로 바꿉니다.\n"
+                   "   - CSS는 #dm-promo-wrap 안에서만 작동하므로 사이트 상단 메뉴·푸터에 영향을 주지 않습니다.\n"
+                   "   - 에디터가 <style>·<link> 태그를 지우는 경우, 퍼블리셔에게 이 파일을 그대로 전달해 주세요.\n"
+                   "4. images 폴더의 AI 이미지는 '방향 시안'입니다. 최종 사용 전 디자이너 보정 및 사내 검수\n"
                    "   - 강사 사진은 반드시 실제 촬영본 사용 (AI로 인물 생성 금지)\n"
-                   "4. 관리자 '강좌 특징' 영역은 빌더의 📝 강좌 특징 HTML 모드로 별도 제작\n")
+                   "5. 관리자 '강좌 특징' 영역은 빌더의 📝 강좌 특징 HTML 모드로 별도 제작\n")
     return buf.getvalue()
+
 
 def _ed_clear_widgets(*prefixes):
     """블록 순서·내용이 바뀌면 입력칸 위젯 상태를 지워 새 값이 보이게"""
@@ -6329,6 +6494,14 @@ def render_editorial_mode():
                                  format_func=lambda k: ED_PACKS[k]["name"])
             if newpk != plan.get("pack"):
                 plan["pack"] = newpk
+                st.rerun()
+            _hopts = ["팩 기본", "고딕 (Pretendard)", "명조 (Noto Serif KR)"]
+            _hcur = {"sans": 1, "serif": 2}.get(plan.get("head"), 0)
+            _hsel = st.radio("한글 제목 서체", _hopts, index=_hcur, horizontal=True, key="ed_head_rd",
+                             help="본문·버튼은 항상 Pretendard입니다. 명조는 큰 제목에만 들어가요.")
+            _hval = {1: "sans", 2: "serif"}.get(_hopts.index(_hsel))
+            if _hval != plan.get("head"):
+                plan["head"] = _hval
                 st.rerun()
             deco = st.checkbox("섹션 장식 (아웃라인 영문 · 컨셉 모티프 그래픽)", value=plan.get("deco", True), key="ed_deco_ck")
             if deco != plan.get("deco", True):
@@ -6482,13 +6655,18 @@ def render_editorial_mode():
                     "· 가격·혜택·비율 같은 숫자는 입력한 값만 쓰입니다.")
             return
         html_out = ed_build_html(S.ed_plan, _ed_ctx())
-        d1, d2, d3 = st.columns([1.1, 1.3, 1])
-        d1.download_button("⬇️ HTML", ed_build_html(S.ed_plan, _ed_ctx(), export=True).encode("utf-8"),
-                           file_name=f"{S.ed_label or 'PR'}_시안.html", mime="text/html", type="primary", use_container_width=True)
-        d2.download_button("📦 실무 전달 패키지", ed_package_zip(S.ed_plan, _ed_ctx()),
+        d1, d2, d3, d4 = st.columns([1.15, 1.25, 1.2, .9])
+        _ctx = _ed_ctx()
+        d1.download_button("📋 CMS 삽입용 코드", ed_build_html(S.ed_plan, _ctx, export=True, img_mode="placeholder", fragment=True).encode("utf-8"),
+                           file_name=f"{S.ed_label or 'PR'}_CMS삽입용.txt", mime="text/plain", type="primary", use_container_width=True,
+                           help="<html>·<body> 없이 본문 코드만. CSS는 #dm-promo-wrap 안에서만 작동하고, 이미지는 자리표시(placehold.co) + 교체 주석으로 들어가 용량이 가볍습니다.")
+        d2.download_button("📦 실무 전달 패키지", ed_package_zip(S.ed_plan, _ctx),
                            file_name=f"{S.ed_label or 'PR'}_전달패키지.zip", mime="application/zip", use_container_width=True,
-                           help="HTML + 이미지 원본 + 섹션별 문구 원고 + 디자이너·퍼블리셔 전달 안내")
-        vw = d3.radio("화면", ["PC", "모바일"], horizontal=True, label_visibility="collapsed", key="ed_vw")
+                           help="미리보기 HTML(images 폴더 경로) + CMS 코드 + 이미지 원본 + 문구 원고 + 퍼블리싱 안내")
+        d3.download_button("⬇️ 미리보기 HTML", ed_build_html(S.ed_plan, _ctx, export=True).encode("utf-8"),
+                           file_name=f"{S.ed_label or 'PR'}_미리보기.html", mime="text/html", use_container_width=True,
+                           help="이미지까지 파일 하나에 들어 있어 용량이 큽니다. 카톡·메일로 시안 공유할 때만 쓰세요.")
+        vw = d4.radio("화면", ["PC", "모바일"], horizontal=True, label_visibility="collapsed", key="ed_vw")
         if hasattr(st, "iframe"):
             st.iframe(html_out, height=1100, width=390 if vw == "모바일" else "stretch")
         else:
