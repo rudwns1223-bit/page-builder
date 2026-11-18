@@ -1,9 +1,14 @@
 """
-강사 페이지 빌더 Pro v7 — RADICAL REDESIGN
-- 15개 테마 (8 신규: cinematic, stadium, acid, floral, inception, violet_pop, brutal, amber)
-- 6가지 히어로 레이아웃 (typographic, cinematic, billboard, split_bold, editorial_bold, split)
-- 배경 이미지 개선 (한국어 무드 → 정밀 영어 키워드)
-- 파격적 디자인 시스템 + 클립패스 섹션 구분선
+강사 페이지 빌더 Pro v8 — 실무용 정리판
+[문구]
+- 날짜는 코드가 계산(기준 수능·시즌). D-day 숫자는 100일 이내 + 사이드바 허용 시에만
+- 실제 대성마이맥 PR 페이지 문법(킥커 → 워드마크 → 설명 / 학생 장면형 헤드라인)으로 프롬프트 재작성
+- 생성 후 품질 검사(근거 없는 날짜·수치·상투어) → 위반 필드만 1회 자동 재작성
+- gpt-oss 모델 파라미터 버그 수정(그동안 매번 실패하고 백업 모델로 넘어가던 문제)
+[디자인]
+- 한글 Pretendard 통일, 테마 폰트는 워드마크·영문 라벨 전용
+- 랜덤 레이아웃·마키·워터마크·사선 구분선·플로팅 버튼 제거 → 고정된 섹션 리듬
+- 히어로 키비주얼(교재 누끼) 업로드, OT 영상, 유의사항 섹션, 실제 후기 교체 편집기
 """
 import streamlit as st
 import requests
@@ -23,7 +28,7 @@ _D = {
     "api_key": "", "concept": "acid", "custom_theme": None,
     "metaphor": "",
     "instructor_name": "", "subject": "영어",
-    "purpose_label": "2026 수능 파이널 완성",
+    "purpose_label": "",
     "purpose_type": "신규 커리큘럼", "target": "고3·N수",
     "custom_copy": None, "bg_photo_url": "",
     "active_sections": ["banner","intro","why","curriculum","cta"],
@@ -31,7 +36,15 @@ _D = {
     "custom_section_on": False, "custom_section_topic": "",
     "uploaded_bg_b64": "",
     "pixabay_key": "", "bg_cache": {}, "preview_key": 0,
-    "copy_tone": "✨ 압도적·카리스마",  # <--- 이 부분이 수정되었습니다!
+    "copy_tone": "담백·확신 (기본)",
+    "page_angle": "자동 (AI가 선택)",
+    "target_year": None,          # None이면 오늘 날짜로 자동 계산
+    "allow_dday": False,          # D-day 숫자 표기 허용 (100일 이내 + 공식 일정일 때만 의미 있음)
+    "fx_on": False,               # 파티클·글리치 등 배경 효과
+    "kv_img_b64": "",             # 히어로 키비주얼(교재 표지·누끼 이미지)
+    "notice_text": "",            # 유의사항
+    "event_info": "",             # 이벤트 기간·발표일 등 (AI가 날짜를 지어내지 않도록)
+    "_concept": None, "_last_ctx": "",
     "history": [],
     "course_info": "",
     "textbook_info": "",
@@ -54,280 +67,148 @@ if not st.session_state.api_key:
 # 상수
 # ══════════════════════════════════════════════════════
 GROQ_URL    = "https://api.groq.com/openai/v1/chat/completions"
-# 기존 COPY_TONES 딕셔너리를 아래로 교체 (83행)
-COPY_TONES = {
-    "✨ 압도적·카리스마": "어조: 절대적인 확신과 카리스마. 수험생의 현실 안일함을 차가운 팩트로 찌름. 문장은 짧고 압도적이어야 함. 예) '아직도 감으로 공부해?', '남은 시간이 없어요'",
-    "🤝 철학적·감동": "어조: 선배 같은 따뜻함과 깊은 철학. 학생의 본질적인 고민을 어루만지고 감동을 주는 방식. 상황 묘사보다 감정적 울림 중심.",
-    "💎 프리미엄·신뢰": "어조: 고급 브랜드처럼 절제된 톤. 수식어를 최소화하고 오직 압도적인 결과와 사실로 승부. 숫자를 세련되게 활용.",
-    "😎 힙·MZ": "어조: 트렌디하고 감각적. 설명하지 않고 결과와 이미지로만 멋을 내는 방식. 예) '말해 뭐해? 결과가 증명해'",
-    "📖 논리적·분석": "어조: 전문적이고 데이터 중심. 출제 패턴, 숫자, 논리적 근거로 차분하게 설득.",
-    "🔥 독설·팩폭": "어조: 피도 눈물도 없는 차가운 독설. 감정적 위로 절대 금지. '이래서 네가 안 돼' 식의 차가운 논리로 정신 차리게 함.",
-    "🔮 광기·구원": "어조: 학생을 홀리는 듯한 극단적이고 맹신적인 문체. 이 강의만이 유일한 구원이라는 오만함과 확신. 감탄문과 극단적인 단어 사용."
-}
+# ══════════════════════════════════════════════════════
+# [v8] 카피 어조 · 기획 앵글 · 스타일 가이드
+#  - 예전 COPY_TONES/FEW_SHOT_EXAMPLES를 통째로 교체한 블록입니다.
+#  - 핵심: '하지 마라' 예시를 길게 나열하지 않고(모델이 오히려 따라 씀),
+#          실제 대성마이맥 PR 페이지의 문법을 '이렇게 써라'로만 보여줍니다.
+# ══════════════════════════════════════════════════════
 GROQ_MODELS = [
     "openai/gpt-oss-120b",   # 메인 — 품질 좋음
     "openai/gpt-oss-20b",    # 보조 — 더 빠름
-    "qwen/qwen3.6-27b",      # 최종 백업
+    "qwen/qwen3.8-27b",      # 백업
+    "qwen/qwen3.6-27b",      # 구버전 백업 (없으면 자동으로 건너뜀)
 ]
 
-FEW_SHOT_EXAMPLES = """
-=== ❌ 2025년 이후 절대 쓰면 안 되는 구시대 문구 패턴 ===
+COPY_TONES = {
+    "담백·확신 (기본)": "존댓말. 짧고 단정한 문장. 과장 형용사 대신 학생이 겪는 장면과 이 강좌가 바꾸는 것을 담담하게 말한다. 확신은 단어가 아니라 구체성으로 보여준다.",
+    "친근한 선배": "부드러운 존댓말(~해요). 학생이 실제로 하는 말을 그대로 옮겨 공감을 연다. 위로·응원 대신 '그럴 땐 이렇게' 식의 실용적인 다음 문장으로 잇는다.",
+    "프리미엄·절제": "수식어를 최소화한 명사형·단문. 영문 eyebrow와 여백을 살리는 톤. 감탄문과 느낌표 금지.",
+    "위트·트렌디": "말맛 있는 짧은 문장과 가벼운 반전. 유행어·밈은 페이지 전체에서 1개 이하. 과목 내용의 정확성은 그대로 유지.",
+}
 
-[감성 도입부 — 완전 금지]
-❌ "새벽에 혼자 공부하는 당신"
-❌ "수험생의 외로움과 막막함을 압니다"  
-❌ "지치고 힘든 당신을 응원합니다"
-❌ "포기하지 마세요, 할 수 있습니다"
-→ 이런 문장은 2010년대 감성. 지금 수험생에게 통하지 않음.
+PAGE_ANGLES = {
+    "자동 (AI가 선택)": "",
+    "문제 → 해결": "THE PROBLEM(학생이 막히는 지점 진단) → THE SOLUTION(이 강좌의 원리) → 커리큘럼 → 수강 대상 순서로 설득한다.",
+    "컨셉 메타포": "강좌명에서 비유 하나를 뽑아 히어로부터 CTA까지 그 이미지로 이야기를 끌고 간다. (예: 계단, 달의 위상, 응축과 폭발)",
+    "시즌 선언": "지금 시기(아래 [시기 정보])에 학생이 해야 할 일을 선언하고, 그 일을 이 강좌가 맡는다는 구조로 쓴다.",
+    "Old vs New": "학생이 지금 쓰는 방식(Old)과 이 강좌의 방식(New)을 대비시킨다. 대비 축은 하나만 쓴다.",
+}
 
-[올드한 도입부 대신 쓸 것]
-✅ "지문은 읽었는데 답이 틀렸다. 방법이 틀린 거다."
-✅ "공부 시간과 성적이 비례하지 않는 이유가 있다."
-✅ "감으로 맞춘 건 실력이 아니다."
-✅ "3등급에서 멈추는 이유는 노력이 아니라 방향이다."
+STYLE_GUIDE = """
+[실제 대성마이맥 PR 페이지의 문법 — 이 문법을 따른다. 예시 문장을 그대로 베끼지는 말 것]
 
-[시그니처 메서드 강요 금지]
-❌ "KISS Logic 방식으로 지문에 접근합니다" (브랜드명과 무관할 때)
-❌ "KISSAVE를 통해 실력을 키웁니다" (입력하지 않은 내용)
-✅ 사용자가 입력한 강좌명과 맥락만으로 문구 생성
+1) 히어로는 3단 구조: '킥커 한 줄' → 강좌명 워드마크 → '설명 1~2줄'
+   - 킥커: 이 강좌가 무엇인지 비유로 정의한다.
+       "1년을 담은 마지막 한 방울의 엑기스" / "감독해의 불안을 확신으로 바꾸는"
+   - 워드마크: 강좌명을 그대로. 동사를 붙여 문장으로 만들지 않는다.
+   - 설명: 무엇을, 누구에게, 어떻게. 숫자는 입력 정보에 있을 때만.
+       "노베이스를 위한 100문장, 10일 완성" / "수능 영어의 본질은 번역이 아니라 [[논리]]입니다."
 
-=== 🏆 인간이 직접 쓴 것 같은 문구의 특징 ===
-좋은 카피는 다음 3가지를 동시에 충족한다:
-1. 수험생의 지금 상황을 정확히 묘사 (추상적 희망 금지)
-2. 이 강의가 왜 지금 필요한지 논리적 근거 제시
-3. 강좌명·메타포가 문장 안에 자연스럽게 녹아있음
+2) 섹션 헤드라인은 학생이 실제로 하는 말이나 겪는 장면이다. 질문 또는 단정, 한두 줄.
+       "단어도 알고 해석도 되는데 왜 풀어내지를 못할까?"
+       "시험장에서 눈앞이 [[흐려지는]] 경험"
+       "열심히 하는데 제자리걸음인 것 같나요?"
+   서브카피는 그 장면의 원인을 짚는 진단 한 문장.
+       "단어는 아는데 문장이 튕겨 나간다면, 지금 '번역'을 하고 있는 것입니다."
 
-[실제 수험생이 공감하는 문장 패턴]
-- "지문은 읽히는데 답은 모르겠다. 그게 네 현실이다."
-- "3월에 방향을 잘못 잡으면 11월에 후회한다."
-- "감으로 맞히는 건 수능장에서 통하지 않는다. 진또배기는 구조로 읽는다."
-- "공부는 하는데 성적이 안 오른다면, 방향이 틀린 것이다."
-- "국어 지문에는 출제자가 만든 구조가 있다. 그 구조를 보는 눈을 만드는 것이 진또배기의 시작이다."
+3) 강조: 헤드라인 하나에 핵심어 딱 하나만 [[ ]]로 감싼다. (렌더러가 포인트 컬러로 칠함)
 
-[성의없는 AI 문구 vs 인간 문구 비교]
-❌ "체계적인 학습으로 성적을 올리세요" (→ 아무 의미 없음)
-✅ "3월에 구조 잡고, 6월에 패턴 읽고, 수능장에서 답을 본다. 진또배기의 순서다."
+4) 영문 eyebrow: THE PROBLEM / THE SOLUTION / ROADMAP / PHILOSOPHY / OFFICIAL TRAILER 처럼
+   2~3단어 영문 대문자. 문장형 영어 금지.
 
-❌ "최고의 강사와 함께라면 가능합니다" (→ 근거 없는 희망)
-✅ "국어 지문은 처음부터 끝까지 읽지 않아도 된다. 어디를 읽어야 하는지 아는 것이 실력이다."
+5) 컨셉 메타포는 하나만 정하고 히어로~CTA까지 일관되게 쓴다.
+   (KEY STEP=계단, 매달 KISS=달의 위상, KISS LOGIC=오컴의 면도날, KISSENCE=응축과 폭발)
 
-❌ "수강생들이 만족하는 강의입니다" (→ 증명 불가)
-✅ "지문 구조가 보이기 시작하면, 시험장에서 처음으로 시간이 남는 경험을 한다."
+6) 말투: 존댓말이 기본. 한 문장에 한 가지 정보. 형용사보다 동사와 장면.
+   카드 설명은 '학생 상황 한 문장 + 이 강좌가 바꾸는 것 한 문장'.
 
-=== ❌ 절대 쓰지 말 것 — AI 클리셰 목록 ===
-아래 표현은 진부하고 AI스럽게 들립니다. 이것이 떠오르면 반드시 뒤집어서 다시 쓰세요.
-
-❌ "체계적인 학습 시스템"
-✅ 대신: "3월에 뭐부터 해야 할지 감이 잡히지 않는다면, 이 강의가 길을 만들어 드립니다"
-
-❌ "최고의 강사진이 함께합니다"  
-✅ 대신: "[강사명]만의 방식으로 지문이 처음으로 '읽히는' 경험을 하게 됩니다"
-
-❌ "합리적인 가격으로 성적을 올리세요"
-✅ 대신: "6월 모평 전, 딱 한 번의 선택이 남았습니다"
-
-❌ "체계적이고 효율적인 커리큘럼"
-✅ 대신: "개념 → 기출 → 실전. 이 순서대로 하면 6월이 다릅니다"
-
-❌ "실력 향상을 도와드립니다"
-✅ 대신: "지금 이 강의를 듣는 학생은 수능장에서 '아, 이거다' 하는 순간이 옵니다"
-
-❌ "많은 수험생들이 선택했습니다"
-✅ 대신: "같은 지문, 같은 시간. 근데 왜 어떤 학생만 답이 보일까요?"
-
-=== 페이지 맥락별 문구 방향 예시 ===
-[6월 모평 대비 페이지라면]
-- 배너: "6월이 판가름 난다. 지금이 마지막 기회다."
-- 소개: "6월 모평 직전, 이 수업이 필요한 이유가 있습니다."
-- 수강이유: "모평 2주 전에 할 수 있는 것과 없는 것이 있습니다."
-- 커리큘럼: "모평까지 남은 시간에 맞게 설계된 4단계"
-- CTA: "6월 모평 전 마지막 기회, 지금 신청하세요"
-
-[3월 개강 커리큘럼이라면]
-- 배너: "3월 첫 선택이 수능 결과를 만든다"
-- 소개: "아직 늦지 않았습니다. 3월부터 시작하면 됩니다."
-- 수강이유: "수능까지 9개월, 지금 방향을 잡으면 다릅니다"
-- CTA: "오늘이 가장 빠른 시작입니다"
-
-[파이널/수능 직전이라면]
-- 배너: "D-30. 이제 더 추가할 게 아니라 버릴 때입니다"
-- 소개: "수능 직전, 딱 필요한 것만 담았습니다"
-- CTA: "수능 전 마지막 강의, 지금이 마지막입니다"
-
-=== AI스러운 표현 절대 금지 목록 ===
-아래 패턴이 나오면 즉시 다시 써라.
-
-❌ "아직도 ~하고 있나요?" → ✅ 강좌명 + 짧은 선언
-❌ "~의 비밀을 공개합니다" → ✅ "~으로 끝낸다" / "~이 달라진다"
-❌ "함께라면 가능합니다" → ✅ 구체적 결과 수치나 상황
-❌ "지금 바로 시작하세요" (단독) → ✅ 왜 지금인지 이유 포함
-❌ "수능까지 함께" → ✅ 남은 기간이나 시험명 직접 언급
-❌ "체계적으로 준비" → ✅ 구체적 방법론명 사용
-❌ "실력이 달라집니다" → ✅ "3주 차부터 지문 구조가 보인다"
-❌ "최고의 강의" → ✅ 강사 시그니처 메서드명
-❌ "성적을 올리세요" → ✅ "모평에서 한 등급 오른다"
-❌ "열심히 하면" → ✅ "이 순서대로 하면"
-
-=== 실제로 통하는 문구 패턴 ===
-[bannerTitle — 강좌명이 반드시 들어가는 형태]
-- 진또배기
-- 진또배기 — 국어의 본질
-- 뉴런으로 끝낸다
-- KISS Logic, 단 하나면 됩니다
-
-[bannerLead — 학생 상황 직격]
-- 지문은 읽히는데 답은 모르겠다. 그게 지금 너의 상황이다.
-- 국어 3등급, 공부는 했는데 왜 안 오르는지 모르겠다면.
-- 감으로 맞추는 건 수능장에서 통하지 않는다.
-
-[whyReasons 설명 — 뼈 때리는 방식]
-- "기출을 풀었지만 '왜 틀렸는지'를 모른다면, 다음 시험도 같은 유형에서 틀린다. 진또배기는 답보다 원리를 먼저 가르친다."
-- "국어 지문은 감으로 읽는 게 아니다. 구조가 있다. 이 구조를 보는 눈을 3주 안에 만들어 드린다."
-""" + """
-
-=== 레퍼런스 스타일 핵심 규칙 ===
-- bannerTitle은 반드시 강사의 고유 커리큘럼 브랜드명 사용 (LIM IT, SYNTAX, R'GORITHM, CIRCLE 같은 방식)
-  예) 커리큘럼명이 "KISS Logic"이면 bannerTitle = "KISS Logic"
-  예) 커리큘럼명이 "인셉션"이면 bannerTitle = "인셉션"
-- bannerSub은 과목+포지션 (예: "영어 독해의 절대 기준", "사회탐구 성공의 전제")
-- brandTagline은 반드시 영어 한 문장 포함 (예: "Conquer the Pattern. Master the Score.")
-- introDesc 도입부는 반드시 학생 고민에서 시작 ("아직도 지문이 안 읽히나요?" 방식)
-
-[bannerTitle — 브랜드명 전면 배치 스타일]
-- KISS Logic
-- 인셉션
-- R'GORITHM
-- All Of KICE
-
-[bannerSub — 포지셔닝 문구]
-- 영어 독해의 절대 기준
-- 수학 1등급의 유일한 루트
-- 국어 비문학, 이제 다르게 읽힌다
-
-[brandTagline — 영어 슬로건 필수 포함]
-- "The Beginning Is Always Here."
-- "Conquer the Pattern. Master the Score."
-- "Read Different. Score Different."
-- "One Method. One Direction. One Grade."
-
-[introDesc — 학생 고민 먼저 시작]
-- 지문은 읽히는데 답이 안 보이는 학생들이 있습니다. 어법은 외웠는데 실전에서 틀리는 학생들이 있습니다. 이 강의는 그 지점을 정확히 짚습니다.
-- 공부는 하는데 성적이 안 오르는 느낌, 다들 한번씩 겪습니다. 문제는 방법이 아니라 방향입니다.
-=== 강좌명·컨셉 워드플레이 필수 규칙 ===
-강좌명이나 페이지 맥락에서 반드시 단어 유희를 찾아내어 문구에 녹여라.
-
-[영문 강좌명 워드플레이 예시]
-- "KEY STEP" → bannerTitle: "1등급을 향한 열쇠, KEY STEP" / brandTagline: "한 스텝(STEP) 더, 1등급의 문이 열립니다(KEY)"
-- "KISSAVE" → bannerTitle: "KISSAVE — 너의 점수를 구한다" / brandTagline: "이제 KISS가 너의 점수를 세이브(SAVE)한다"
-- "KISSCHEMA" → "스키마(SCHEMA)처럼 구조가 잡힌다" / "머릿속 영어 회로가 바뀝니다"
-- "뉴런" → "이제 뇌가 다르게 연결됩니다" / "뉴런이 바뀌면 점수가 바뀐다"
-- "인셉션" → "머릿속 깊이 심어지는 국어 원리" / "꿈꾸듯 읽히기 시작합니다"
-- "R'gorithm" → "독해에도 알고리즘이 있다" / "논리 회로가 켜지는 순간"
-- "All Of KICE" → "수능 출제진의 모든 것을 담았다" / "KICE가 만든 모든 것, 우리가 먼저 분석했다"
-- "Starting Block" → "출발선이 달라지면 도착점이 달라진다"
-- "KICE Anatomy" → "수능을 해부한다"
-
-[한국어 강좌명 워드플레이 예시]
-- "파노라마" → "국어가 파노라마처럼 펼쳐집니다" / "전체가 한눈에 보이는 순간"
-- "세젤쉬" → "세상에서 제일 쉬운 수학이 됩니다"
-- "미친개념" → "이 정도면 미쳤다고 할 수밖에 없는 개념 강의"
-
-규칙:
-1. bannerTitle과 brandTagline에는 강좌명의 의미·발음·약자를 활용한 워드플레이를 반드시 1개 이상 포함
-2. introDesc, whyReasons, ctaSub에서도 강좌명과 자연스럽게 연결된 표현 사용
-3. 영문 강좌명은 한국어 뜻/발음도 함께 활용 (KEY=열쇠, SAVE=저장/구원, KISS=간결, STEP=단계 등)
-4. 억지스러운 워드플레이 금지 — 읽었을 때 "아, 맞다!" 하고 자연스럽게 느껴져야 함
-5. 강좌명을 모르는 독자도 이해할 수 있게 뜻을 문구 안에 녹여야 함
-=== 절대 규칙 (위반 시 전체 실패) ===
-- 강사 정보에 명시된 과목만 언급. 영어 강사면 영어만, 수학 강사면 수학만.
-- 학교명·직위·소속·경력은 강사 정보에 없으면 절대 지어내지 말 것.
-- "교수" 직함 절대 금지 — 반드시 "선생님" 또는 "강사".
-- 확인되지 않은 수치(합격생 수, 만족도 %) 절대 금지.
-
-=== 실제 사용된 좋은 문구 예시 (스타일 참고용 — 그대로 쓰지 말고 더 창의적으로) ===
-
-[bannerTitle 스타일]
-- [커리큘럼명], 우리의 역사적 순간이 시작됩니다.
-- 1등급의 공식, [커리큘럼명]으로 완성하다
-- 결정적인 순간, [커리큘럼명]이 답입니다
-- 꼭 필요한 것만 담았다. [커리큘럼명]
-
-[bannerLead 스타일 — 60-90자, 구체적·감정적]
-- 당신에게 필요한 것만 골라 담았습니다. 출제 원리부터 실전 적용까지, 1등급을 위한 커리큘럼을 경험하세요.
-- 시험장에서 흔들리지 않으려면 지금 이 커리큘럼이 필요합니다. 전략적 학습 설계로 성적 상승을 직접 체감하세요.
-- 성적이 오르는 공부에는 이유가 있습니다. 강사가 직접 설계한 합격 커리큘럼으로 그 차이를 확인하세요.
-
-[brandTagline 스타일 — 군더더기 없는 한 문장]
-- 개념도, 풀이도, 실전도 — 이 강의 하나면 충분합니다.
-- 더 이상 강의 쇼핑은 그만. 필요한 건 딱 이 커리큘럼입니다.
-- 처음부터 끝까지, 완성형 커리큘럼.
-
-[introTitle 스타일]
-- 이 강의, 왜 이 선생님이어야 할까요?
-- 수험생을 가장 잘 아는 선생님
-- 결과로 말하는 선생님
-
-[introDesc 스타일 — 80-120자, 신뢰감·구체성]
-- 수년간 수험생과 함께 합격의 루트를 다듬어온 강사입니다. 기출 분석과 실전 풀이에 최적화된 수업으로 성적 상승을 직접 이끌어 왔습니다.
-- 출제 원리를 꿰뚫는 분석력과 수험생 눈높이에 맞는 설명으로 매해 우수한 합격 실적을 만들어온 강사입니다.
-- 강의 설계부터 문제 선별, 피드백까지 수험생의 점수 상승만을 위해 모든 과정을 직접 기획합니다.
-
-[introBio 스타일 — 60자, 압축적]
-- 매해 수험생과 압도적 결과를 만들어온 강사
-- 탄탄한 개념과 실전 풀이를 모두 잡는 통합형 커리큘럼 설계자
-
-[whyTitle 스타일]
-- 지금, 이 강의여야 하는 3가지 이유
-- 성적이 오르는 데는 이유가 있습니다
-
-[whyReasons 스타일 — 제목은 짧고 임팩트, 설명은 구체적]
-- 출제 경향을 꿰뚫는 분석력 | 기출 문제의 반복 패턴과 출제 원리를 체계적으로 분석하여 실전에서 바로 적용할 수 있도록 설계합니다.
-- 군더더기 없는 핵심 콘텐츠 | 불필요한 내용을 걷어내고 점수에 직결되는 핵심만 담아 학습 효율을 극대화합니다.
-- 1등급으로 가는 최단 루트 | 불필요한 학습을 줄이고 성적 향상에 직결되는 핵심 루트만 빠르게 공략합니다.
-
-[curriculumTitle 스타일]
-- 이렇게 공부합니다
-- 합격까지 이어지는 학습 단계
-
-[curriculumSteps 스타일 — 단계명은 행동어, 설명은 왜/어떻게]
-- 기초 개념 완성 | 핵심 개념을 정확하게 이해하고 내 것으로 만드는 단계
-- 기출 유형 분석 | 역대 기출 문제의 패턴을 파악하고 풀이 전략을 습득하는 단계
-- 실전 적용 훈련 | 실제 시험과 동일한 조건으로 풀이 감각을 끌어올리는 단계
-
-[targetTitle 스타일]
-- 이런 수험생에게 딱 맞습니다
-- 당신에게 필요한 강의입니다
-
-[targetItems 스타일 — 40자 이상, 학생 상황 구체 묘사]
-- 현재 성적에서 한 단계 더 도약하고 싶은 수험생
-- 개념은 알겠는데 문제 풀이에서 자꾸 막히는 학생
-- 체계적인 학습 루트 없이 혼자 공부하다 지친 수험생
-- 감에 의존한 공부에서 벗어나 전략적으로 준비하고 싶은 수험생
-
-[ctaTitle 스타일]
-- 오늘이 가장 빠른 시작입니다
-- 합격을 향한 첫 걸음, 지금 시작하세요
-
-[ctaSub 스타일]
-- 합격한 선배들의 선택, 이제 여러분의 차례입니다.
-- 선착순 혜택이 마감되기 전, 지금 신청하세요.
-
-[이벤트 bannerTitle 스타일]
-- 이번 이벤트, 놓치면 다음 기회는 없습니다
-- 앞으로 함께할 여러분을 위해 특별한 선물을 드립니다
-
-[이벤트 deadlineMsg 스타일 — 긴박감]
-- 선착순 마감 이벤트입니다. 정원이 가득 차면 신청이 종료되니 지금 바로 확인하세요.
-- 기간이 지나면 참여가 불가합니다. 지금 바로 조건을 확인하고 혜택을 챙겨가세요.
-
-[기획전 festHeroTitle 스타일]
-- 수능 [과목]의 새로운 기준
-- 한 번에 다 잡는 기획전이 열립니다
-
-[기획전 festCtaSub 스타일]
-- 선착순으로 마감되는 기획전입니다. 서두르세요.
-- 이 혜택은 이번 기획전에서만 제공됩니다.
+7) 쓰지 않는 표현: '체계적인', '최고의', '함께라면', '~의 비밀', '비법 공개', '여정', '첫걸음',
+   '잠재력', '한계를 넘어', '~하는 당신', '지금 바로 시작하세요'(단독).
+   확인되지 않은 숫자(합격자 수, 만족도 %, 'n등급→1등급', 'n주 만에') 금지.
 """
+
+# ══════════════════════════════════════════════════════
+# [v8] 수능 일정 · 시즌 계산 — 'D-100 남발'의 근본 해결
+#  - 날짜는 AI가 지어내지 않고 파이썬이 계산합니다.
+#  - D-day 숫자는 (1) 공식 일정이 확정돼 있고 (2) 100일 이내이고
+#    (3) 사이드바에서 'D-day 표기 허용'을 켰을 때만 프롬프트에 들어갑니다.
+#  - 일정이 새로 발표되면 아래 표에 한 줄만 추가하세요.
+# ══════════════════════════════════════════════════════
+import datetime as _dt
+KST = _dt.timezone(_dt.timedelta(hours=9))
+
+SUNEUNG_SCHEDULE = {   # key = 학년도
+    2027: {"exam": _dt.date(2026, 11, 19), "mock6": _dt.date(2026, 6, 4), "mock9": _dt.date(2026, 9, 2)},
+    2028: {"exam": _dt.date(2027, 11, 18), "mock6": None, "mock9": None},
+}
+
+def kst_today() -> _dt.date:
+    return _dt.datetime.now(KST).date()
+
+def exam_date_for(year: int):
+    """학년도 → (수능일, 추정여부). 표에 없으면 11월 셋째 목요일로 추정."""
+    if year in SUNEUNG_SCHEDULE:
+        return SUNEUNG_SCHEDULE[year]["exam"], False
+    d = _dt.date(year - 1, 11, 1)
+    first_thu = d + _dt.timedelta(days=(3 - d.weekday()) % 7)
+    return first_thu + _dt.timedelta(days=14), True
+
+def default_target_year(today=None) -> int:
+    """오늘 기준 '지금 만드는 페이지'가 겨냥할 학년도.
+    수능 2주 전부터는 다음 학년도 신규 시즌 페이지를 만든다고 보고 다음 해로 넘깁니다."""
+    today = today or kst_today()
+    y = today.year + 1
+    for _ in range(3):
+        exam, _est = exam_date_for(y)
+        if (exam - today).days > 14:
+            return y
+        y += 1
+    return y
+
+def get_season(year=None, today=None) -> dict:
+    today = today or kst_today()
+    year = year or st.session_state.get("target_year") or default_target_year(today)
+    exam, estimated = exam_date_for(year)
+    days = (exam - today).days
+    if days > 300:
+        label, guide = "신규 시즌 오픈기", (f"직전 수능이 막 끝났고 {year}학년도 커리큘럼을 처음 공개하는 시기. "
+                       "'새 기준', '1년의 설계', '첫 단추'처럼 시작과 설계를 말한다. 수능 임박·마지막 기회 같은 말은 맞지 않다.")
+    elif days > 240:
+        label, guide = "겨울방학·개념 완성기", "방학 동안 기초와 개념의 틀을 잡는 시기. 3월 학평 전에 공부 방식을 세팅한다."
+    elif days > 170:
+        label, guide = "1학기·6월 모평 준비기", "3월 학평으로 위치를 확인했고, 6월 모평을 향해 방향을 점검하는 시기."
+    elif days > 140:
+        label, guide = "6월 모평 전후", "평가원 첫 실전. 결과를 점검하고 하반기 전략을 세우는 시기."
+    elif days > 80:
+        label, guide = "여름방학·실전 전환기", "개념에서 실전으로 넘어가는 시기. 약점 보완과 기출 심화."
+    elif days > 60:
+        label, guide = "9월 모평 전후", "마지막 평가원 모의고사. 파이널 진입 직전."
+    elif days > 0:
+        label, guide = "파이널", "새로운 것을 더하기보다 압축·정리하는 시기."
+    else:
+        label, guide = "수능 이후", "수능이 끝난 시기."
+    dday_possible = (not estimated) and 0 < days <= 100
+    dday_on = dday_possible and bool(st.session_state.get("allow_dday", False))
+    return {"year": year, "exam": exam, "estimated": estimated, "days": days,
+            "label": label, "guide": guide, "today": today,
+            "dday_possible": dday_possible, "dday_on": dday_on,
+            "dday_str": f"D-{days}" if dday_on else ""}
+
+def season_prompt_block() -> str:
+    s = get_season()
+    exam_txt = f"{s['exam'].year}년 {s['exam'].month}월 {s['exam'].day}일" + (" (추정)" if s["estimated"] else "")
+    lines = [
+        "[시기 정보 — 파이썬이 계산한 사실. 이 블록 밖의 날짜·기간 숫자는 만들지 말 것]",
+        f"- 오늘: {s['today'].isoformat()}",
+        f"- 대상: {s['year']}학년도 수능 ({exam_txt}). 교재·강좌 연도 표기는 '{s['year']}'.",
+        f"- 지금 시즌: {s['label']} — {s['guide']}",
+    ]
+    if s["dday_on"]:
+        lines.append(f"- D-day 표기 허용: 쓸 경우 반드시 '{s['dday_str']}'만 사용. 다른 남은 일수 숫자 금지.")
+    else:
+        lines.append("- 남은 일수(D-숫자, 'n일 남았다', 'n주 남았다')는 쓰지 않는다. 시기는 시즌 이름이나 시험 이름으로만 말한다.")
+    return "\n".join(lines)
 
 # ── 15개 테마 ──────────────────────────────────────
 THEMES = {
@@ -453,36 +334,36 @@ THEME_PREVIEW_COLORS = {
     "eco":        ["#F0FDF4", "#059669", "#34D399"],
 }
 
+# [v8] 기본 섹션 구성을 실제 PR 페이지 흐름(문제 제기 → 정체 → OT → 커리큘럼 → 대상 → 후기 → 교재 → FAQ → 신청 → 유의사항)으로 정리
 PURPOSE_SECTIONS = {
-    "신규 커리큘럼": ["banner","intro","video","grade_stats","before_after","instructor_philosophy","method","why","curriculum","course_intro","textbook_sale","target","package","reviews","faq","cta"],
-    "이벤트":       ["banner","event_overview","event_benefits","event_deadline","reviews","cta"],
-    "기획전":       ["fest_hero","fest_lineup","fest_benefits","fest_cta"],
+    "신규 커리큘럼": ["banner","why","intro","video","curriculum","target","reviews","textbook_sale","faq","cta","notice"],
+    "이벤트":       ["banner","event_overview","event_benefits","event_deadline","reviews","cta","notice"],
+    "기획전":       ["fest_hero","fest_lineup","fest_benefits","fest_cta","notice"],
 }
 PURPOSE_HINTS = {
-    "신규 커리큘럼": "📚 강사 전문성·신뢰감 강조 — 인셉션, 앰버, 코스모스 추천",
-    "이벤트":       "🎉 기간 한정·긴박감·혜택 강조 — 시네마틱, 에시드, 스타디움 추천",
-    "기획전":       "🏆 강사 라인업·통합 혜택 강조 — 브루탈, 골드 럭셔리, 코스모스 추천",
+    "신규 커리큘럼": "📚 문제 제기 → 강좌의 정체 → 커리큘럼 → 신청 흐름",
+    "이벤트":       "🎉 혜택·일정·참여 방법을 한눈에. 날짜는 사이드바에 직접 입력",
+    "기획전":       "🏆 강사 라인업·통합 혜택 중심",
 }
 PURPOSE_THEME_HINTS = {
-    "이벤트":       "목적이 이벤트(기간한정·긴박감)입니다. cinematic·acid·stadium 같은 강렬한 어두운 테마를 선택하세요. 밝거나 자연적인 테마 금지.",
-    "기획전":       "목적이 기획전(통합 라인업·프리미엄)입니다. brutal·luxury·cosmos 같이 임팩트 있는 테마를 선택하세요.",
-    "신규 커리큘럼":"목적이 신규 커리큘럼(강사 신뢰·전문성)입니다. inception·amber·cosmos 같이 무게감 있는 테마를 선택하세요.",
+    "이벤트":       "목적이 이벤트(기간한정·혜택)입니다. 혜택이 잘 보이는 선명한 테마를 선택하세요.",
+    "기획전":       "목적이 기획전(통합 라인업)입니다. 여러 강사가 함께 보여도 정돈돼 보이는 테마를 선택하세요.",
+    "신규 커리큘럼":"목적이 신규 커리큘럼(강사 신뢰·전문성)입니다. 무게감 있는 테마를 선택하세요.",
 }
 SEC_LABELS = {
-    "banner":"🏠 메인 배너","intro":"📖 강좌 핵심 소개","why":"💡 필요한 이유",
+    "banner":"🏠 메인 배너","intro":"📖 강좌의 정체(솔루션)","why":"💡 문제 제기",
     "curriculum":"📚 커리큘럼","target":"🎯 수강 대상","reviews":"⭐ 수강평",
-    "faq":"❓ FAQ","cta":"📣 수강신청",
-    "video":"🎬 영상 미리보기","before_after":"🔄 수강 전/후","method":"🧪 학습법 시각화","package":"📦 구성 안내",
-    "grade_stats":"📊 등급 변화 성과",
+    "faq":"❓ FAQ","cta":"📣 수강신청","notice":"📄 유의사항",
+    "video":"🎬 OT 영상","before_after":"🔄 수강 전/후","method":"🧪 학습법 시각화","package":"📦 구성 안내",
+    "grade_stats":"📊 학습 변화",
     "event_overview":"📅 이벤트 개요","event_benefits":"🎁 이벤트 혜택",
     "event_deadline":"⏰ 마감 안내",
     "fest_hero":"🏆 기획전 히어로","fest_lineup":"👥 강사 라인업",
     "fest_benefits":"🎁 기획전 혜택","fest_cta":"📣 기획전 CTA",
     "custom_section":"✏️ 기타 섹션",
-    "course_intro": "📖 강좌 소개",        # ← 추가
-    "textbook_sale": "📦 교재 소개·판매",   # ← 추가
-    "instructor_philosophy": "💭 강사 철학", # ← 추가
-    "season_roadmap": "🗓 시즌 로드맵",     # ← 추가
+    "course_intro": "📖 강좌 소개(입력 기반)",
+    "textbook_sale": "📦 교재 소개·판매",
+    "instructor_philosophy": "💭 강사 철학",
 }
 RANDOM_SEEDS = [
     # ── K-컬처·팝아트 ──
@@ -770,7 +651,8 @@ def strip_hanja(text: str) -> str:
     text = re.sub(r'([가-힣a-zA-Z0-9]+)(?:으로|로)(?=[\s,\.·!\?]|$)', _fix_euro, text)
 
     # 2) 한자·특수문자 제거 (한글, 영문, 숫자, 기본 구두점만 허용)
-    allowed_pattern = r'[^\u3131-\u3163\uAC00-\uD7A3a-zA-Z0-9\s\.\,\!\?\'\"\%\[\]\(\)\-\<\>~·/&+\n]'
+    # [v8] 마스킹(김*우)·시간(07:00)·대시(—)·따옴표(‘’“”)·별점(★)·원(○)이 지워지던 문제 → 허용 문자 확대
+    allowed_pattern = r'[^\u3131-\u3163\uAC00-\uD7A3a-zA-Z0-9\s\.\,\!\?\'\"\%\[\]\(\)\-\<\>~·/&+\n:;\*—–‘’“”★○→#@=_|]'
     text = re.sub(allowed_pattern, '', text)
 
     # 3) 인도네시아어/말레이어 금지 단어 제거
@@ -809,7 +691,7 @@ def strip_dday_claims(text: str) -> str:
     return text
     
 def clean_obj(obj):
-    if isinstance(obj, str): return strip_dday_claims(strip_hanja(obj))
+    if isinstance(obj, str): return strip_hanja(obj)   # [v8] 날짜 표현은 polish_copy()가 문장 단위로 처리
     if isinstance(obj, dict): return {k: clean_obj(v) for k,v in obj.items()}
     if isinstance(obj, list): return [clean_obj(i) for i in obj]
     return obj
@@ -1025,50 +907,64 @@ def build_bg_url(mood: str) -> str:
 
 # ══════════════════════════════════════════════════════
 # AI 호출
+#  [v8] 버그 수정: gpt-oss 모델은 reasoning_effort="none"을 받지 않아 매번 400 에러가 나고
+#       조용히 백업 모델로 넘어가고 있었습니다. 모델별로 올바른 파라미터를 보냅니다.
 # ══════════════════════════════════════════════════════
-def call_ai(prompt: str, system: str = "", max_tokens: int = 2000) -> str:
+def _model_params(model: str) -> dict:
+    if model.startswith("openai/gpt-oss"):
+        return {"reasoning_effort": "medium", "include_reasoning": False}
+    if model.startswith("qwen/"):
+        return {"reasoning_effort": "none"}
+    return {}
+
+def call_ai(prompt: str, system: str = "", max_tokens: int = 2000, temperature: float = 0.8) -> str:
     key = st.session_state.api_key.strip()
     if not key:
         raise ValueError("API 키가 없습니다. 사이드바에서 gsk_... 키를 입력해주세요.")
-    messages = []
     sys_parts = [system] if system else []
     sys_parts.append(
-    "Return ONLY valid JSON. No markdown. No extra text. "
-    "CRITICAL RULES: "
-    "1. Never use Chinese characters (漢字), Japanese characters (ひらがな/カタカナ/漢字), Indonesian/Malay words. "
-    "2. Forbidden words: masih, dan, dengan, untuk, juga, atau, tidak, yang, ini, itu, saya. "
-    "3. Write ALL body text in KOREAN only. English allowed ONLY for brand slogans/course names. "
-    "4. Keep ALL text fields concise: bannerLead max 120 chars, introDesc max 150 chars, "
-    "whyReasons desc max 120 chars, ctaSub max 80 chars. "
-    "5. Never repeat the course name as both subject and object in one sentence."
+        "Return ONLY one valid JSON object. No markdown fences, no commentary. "
+        "Write all copy in natural Korean as a senior Korean copywriter would. "
+        "Never use Chinese characters, Japanese kana, or Indonesian/Malay words. "
+        "English is allowed only for course names, eyebrow labels and the English tagline."
     )
-    messages.append({"role":"system","content":"\n\n".join(sys_parts)})
-    messages.append({"role":"user","content":prompt})
-    last_err = None
+    messages = [{"role": "system", "content": "\n\n".join(sys_parts)},
+                {"role": "user", "content": prompt}]
+    errors = []
     for model in GROQ_MODELS:
-        try:
-            resp = requests.post(
-                GROQ_URL,
-                headers={"Authorization":f"Bearer {key}","Content-Type":"application/json"},
-                json={"model":model,"messages":messages,"max_tokens":max_tokens,"temperature":0.75,"reasoning_effort":"none"},
-                timeout=60,
-            )
-        except Exception as e:
-            last_err = Exception(f"네트워크 오류: {e}"); continue
-        if resp.status_code == 401:
-            raise Exception("🔑 API 키 오류 — console.groq.com에서 확인해주세요.")
-        if resp.status_code == 429:
-            last_err = Exception(f"⏳ 한도 초과 ({model})"); time.sleep(2); continue
-        if not resp.ok:
-            try: msg = resp.json().get("error",{}).get("message",resp.text[:150])
-            except Exception: msg = resp.text[:150]
-            last_err = Exception(f"HTTP {resp.status_code}: {msg}"); continue
-        try:
-            text = resp.json()["choices"][0]["message"]["content"]
-            if text and text.strip(): return text
-        except Exception as e:
-            last_err = Exception(f"응답 파싱 실패: {e}"); continue
-    raise last_err or Exception("모든 모델 실패")
+        body = {"model": model, "messages": messages, "temperature": temperature,
+                "max_tokens": max_tokens + (3000 if model.startswith("openai/gpt-oss") else 0),
+                "response_format": {"type": "json_object"}, **_model_params(model)}
+        for attempt in range(2):
+            try:
+                resp = requests.post(GROQ_URL,
+                                     headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                                     json=body, timeout=90)
+            except Exception as e:
+                errors.append(f"{model}: 네트워크 오류 {e}"); break
+            if resp.status_code == 401:
+                raise Exception("🔑 API 키 오류 — console.groq.com에서 확인해주세요.")
+            if resp.status_code == 429:
+                errors.append(f"{model}: 한도 초과"); time.sleep(2); break
+            if resp.status_code == 400 and attempt == 0:
+                # JSON 모드나 파라미터를 지원하지 않는 모델 → 한 번 더 단순하게 시도
+                body.pop("response_format", None)
+                body.pop("include_reasoning", None)
+                continue
+            if not resp.ok:
+                try: msg = resp.json().get("error", {}).get("message", resp.text[:150])
+                except Exception: msg = resp.text[:150]
+                errors.append(f"{model}: HTTP {resp.status_code} {msg}"); break
+            try:
+                text = resp.json()["choices"][0]["message"]["content"]
+            except Exception as e:
+                errors.append(f"{model}: 응답 파싱 실패 {e}"); break
+            if text and text.strip():
+                st.session_state["_last_model"] = model
+                st.session_state["_last_model_errors"] = errors
+                return text
+            errors.append(f"{model}: 빈 응답"); break
+    raise Exception("모든 모델 실패 — " + " / ".join(errors[-4:]))
 
 # ══════════════════════════════════════════════════════
 # AI 생성 함수
@@ -1172,282 +1068,270 @@ JSON만 반환 (한 줄, extraCSS 필드 제외):
 
 
 def _get_instructor_context() -> str:
+    """[v8] 강사 정보 요약 — 예전 버전은 이력 문장 속 시리즈명을 강좌명으로 치환하다가
+    '2028 2028 KISS LOGIC LOGIC' 같은 깨진 문장을 AI에게 넘기고 있었습니다."""
     ip     = st.session_state.get("inst_profile") or {}
-    name   = st.session_state.instructor_name
-    subj   = st.session_state.subject
+    name   = st.session_state.get("instructor_name", "")
+    subj   = st.session_state.get("subject", "")
     plabel = st.session_state.get("purpose_label", "")
+    norm = lambda x: re.sub(r"[\s'’]", "", str(x)).lower()
+    lines = [f"- 강사: {name} 선생님 ({subj})" if name else f"- 과목: {subj}"]
+    if ip.get("found"):
+        if ip.get("teachingStyle"):
+            lines.append(f"- 수업 스타일(참고): {ip['teachingStyle']}")
+        if ip.get("strength"):
+            lines.append(f"- 강점 키워드(참고): {ip['strength']}")
+        if ip.get("slogan"):
+            lines.append(f"- 강사 슬로건(참고용, 문구에 그대로 쓰지 말 것): {ip['slogan']}")
+        others = []
+        for m in list(ip.get("signatureMethods") or []) + list(ip.get("curriculum_series") or []):
+            if not m or m == "없음":
+                continue
+            if plabel and (norm(m) in norm(plabel) or norm(plabel) in norm(m)):
+                continue
+            if m not in others:
+                others.append(m)
+        if others:
+            lines.append(f"- 같은 강사의 다른 시리즈(이번 페이지에서는 언급 금지): {', '.join(others)}")
+    return "\n".join(lines)
 
-    sig_methods = [m for m in (ip.get("signatureMethods") or []) if m and m != "없음"]
+# ═══════════════════════════════════════════════════════
+# [v8] 문구 품질 검사(lint) + 1회 자동 고쳐쓰기
+#  - 예전: 정규식으로 'D-100'만 잘라내서 "수능 , 마지막 기회" 같은 깨진 문장이 남음
+#  - 지금: 위반 필드만 골라 AI에게 다시 쓰게 하고, 그래도 남으면 '문장 단위'로 제거
+# ═══════════════════════════════════════════════════════
+_DDAY_ANY_RE = re.compile(
+    r'D\s?[-–—]\s?\d{1,3}(?!\d)'
+    r'|\d{1,3}\s?(?:일|주)\s?(?:남|전|앞|뒤)'
+    r'|남은\s?\d{1,3}\s?(?:일|주|개월)'
+    r'|백\s?일|100\s?일', re.I)
+_FAKE_NUM_RE = re.compile(
+    r'\d\s?등급\s?(?:→|->|에서|➜)\s?\d\s?등급'
+    r'|\d{1,3}(?:\.\d)?\s?%'
+    r'|합격생\s?\d|만족도|\d+\s?만\s?명'
+    r'|\d+\s?(?:주|일|개월)\s?만에')
+CLICHE_WORDS = [
+    "체계적", "최고의", "함께라면", "의 비밀", "비법", "극대화", "혁신", "여정", "첫걸음",
+    "새로운 차원", "한계를 넘어", "잠재력", "꿈을 응원", "놀라운 변화", "성공의 열쇠",
+    "하는 당신", "당신을 위한", "지금 바로 시작하세요", "압도적인 결과", "차원이 다른",
+]
+_SKIP_LINT_KEYS = {"bannerVisual", "introVisual", "whyVisual", "concept", "videoUrl",
+                   "bg_photo_url", "custom_section_data", "course_copy", "textbook_copy"}
 
-    # ── 브랜드명과 무관한 시그니처 메서드·슬로건 완전 차단 ──
-    if plabel and sig_methods:
-        plabel_clean = plabel.replace(" ", "").lower()
-        method_match = any(
-            m.replace(" ", "").lower() in plabel_clean or
-            plabel_clean in m.replace(" ", "").lower()
-            for m in sig_methods
+def _walk(obj, fn, path=""):
+    """문자열 필드마다 fn(path, text) → 새 text"""
+    if isinstance(obj, str):
+        return fn(path, obj)
+    if isinstance(obj, dict):
+        return {k: (v if k in _SKIP_LINT_KEYS else _walk(v, fn, f"{path}.{k}" if path else k)) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_walk(v, fn, f"{path}[{i}]") for i, v in enumerate(obj)]
+    return obj
+
+def normalize_highlight(text: str) -> str:
+    """[[ ]] 강조는 문자열당 1개만 남기고, 짝이 안 맞는 괄호는 제거"""
+    if "[[" not in text and "]]" not in text:
+        return text
+    seen = {"n": 0}
+    def _keep_first(m):
+        seen["n"] += 1
+        return m.group(0) if seen["n"] == 1 else m.group(1)
+    text = re.sub(r'\[\[(.+?)\]\]', _keep_first, text)
+    if text.count("[[") != text.count("]]"):
+        text = text.replace("[[", "").replace("]]", "")
+    return text
+
+def _user_facts() -> str:
+    """MD가 직접 입력한 정보 — 여기 있는 숫자·날짜는 '확인된 사실'로 보고 통과"""
+    keys = ("_last_ctx", "course_info", "textbook_info", "event_info", "purpose_label", "metaphor")
+    return re.sub(r"\s", "", " ".join(str(st.session_state.get(k) or "") for k in keys))
+
+def _allowed_hit(hit: str, season: dict, facts: str) -> bool:
+    h = re.sub(r"\s", "", hit)
+    return (season["dday_on"] and h == season["dday_str"]) or (h and h in facts)
+
+def lint_copy(cp: dict) -> dict:
+    """{최상위키: [문제 설명,...]} 반환"""
+    season = get_season()
+    facts = _user_facts()
+    issues = {}
+    def _chk(path, t):
+        top = re.split(r'[.\[]', path)[0]
+        for m in _DDAY_ANY_RE.finditer(t):
+            if not _allowed_hit(m.group(0), season, facts):
+                issues.setdefault(top, []).append(f"근거 없는 남은 일수 표현 '{m.group(0)}'")
+        for m in _FAKE_NUM_RE.finditer(t):
+            if not _allowed_hit(m.group(0), season, facts):
+                issues.setdefault(top, []).append(f"확인되지 않은 수치 '{m.group(0)}'")
+        for w in CLICHE_WORDS:
+            if w in t:
+                issues.setdefault(top, []).append(f"상투적 표현 '{w}'")
+        return t
+    _walk(cp, _chk)
+    return {k: sorted(set(v)) for k, v in issues.items()}
+
+def _drop_bad_sentences(text: str) -> str:
+    season = get_season()
+    facts = _user_facts()
+    parts = re.split(r'(?<=[.!?。])\s+|\n', text)
+    keep = []
+    for p in parts:
+        bad = any(not _allowed_hit(m.group(0), season, facts)
+                  for m in list(_DDAY_ANY_RE.finditer(p)) + list(_FAKE_NUM_RE.finditer(p)))
+        if not bad:
+            keep.append(p)
+    return " ".join(keep).strip() if keep else ""
+
+def polish_copy(cp: dict, brief: str) -> dict:
+    """lint → 위반 필드만 1회 재작성 → 남은 건 문장 단위 제거"""
+    cp = _walk(cp, lambda p, t: normalize_highlight(t))
+    issues = lint_copy(cp)
+    if issues:
+        targets = {k: cp[k] for k in issues if k in cp}
+        problems = "\n".join(f"- {k}: {', '.join(v)}" for k, v in issues.items())
+        prompt = (
+            f"{brief}\n\n아래 JSON 필드에 문제가 있습니다. 같은 키·같은 구조로, 문제만 없앤 새 문구를 쓰세요.\n"
+            f"뜻과 길이는 비슷하게, 숫자를 지우는 대신 구체적인 장면이나 행동으로 바꾸세요.\n\n"
+            f"[문제]\n{problems}\n\n[현재 값]\n{json.dumps(targets, ensure_ascii=False)}\n\nJSON만 반환:"
         )
-        if not method_match:
-            sig_methods = []   # 메서드 차단
-            ip = dict(ip)      # 슬로건도 차단 (dict 복사 후 제거)
-            ip.pop("slogan", None)
+        try:
+            fixed = safe_json(call_ai(prompt, max_tokens=2000, temperature=0.6))
+            for k, v in fixed.items():
+                if k in targets and type(v) == type(targets[k]):
+                    cp[k] = v
+        except Exception:
+            pass
+    # 최후 안전장치: 그래도 남은 날짜·수치 문장은 '문장째' 제거 (단어만 잘라 깨진 문장 만들지 않음)
+    def _final(path, t):
+        season, facts = get_season(), _user_facts()
+        hits = list(_DDAY_ANY_RE.finditer(t)) + list(_FAKE_NUM_RE.finditer(t))
+        if any(not _allowed_hit(m.group(0), season, facts) for m in hits):
+            return _drop_bad_sentences(t)   # 전부 위반이면 빈 칸(→ 섹션 재생성 버튼으로 다시 쓰기)
+        return t
+    cp = _walk(cp, _final)
+    cp = _walk(cp, lambda p, t: normalize_highlight(t))
+    return cp
 
-    if not ip.get("found") or not name:
-        ctx = f"강사명: {name} | 과목: {subj}" if name else f"과목: {subj}"
-        if plabel:
-            ctx += f" | 강좌명(브랜드): {plabel}"
-        return ctx
+# ═══════════════════════════════════════════════════════
+# [v8] 공통 브리프 — 전체 생성·섹션 재생성이 같은 기준을 쓰도록
+# ═══════════════════════════════════════════════════════
+def build_copy_brief(ctx: str = "") -> str:
+    plabel = st.session_state.get("purpose_label", "").strip()
+    subj   = st.session_state.get("subject", "영어")
+    tgt    = st.session_state.get("target", "")
+    tone   = COPY_TONES.get(st.session_state.get("copy_tone"), list(COPY_TONES.values())[0])
+    angle  = PAGE_ANGLES.get(st.session_state.get("page_angle", ""), "")
+    metaphor = st.session_state.get("metaphor", "").strip()
+    concept  = st.session_state.get("_concept") or {}
+    course_info   = st.session_state.get("course_info", "").strip()
+    textbook_info = st.session_state.get("textbook_info", "").strip()
+    event_info    = st.session_state.get("event_info", "").strip()
 
     parts = [
-        f"강사: {name} ({subj})",
-        f"⚠️ 이번 강좌명(브랜드): [{plabel}] ← 모든 문구는 이 강좌명만 기준으로 생성. 다른 커리큘럼명 절대 언급 금지.",
+        "당신은 대성마이맥 컨텐츠기획실의 시니어 카피라이터입니다. 실제 강사 PR 페이지(상세페이지)에 바로 들어갈 문구를 씁니다.",
+        STYLE_GUIDE,
+        season_prompt_block(),
+        "[강좌 정보 — 이 안에 없는 사실(경력, 수치, 교재 구성, 기간, 가격)은 지어내지 말 것]",
+        f"- 강좌명(워드마크): {plabel or '(미입력)'}",
+        f"- 과목: {subj} / 수강 대상: {tgt}",
+        _get_instructor_context(),
     ]
-    # bio에서 다른 커리큘럼명 제거 후 삽입
-    raw_bio = ip.get("bio", "")
-    if raw_bio and plabel:
-        # bio 안의 시리즈명·강좌명 단어를 전부 plabel로 마스킹
-        other_methods = [m for m in (ip.get("signatureMethods") or []) if m and m != "없음"]
-        for method in other_methods:
-            raw_bio = raw_bio.replace(method, plabel)
-        # 자주 오염되는 고유명사 패턴 추가 제거
-        import re
-        raw_bio = re.sub(r'(인셉션|O\.V\.S|OVS|파노라마|뉴런|R\'gorithm|KISS|Starting Block|KICE Anatomy|세젤쉬|All Of KICE|VIC-FLIX)', plabel, raw_bio)
-        parts.append(f"강사 이력(참고용): {raw_bio}")
-    
-    # 슬로건도 같은 방식으로 세정
-    raw_slogan = ip.get("slogan", "")
-    if raw_slogan and sig_methods:  # 매칭된 메서드가 있을 때만 슬로건 포함
-        parts.append(f"슬로건(참고용): \"{raw_slogan}\"")
-    if sig_methods:
-        parts.append(f"고유 학습법: {', '.join(sig_methods)}")
-    else:
-        parts.append(f"이번 강좌의 핵심 방법론: [{plabel}] — 이 이름으로만 설명할 것")
-    if ip.get("teachingStyle"):
-        parts.append(f"강의 스타일: {ip['teachingStyle']}")
-    if ip.get("desc"):
-        parts.append(f"차별점: {ip['desc']}")
-
+    if course_info:   parts.append(f"- 강좌 상세(MD 입력): {course_info}")
+    if textbook_info: parts.append(f"- 교재 정보(MD 입력): {textbook_info}")
+    if event_info:    parts.append(f"- 이벤트 일정·조건(MD 입력, 이 값만 사용): {event_info}")
+    if ctx:           parts.append(f"- 페이지 기획 메모(MD 입력, 최우선): {ctx}")
+    if metaphor:
+        parts.append(f"- 컨셉 메타포(지정): {metaphor} — 이 비유 하나로 페이지 전체를 끌고 갈 것. 단어 반복보다 이미지로.")
+    elif concept.get("metaphor"):
+        parts.append(f"- 이 페이지의 메타포(앞서 정함): {concept.get('metaphor')} / 키워드: {concept.get('keyword','')}")
+    parts.append(f"[어조] {tone}")
+    if angle:
+        parts.append(f"[기획 앵글] {angle}")
+    parts.append("[강좌명 규칙] 강좌명은 원문 그대로. 변형·합성 신조어 금지. 한 문장에 강좌명을 두 번 넣지 말 것.")
     return "\n".join(parts)
 
-# ═══════════════════════════════════════════════════════
-# [추가] 페이지 테마 선언문 생성 — 모든 섹션의 방향을 통일
-# ═══════════════════════════════════════════════════════
-def gen_theme_declaration(ctx: str, ptype: str) -> dict:
-    """
-    문구 생성 전에 '이 페이지의 모든 섹션이 따를 방향'을 먼저 정합니다.
-    예: "6월 모평 D-30" → 모든 섹션이 '긴박감과 지금의 중요성'을 담게 됩니다.
-    """
-    prompt = f"""수능 교육 랜딩페이지 카피 디렉터.
-    
-페이지 맥락: "{ctx}"
-페이지 목적: {ptype}
+COPY_SCHEMAS = {
+    "신규 커리큘럼": """{
+ "concept": {"metaphor": "강좌명에서 뽑은 비유 하나 (예: 계단, 응축)", "keyword": "페이지를 관통하는 단어 하나"},
+ "bannerSub": "히어로 상단 작은 라벨. 학년도·과목·대상 (예: 2028 수능 영어 · 고3·N수)",
+ "bannerKicker": "워드마크 바로 위 한 줄. 강좌를 비유로 정의 (14~26자)",
+ "bannerTitle": "강좌명 그대로",
+ "bannerLead": "워드마크 아래 설명 1~2문장. 핵심어 하나만 [[ ]] (30~60자)",
+ "brandTagline": "영문 슬로건 한 문장 (4~8단어)",
+ "bannerTags": ["핵심 키워드", "핵심 키워드", "핵심 키워드"],
+ "ctaCopy": "버튼 문구 (예: 수강신청 하기)",
+ "whyEyebrow": "영문 2~3단어 (예: THE PROBLEM)",
+ "whyTitle": "학생이 실제로 겪는 장면을 질문이나 단정으로. 핵심어 하나 [[ ]]. 30자 이내",
+ "whySub": "그 장면의 원인을 짚는 진단 한 문장 (25~50자)",
+ "whyReasons": [["01", "증상 이름 4~10자", "학생 목소리 같은 상황 한 문장 + 이 강좌가 바꾸는 것 한 문장 (50~90자)"], ["02", "", ""], ["03", "", ""]],
+ "introEyebrow": "영문 2~3단어 (예: THE SOLUTION)",
+ "introTitle": "강좌의 정체를 밝히는 선언. 예: '이게 바로, [[강좌명]]입니다.' (25자 이내)",
+ "introDesc": "이 강좌가 무엇을 어떻게 다루는지. 입력된 정보 안에서 구체적으로 (80~150자)",
+ "introBio": "강사 또는 강좌의 한 줄 포지션 (20~40자)",
+ "videoTitle": "OT 영상 섹션 제목 (20자 이내, 핵심어 [[ ]])",
+ "videoSub": "영상에서 확인할 수 있는 것 한 문장 (20~40자)",
+ "curriculumEyebrow": "영문 (예: ROADMAP)",
+ "curriculumTitle": "커리큘럼 섹션 제목 (25자 이내, 핵심어 [[ ]])",
+ "curriculumSub": "단계를 밟으면 무엇이 달라지는지 한 문장 (20~45자)",
+ "curriculumSteps": [["01", "단계명 2~8자", "이 단계에서 하는 것 + 끝나면 달라지는 것 (40~70자)", "기간 — 입력 정보에 없으면 빈 문자열"], ["02", "", "", ""], ["03", "", "", ""], ["04", "", "", ""]],
+ "targetTitle": "수강 대상 섹션 제목 (20자 이내)",
+ "targetItems": ["학생이 '내 얘기다' 할 구체 상황 (25~45자)", "", "", ""],
+ "reviews": [["예시 후기 — 수치·과장 없이 공부 방식이 어떻게 바뀌었는지 (40~80자)", "김*우", "고3"], ["", "", ""], ["", "", ""]],
+ "faqs": [["학생이 실제로 물어볼 질문", "입력 정보 기반 답변. 모르는 내용은 [확인 필요]"], ["", ""], ["", ""], ["", ""]],
+ "ctaTitle": "마무리 제목 (25자 이내, 핵심어 [[ ]])",
+ "ctaSub": "신청을 미루지 않을 이유 한 문장 — 시기 정보 안에서 (25~50자)",
+ "ctaBadge": "짧은 라벨 (예: 2028 신규 개강)",
+ "bannerVisual": "디자이너용 키비주얼 디렉션: 메타포를 어떤 오브젝트·색·구도로 보여줄지 (60~120자)",
+ "introVisual": "디자이너용 디렉션 (40~80자)",
+ "whyVisual": "디자이너용 디렉션 (40~80자)"
+}""",
+    "이벤트": """{
+ "concept": {"metaphor": "이벤트 컨셉 비유 하나", "keyword": "키워드 하나"},
+ "bannerSub": "상단 라벨 (예: 2028 KISS 수강생 EVENT)",
+ "bannerKicker": "이벤트를 한 줄로 정의 (14~26자)",
+ "bannerTitle": "이벤트명 또는 강좌명 (15자 이내)",
+ "bannerLead": "참여하면 무엇을 받는지 1~2문장, 핵심어 [[ ]] (30~60자)",
+ "brandTagline": "영문 한 문장", "bannerTags": ["", "", ""], "ctaCopy": "버튼 문구",
+ "eventTitle": "이벤트 개요 제목 (20자 이내)", "eventDesc": "참여 방법 요약 (40~80자)",
+ "eventDetails": [["📅", "이벤트 기간", "MD 입력값, 없으면 [기간 입력]"], ["🎯", "참여 대상", "값"], ["🎁", "혜택", "값"]],
+ "benefitsTitle": "혜택 섹션 제목 (20자 이내)",
+ "eventBenefits": [{"no": "01", "icon": "이모지 1개", "title": "혜택명", "desc": "40~70자", "badge": "8자 이내"}, {"no": "02", "icon": "", "title": "", "desc": "", "badge": ""}, {"no": "03", "icon": "", "title": "", "desc": "", "badge": ""}],
+ "deadlineTitle": "마감 안내 제목 (20자 이내)", "deadlineMsg": "마감 조건 안내 (40~80자, 날짜는 MD 입력값만)",
+ "reviews": [["예시 후기 40~80자", "김*우", "고3"], ["", "", ""], ["", "", ""]],
+ "ctaTitle": "마무리 제목 (핵심어 [[ ]])", "ctaSub": "25~50자", "ctaBadge": "짧은 라벨"
+}""",
+    "기획전": """{
+ "concept": {"metaphor": "기획전 컨셉 비유 하나", "keyword": "키워드 하나"},
+ "festHeroTitle": "기획전명 (15자 이내)", "festHeroCopy": "한 줄 정의 (14~26자)",
+ "festHeroSub": "무엇을 한 번에 얻는지 (40~70자)", "brandTagline": "영문 한 문장",
+ "festHeroStats": [], "festLineupTitle": "라인업 제목 (20자 이내)", "festLineupSub": "30~50자",
+ "festLineup": [{"name": "강사명(입력값만, 없으면 [강사명])", "tag": "분야", "tagline": "30~50자", "badge": "8자 이내", "emoji": ""}],
+ "festBenefitsTitle": "혜택 제목", "festBenefits": [{"no": "01", "icon": "", "title": "혜택명", "desc": "40~70자", "badge": "8자 이내"}],
+ "festCtaTitle": "마무리 제목 (핵심어 [[ ]])", "festCtaSub": "30~60자"
+}""",
+}
 
-이 페이지의 '테마 선언문'을 만들어라.
-테마 선언문 = 배너부터 CTA까지 모든 섹션이 공유할 핵심 감정/시기/메시지 방향.
-
-규칙:
-- 맥락에서 핵심 키워드를 뽑아라 (시험명, 시즌, 강사 특징 등)
-- 모든 섹션이 이 방향 안에서 일관되게 작동해야 함
-- 구체적인 시기/상황이 있으면 반드시 반영 (예: 6월 모평, 3월 개강, 수능 D-100)
-
-좋은 예시:
-- "6월 모평 직전이다. 이제 공부량이 아니라 '방향'이 성적을 가른다. 
-  모든 섹션은 '지금 바꾸지 않으면 6월 모평에서 후회한다'는 긴박감으로 통일."
-- "3월 첫 주, 수험생이 새 마음으로 시작점에 섰다. 
-  모든 섹션은 '올바른 방향 설정이 1년을 좌우한다'는 희망과 전략으로 통일."
-- "수능이 100일 남았다. 뉴런으로 개념-문제 괴리를 끊어낼 마지막 기회.
-  모든 섹션은 '지금 뉴런이 아니면 없다'는 확신으로 통일."
-
-나쁜 예시 (절대 이렇게 하지 말 것):
-- "체계적인 학습을 통해 성적을 향상시키는 방향" (너무 일반적)
-- "최고의 강사와 함께하는 커리큘럼" (AI 클리셰)
-
-JSON만 반환:
-{{"declaration": "이 페이지 전체 방향 선언문 (2-3문장, 구체적 상황 포함)", 
-  "core_keyword": "이 페이지의 핵심 키워드 단어 하나 (예: 뉴런, 6월모평, KISS)",
-  "emotional_tone": "감정 방향 (예: 긴박·도전, 희망·시작, 프리미엄·신뢰, 공감·따뜻)",
-  "forbidden_phrases": ["이 페이지에서 쓰면 안 되는 클리셰1", "클리셰2", "클리셰3"]}}"""
-    try:
-        result = safe_json(call_ai(prompt, max_tokens=500))
-        return result
-    except Exception:
-        # 실패해도 괜찮음 — 기본값 반환
-        return {
-            "declaration": ctx,
-            "core_keyword": ctx.split()[0] if ctx else "수능",
-            "emotional_tone": "도전·성장",
-            "forbidden_phrases": ["체계적인", "최고의", "합리적인"]
-        }
-        
 def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
-    inst_ctx = _get_instructor_context()
-    variation_hint = get_copy_variation()
-    theme_decl = gen_theme_declaration(ctx, ptype)
-    declaration = theme_decl.get("declaration", ctx)
-    core_keyword = theme_decl.get("core_keyword", "")
-    st.session_state["_theme_declaration"] = theme_decl
-
-    metaphor = st.session_state.get("metaphor", "").strip()
-    if metaphor:
-        metaphor_prompt = (
-            f"\\n\\n"
-            f"★★★ [필수 반영 — 무시 시 전체 실패] 핵심 기획 메타포: [{metaphor}] ★★★\\n"
-            f"아래 3개 항목에 반드시 이 메타포를 구체적으로 녹여야 합니다:\\n"
-            f"  1) bannerTitle 또는 bannerLead — 메타포의 핵심 이미지를 제목/리드에 직접 사용\\n"
-            f"  2) whyReasons 중 1개 이상 — 제목 또는 설명에서 메타포 용어/개념 활용\\n"
-            f"  3) ctaSub — 메타포와 수강신청을 연결하는 한 문장\\n"
-            f"\\n[메타포 활용 예시 — 메타포가 \'Surfing\'이라면]\\n"
-            f"  bannerTitle: \'파도를 읽는 자가 1등급을 탄다\'\\n"
-            f"  whyReason: \'파도처럼 밀려오는 지문 구조를 먼저 읽어내는 눈을 만든다\'\\n"
-            f"  ctaSub: \'지금 파도에 올라타지 않으면, 다음 파도를 기다려야 합니다\'\\n"
-            f"\\n주의: 메타포 단어를 억지로 반복하지 말고, 의미·이미지를 문장에 자연스럽게 녹일 것.\\n"
-            f"메타포: [{metaphor}] — 이 단어의 뜻, 느낌, 연상 이미지를 최대한 활용하세요.\\n"
-        )
-    else:
-        metaphor_prompt = ""
-
-    # ✅ 강좌명 추출 (sec_id 없음 — gen_copy 전용)
-    course_name = plabel.strip() if plabel else ctx.strip()[:10]
-
-    tone_instruction = COPY_TONES.get(st.session_state.copy_tone, "")
-
-    schemas = {
-        "신규 커리큘럼": (
-            '{"bannerSub":"12자 이내 — 과목+포지셔닝 한 줄",'
-            '"bannerTitle":"반드시 강좌명 포함. 20자 이내 선언형 단 하나의 문장",'
-            '"brandTagline":"영문 슬로건 — 강좌명의 핵심 의미를 담은 완결된 한 문장 (예: Logical English for the Best)",'
-            '"bannerLead":"수험생의 현실을 팩트로 짚는 리드. 60-80자. 지금 상황 묘사 → 이 강의가 필요한 이유 → 수강 후 달라지는 것 3단 구조로 작성",'
-            '"bannerTags":["핵심키워드1","핵심키워드2","핵심키워드3"],'
-            '"bannerVisual":"[Visual Directing] 배너 시각 연출 디렉션 — 색감·이미지·분위기·타이포 스타일을 100자 이상 구체적으로",'
-            '"ctaCopy":"행동 유도 버튼 텍스트 10자","ctaTitle":"CTA 섹션 메인 제목 25자 이상",'
-            '"ctaSub":"수강신청을 지금 해야 하는 이유를 감정적으로 설득하는 문장. 40-60자. 시간적 긴박감 또는 기회비용 언급 필수",'
-            '"ctaBadge":"15자 이내 뱃지 텍스트","introTitle":"강사 소개 섹션 제목 — 단순 안내가 아닌 신뢰를 주는 한 문장 25자",'
-            '"introDesc":"강사의 차별점·철학·수업 방식을 설명하는 본문. 80-120자. 학생이 수강 후 어떻게 달라지는지 구체적 변화 중심으로 서술",'
-            '"introBio":"강사 핵심 강점 한 줄 요약 — 40-60자. 구체적인 강의 방식 또는 성과 포함",'
-            '"introVisual":"[Visual Directing] 인트로 섹션 시각 연출 100자 이상",'
-            '"whyTitle":"수강 이유 섹션 제목 — 학생이 클릭하고 싶게 만드는 문장 25자",'
-            '"whySub":"서브 타이틀 — 구체적 상황이나 고민을 직접 언급 40자",'
-            '"whyReasons":[["01","12자 이내 임팩트 제목","이 이유가 왜 중요한지 학생 입장에서 구체적으로 서술. 60-80자. 현실 문제 제시 → 이 강의의 해결책 → 수강 후 변화 구조"],["02","12자","150자 이상"],["03","12자","150자 이상"]],'
-            '"whyVisual":"[Visual Directing] 수강이유 섹션 시각 연출 100자 이상",'
-            '"curriculumTitle":"커리큘럼 섹션 제목 25자","curriculumSub":"서브 타이틀 40자",'
-            '"curriculumSteps":[["01","단계명 8자","이 단계를 통해 학생에게 무슨 변화가 생기는지. 50-80자. 구체적 학습 내용 + 이후 달라지는 것","기간"],["02","8자","120자 이상","기간"],["03","8자","120자 이상","기간"],["04","8자","120자 이상","기간"]],'
-            '"targetTitle":"수강 대상 섹션 제목 25자",'
-            '"targetItems":["이 강의가 필요한 구체적 상황 묘사. 60자 이상. 학생이 읽고 자신의 이야기라고 느껴야 함","60자 이상","60자 이상","60자 이상"],'
-            '"reviews":[["실제 수강생이 쓴 것처럼 생생하고 구체적인 후기. 반드시 100자 이상. 등급·점수·공부 방식의 변화를 구체적으로 언급","이름","뱃지"],["100자 이상","이름","뱃지"],["100자 이상","이름","뱃지"]],'
-            '"videoTitle":"영상 섹션 제목 20자","videoSub":"영상 설명 50자","videoTag":"OFFICIAL TRAILER"}'
-        ),
-        "이벤트": (
-            '{"bannerSub":"10자","bannerTitle":"반드시 강좌명 포함 이벤트 제목 15자","brandTagline":"분위기 문장",'
-            '"bannerLead":"60-90자 긴박감 리드","bannerTags":["특징1","특징2","특징3"],'
-            '"bannerVisual":"[Visual Directing] 50자","ctaCopy":"10자","ctaTitle":"CTA",'
-            '"ctaSub":"서브문구","ctaBadge":"15자","eventTitle":"20자","eventDesc":"50자 이상",'
-            '"eventDetails":[["일정","날짜"],["대상","값"],["혜택","값"]],'
-            '"benefitsTitle":"20자","eventBenefits":[{"no":"01","title":"혜택명","desc":"50자","badge":"8자"},'
-            '{"no":"02","title":"혜택명","desc":"50자","badge":"8자"},{"no":"03","title":"혜택명","desc":"50자","badge":"8자"}],'
-            '"deadlineTitle":"20자","deadlineMsg":"70자 긴박감"}'
-        ),
-        "기획전": (
-            '{"festHeroTitle":"반드시 강좌/기획전명 포함 15자","festHeroCopy":"30자","festHeroSub":"50자 이상",'
-            '"brandTagline":"분위기 문장","festHeroVisual":"[Visual Directing] 50자",'
-            '"festHeroStats":[["수치","라벨"],["수치","라벨"]],"festLineupTitle":"20자","festLineupSub":"40자",'
-            '"festLineup":[{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지"},'
-            '{"name":"강사명","tag":"분야","tagline":"40자","badge":"뱃지"}],'
-            '"festBenefitsTitle":"20자","festBenefits":[{"no":"01","title":"혜택명","desc":"50자","badge":"8자"},'
-            '{"no":"02","title":"혜택명","desc":"50자","badge":"8자"}],'
-            '"festCtaTitle":"CTA제목","festCtaSub":"50자 이상"}'
-        ),
-    }
-
-    # 강사 DB에 있는 타 커리큘럼명 수집 (금지어 목록용)
-    ip_profile = st.session_state.get("inst_profile") or {}
-    all_methods = [m for m in (ip_profile.get("signatureMethods") or []) if m and m != "없음"]
-    forbidden_names = [m for m in all_methods if m.replace(" ","").lower() not in course_name.replace(" ","").lower()]
-    forbidden_str = ", ".join(f'"{m}"' for m in forbidden_names) if forbidden_names else "없음"
-
-    prompt = f"""당신은 대한민국 최고 수능 강사 브랜딩 카피라이터입니다.
-
-━━━ 절대 규칙 (어기면 전체 무효) ━━━
-① bannerTitle = 강좌명 "{course_name}"을 워드마크처럼 깔끔하게. 
-   실제 브랜드 페이지처럼 강좌명 그 자체가 제목입니다. 동사·수식어를 붙여 늘리지 마세요.
-   ✅ 허용: "{course_name}" (그대로) / "{course_name}" 뒤에 짧은 수식어 1개 이내 
-      (예: "{course_name}" + 줄바꿈 + "수능 완성")
-   ❌ 금지: "{course_name}으로 끝낸다", "{course_name}로 전환" 같은 서술형 조합.
-      브랜드명과 메시지를 억지로 한 문장에 합치지 마세요.
-   → 감성적인 메시지·설득 포인트는 bannerTitle이 아니라 brandTagline과 bannerLead에서 
-     풀어내세요. (예: 제목은 "KISSENCE" 하나, 그 아래 리드에서 "선티의 1년을 압축한..." 식으로 서술)
-   ❌ 금지: "4등급→1등급" "3개월만에" 등 근거 없는 수치 약속
-② 이모지 금지 (brandTagline 영문 제외)
-③ masih, dan, dengan 등 인도네시아어 금지
-④ "체계적", "최고의", "함께라면", "실력 향상" 등 AI 클리셰 금지
-⑤ 확인 안 된 수치(합격생 수, 만족도%, 등급 변화 수치) 지어내기 금지
-⑥ [최우선] "D-숫자" 표현 완전 금지. "D-100", "D-30", "D+7", "며칠 남음" 등 
-   구체적 날짜·기간 숫자는 단 하나도 쓰지 마세요.
-   → 대신 "수능 전", "지금 이 순간", "더 늦기 전에" 같은 숫자 없는 표현만 사용하세요.
-   → 금지 예시: "D-100", "D-30", "남은 90일", "90일 남음", "이제 3주 남았다"
-⑦ bannerSub(뱃지 텍스트)에도 D-숫자 금지. "수능 D-100" → "수능 직전"으로 대체하세요.
-⑧ 날짜 계산이 필요한 모든 수치(경과일·잔여일·회차 등)는 절대 지어내지 마세요.
-⑧-1. "감으로 공부한다/푼다/맞춘다" 표현을 매 생성마다 반복 사용하지 마세요. 
-     이미 여러 예시에 등장하는 문구이므로, 같은 뜻이라도 매번 다른 구체적 표현으로 쓰세요.
-     (예: "왜 틀렸는지 설명하지 못하면", "패턴 없이 찍으면", "근거 없이 넘겨짚으면" 등)
-   ❌ "새벽에 혼자 공부하는 당신" → ✅ 구체적 학습 상황 묘사
-   ❌ "수험생의 외로움·막막함" → ✅ 성적/시간/방법론 팩트
-   ❌ "당신의 꿈을 응원합니다" → ✅ 결과 중심 선언
-   ❌ "비밀을 공개", "비법 공개" → ✅ 방법론 이름 직접 사용
-   ❌ "성적 급상승", "급상승의 비밀" → ✅ 구체적 등급/점수 변화
-   ❌ "함께라면 가능", "살길이다", "유일한 선택" → ✅ 근거 있는 선언
-   ❌ "~하는 당신에게" 패턴 → ✅ "~이 문제라면" 직격 패턴
-   ❌ 감성·위로 중심 도입부 → ✅ 팩트·구조·방법론 중심 도입부
-   → 대신 학생의 현재 학습 문제를 차갑고 정확하게 짚을 것.
-⑩ 강좌명 자기 참조 금지: "일리는 일리를", "KISS Logic은 KISS Logic을" 같이\n'
-   강좌명이 주어와 목적어에 동시에 나오는 문장 절대 금지.\n'
-   ❌ "2027 일리는 2027 일리를 통해 지문을..."\n'
-   ✅ "이 커리큘럼은 지문 구조를 논리적으로 파악하도록 설계되었습니다."\n'
-   ✅ "수능까지 남은 시간, 2027 일리가 방향을 잡아드립니다."\n'
-⑪ 강좌명을 변형·합성해서 존재하지 않는 새 단어를 만들지 마세요.
-   ❌ "KISS Logic" → "KISSENCE" (없는 신조어)
-   ❌ "일리" → "일리즘", "일리쉬" 등 임의 변형
-   ✅ bannerTitle에는 강좌명 "{course_name}"을 원문 그대로 정확히 사용하세요.
-   
-━━━ 이번 생성 방향 ━━━
-{variation_hint}
-핵심 키워드: [{core_keyword}]
-방향성: {declaration}{metaphor_prompt}
-강좌명: {course_name}
-페이지 맥락: {ctx}
-
-━━━ 강사 정보 ━━━
-{inst_ctx}
-
-━━━ 카피 어조 ━━━
-{tone_instruction}
-
-━━━ 참고 스타일 — 실제 제작된 페이지 수준 (이 톤·밀도로 작성) ━━━
-[제목은 브랜드명 단독, 메시지는 리드로]
-- 제목: "KISSENCE" / 리드: "선티의 1년을 담은 마지막 한 방울. 극한의 응축, 압도적 폭발."
-- 제목: "KEY STEP" / 리드: "노베이스를 위한 100문장, 10일 완성."
-- 제목: "Masterpiece" / 리드: "완벽함을 시험지 앞에 두고 싶다면, 이 모든 것을 후회 없이."
-
-[좋은 카피의 공통점]
-1. 추상어("핵심 원리", "복잡함 제거") 단독 사용 금지 — 반드시 구체적 숫자·행동·이미지 1개 이상 동반
-2. 강좌 고유의 은유(엑기스·응축·계단·정점 등)를 하나 정해 배너~CTA까지 일관되게 사용
-3. "감으로 공부한다"라는 표현을 절대 반복 사용하지 말 것 — 매번 다른 구체적 표현으로 대체
-   (예: "왜 틀렸는지 설명 못 하면", "다음 문제도 똑같이 틀린다", "패턴을 몰라서 흔들린다" 등)
-
-[whyReasons 좋은 예 — 구체적 메커니즘 포함]
-- "주제 문장을 못 찾는 학생은 매번 새 지문에서 같은 실수를 반복합니다. ABPS는 그 지점을 논리적으로 짚습니다."
-- "100문장이면 충분합니다. 이 이상은 노베이스에게 불필요한 낭비입니다."
-
-━━━ 아래는 실제 제작 카피 참고 자료입니다. 표현을 그대로 베끼지 말고, 이 수준의 구체성·절제된 톤을 목표로 새로 쓰세요. ━━━
-{FEW_SHOT_EXAMPLES}
-
-━━━ JSON만 반환 (마크다운 금지) ━━━
-{schemas.get(ptype, schemas['신규 커리큘럼'])}"""
-
-    result = safe_json(call_ai(prompt, max_tokens=5000))
+    st.session_state["_concept"] = None          # 새 페이지마다 메타포 새로 정함
+    brief = build_copy_brief(ctx)
+    schema = COPY_SCHEMAS.get(ptype, COPY_SCHEMAS["신규 커리큘럼"])
+    prompt = (
+        f"{brief}\n\n"
+        "[작성 순서] 먼저 concept(메타포·키워드)를 정하고, 그 메타포로 나머지 필드를 쓰세요. "
+        "각 필드 설명의 글자 수를 지키고, 빈 칸 예시(\"\")도 같은 형식으로 채우세요.\n\n"
+        f"JSON만 반환:\n{schema}"
+    )
+    result = safe_json(call_ai(prompt, max_tokens=4000))
     plabel = st.session_state.get("purpose_label", "").strip()
     result = clean_obj(result)
     result = ban_other_curricula(result, plabel)
-    result = ensure_course_name_in_title(result, plabel)
+    if ptype != "이벤트":
+        result = ensure_course_name_in_title(result, plabel)
+    if isinstance(result.get("concept"), dict):
+        st.session_state["_concept"] = result["concept"]
+    result = polish_copy(result, brief)
+    if result.get("reviews"):
+        result["_reviews_sample"] = True   # AI 예시 후기 표시(실제 후기로 교체 전까지 미리보기에 안내 노출)
     return result
 
 SEC_LAYOUT_VARIANTS = {
@@ -1510,153 +1394,11 @@ SEC_LAYOUT_VARIANTS = {
 }
 import random as _random
 
-# 문구 패턴 변주 시드 — 매 호출마다 랜덤으로 하나를 선택해서 프롬프트에 삽입
-COPY_VARIATION_SEEDS = [
-    {
-        "style": "대비형",
-        "bannerTitle_hint": "수험생이 지금 하고 있는 '잘못된 공부법'을 제목에 직접 언급하고 뒤집어라",
-        "lead_hint": "지금 하는 공부 방식의 문제점을 먼저 짚고 → 해결책으로 이 강의를 제시",
-        "why_hint": "각 이유를 '기존 방법 문제점 → 이 강의의 해결' 대비 구조로 작성",
-        "cta_hint": "지금 당장 바꾸지 않으면 생기는 손해를 한 문장으로",
-    },
-    {
-        "style": "감성공감형",
-        "bannerTitle_hint": "수험생이 새벽에 혼자 공부하다 느끼는 외로움·막막함을 제목에 담아라",
-        "lead_hint": "수험생의 현재 감정 상태를 정확히 묘사한 뒤 → 선생님이 그 옆에 있겠다는 약속",
-        "why_hint": "각 이유를 선배의 경험담처럼 서술 — '저도 그 느낌 알아요'로 시작",
-        "cta_hint": "시작이 두려운 수험생에게 첫 발자국을 내딛게 하는 따뜻한 문장",
-    },
-    {
-        "style": "데이터·증거형",
-        "bannerTitle_hint": "구체적 학습법 키워드(R'gorithm·KISS·인셉션 등)를 전면에 내세워라",
-        "lead_hint": "이 강의가 다른 강의와 다른 '방법론적 근거'를 1~2문장으로 제시",
-        "why_hint": "각 이유를 기출 데이터·출제 원리 등 검증 가능한 근거로 뒷받침",
-        "cta_hint": "선택의 기준을 '느낌'이 아닌 '방법론'으로 제시하는 문장",
-    },
-    {
-        "style": "긴박감·시간압박형",
-        "bannerTitle_hint": "지금 시작해야 하는 이유를 선언형으로 짧게. 절대 D-30/D-100/며칠 남음 같은 구체적 숫자·날짜는 쓰지 말 것 — '지금', '더 늦기 전에', '마지막 기회' 같은 비수치 표현만 사용",
-        "lead_hint": "지금 시작하지 않으면 손해 보는 이유를 구체적으로 (단, 날짜·기간 숫자는 절대 지어내지 말 것)",
-        "why_hint": "각 이유를 '지금 이 시기에 반드시 해야 하는 이유'로 작성 (숫자 기반 시한 언급 금지)",
-        "cta_hint": "오늘 신청하는 것이 내일보다 유리한 이유 (구체적 날짜·기간 숫자 없이)",
-    },
-    {
-        "style": "브랜드·프리미엄형",
-        "bannerTitle_hint": "강사의 시그니처 커리큘럼명을 제목의 절반 이상을 차지하게 크게 배치",
-        "lead_hint": "이 강의를 선택한 것이 수험생 인생에서 중요한 결정임을 고급스럽게 표현",
-        "why_hint": "각 이유를 강사의 철학·방법론의 독창성 관점에서 작성",
-        "cta_hint": "선택받은 소수만이 이 커리큘럼을 경험한다는 프리미엄 문장",
-    },
-    {
-        "style": "Before/After 스토리형",
-        "bannerTitle_hint": "수강 전 학생의 상황(막막함·실패·좌절)이 달라지는 전환점으로서의 제목",
-        "lead_hint": "구체적인 수강생의 변화 스토리를 2~3문장으로 미리 암시",
-        "why_hint": "각 이유를 '수강 전에는 이랬는데 → 수강 후에는 이렇게 달라졌다'로",
-        "cta_hint": "이 강의가 학생의 수험생활에서 '전환점'이 된다는 선언",
-    },
-    {
-        "style": "도발·직설형",
-        "bannerTitle_hint": "수험생이 지금 하고 있는 비효율적인 공부를 직접 저격하는 제목",
-        "lead_hint": "듣기 불편하지만 사실인 이야기를 단도직입적으로. 쉼표 없이 짧은 문장들",
-        "why_hint": "각 이유를 수험생의 반박을 미리 예상하고 정면 반박하는 구조로",
-        "cta_hint": "더 이상 망설이는 것 자체가 손해라는 직설적 선언",
-    },
-    {
-        "style": "숫자·구체형",
-        "bannerTitle_hint": "막연한 '성적 향상' 대신 '3월→6월' '4등급→1등급' 같은 구체적 숫자를 제목에 넣어라",
-        "lead_hint": "학생이 지금 몇 등급이고, 몇 주 후에 어떻게 달라지는지 수치로 약속",
-        "why_hint": "각 이유를 '학생 행동' → '결과 수치' 구조로 작성 (예: 하루 30분 → 한 달 후 차이)",
-        "cta_hint": "지금 신청하면 몇 일 후에 뭘 받을 수 있는지 구체적으로",
-    },
-    {
-        "style": "질문 연속형",
-        "bannerTitle_hint": "제목 전체를 학생이 스스로에게 묻는 질문으로 만들어라 ('아직도 감으로 풀고 있나요?')",
-        "lead_hint": "3개의 짧은 질문을 연속으로 던진 뒤, 마지막에 이 강의가 답임을 제시",
-        "why_hint": "각 이유를 학생이 자주 하는 착각/오해를 질문으로 시작해 반박하는 구조",
-        "cta_hint": "마지막 질문 하나 + '이 강의가 그 답입니다'",
-    },
-    {
-        "style": "💥 극단적 팩트폭력형",
-        "bannerTitle_hint": "학생의 뼈를 때리는 가장 현실적이고 차가운 팩트를 제목으로 작성",
-        "lead_hint": "희망고문 없이, 지금 성적이 안 나오는 이유를 아주 차갑고 논리적으로 분석",
-        "why_hint": "감정적인 위로를 다 빼고, 오직 데이터와 팩트만으로 압도할 것",
-        "cta_hint": "'할 테면 해보든가' 식의 엄청난 자신감을 보여주는 차가운 한 문장"
-    },
-    {
-        "style": "🔮 사이비 교주형 (광기)",
-        "bannerTitle_hint": "마치 홀린 듯이 이 강의를 들을 수밖에 없게 만드는 맹신적인 제목",
-        "lead_hint": "다른 강사를 들으면 망할 것처럼, 오직 나만이 구원자라는 뉘앙스로 작성",
-        "why_hint": "이유를 묻지도 따지지도 말고 그냥 따라오라는 식의 압도적인 확신",
-        "cta_hint": "1등급을 향한 마지막 동아줄임을 강조하는 다급한 문장"
-    },
-    {
-        "style": "📐 건축적 구조형 — 장식 없이 뼈대만",
-        "bannerTitle_hint": "가장 중요한 단어 하나만. 형용사 전면 금지. 명사+동사만으로 끝낼 것",
-        "lead_hint": "3가지 팩트를 마침표로 끊어 나열. 연결어(그래서·하지만·그리고) 없이",
-        "why_hint": "각 이유를 '문제 진단문'으로만. 해결책 언급 없이 팩트만 나열하고 끝내기",
-        "cta_hint": "신청 이유 설명 금지. '지금 결정하라'가 아니라 '이 문이 열려 있다' 방식으로",
-    },
-    {
-        "style": "🗞 조선일보 헤드라인형 — 명사형 종결",
-        "bannerTitle_hint": "신문 1면처럼 명사형으로 끝내기. '의', '한', '을' 같은 조사 최소화",
-        "lead_hint": "기사 리드처럼: 언제·누가·무엇을·왜. 각각 한 문장씩, 순서대로",
-        "why_hint": "대시(—) 뒤에 핵심, 이후 설명 붙이는 역피라미드. '왜냐하면' 금지",
-        "cta_hint": "마감 날짜나 수량을 첫 단어로 시작. 날짜가 없으면 '지금'도 금지",
-    },
-    {
-        "style": "🎬 영화 예고편형 — 3막 구조",
-        "bannerTitle_hint": "상반된 두 세계를 제목 안에 담기. '이전과 이후', '모르는 것과 아는 것'",
-        "lead_hint": "1막: 현재 문제(2문장 이내). 2막: 전환점(1문장). 3막: 이 강의 이후(1문장)",
-        "why_hint": "각 이유 = 각 장면. '그리고·하지만·그래서'로 연결되는 미니 스토리",
-        "cta_hint": "'이제' 혹은 '오늘부터'로 시작하는 전환 선언. 과거-현재-미래 3단",
-    },
-    {
-        "style": "🔬 해부학 반박형 — 오개념 직격",
-        "bannerTitle_hint": "학생이 가장 자주 틀리는 '한 가지 구체적 이유'를 제목으로",
-        "lead_hint": "오답 패턴 3가지 나열 → 공통 원인 하나를 마지막에 찌르기",
-        "why_hint": "'대부분의 학생은 X라고 생각한다. 틀렸다. 실제로는 Y다.' 반박 구조 반복",
-        "cta_hint": "틀린 이유를 알았으니 이제 뭘 해야 하는지 단 하나의 행동으로만",
-    },
-    {
-        "style": "💌 선배의 편지형 — 이미 통과한 사람",
-        "bannerTitle_hint": "수능을 이미 통과한 사람이 보내는 제목. '그때 알았더라면' 뉘앙스",
-        "lead_hint": "과거형으로 시작 → 현재형으로 전환. '나는 그때 이걸 몰랐다. 지금 너는 알 수 있다'",
-        "why_hint": "'내가 후회하는 것'을 이유 형식으로. 선배의 실패 경험 기반 충고 구조",
-        "cta_hint": "1년 후 자신에게 보내는 편지. '지금의 결정이 그 날을 만든다'",
-    },
-    {
-        "style": "⚡ SNS 스레드형 — 짧고 끊기",
-        "bannerTitle_hint": "트윗 제한처럼 핵심만. 한 줄이 너무 길면 잘라내기. 설명 절대 금지",
-        "lead_hint": "3개의 독립된 짧은 문장. 각각 따로 읽혀도 되는 구조. 연결 없이",
-        "why_hint": "각 이유 = 각 트윗. 숫자로 시작하거나 '근데 이게 왜 중요하냐면'으로 연결",
-        "cta_hint": "한 줄로 끝내기. 설명하지 말고 선언만. 마침표로 마무리",
-    },
-]
- 
+# [v8] 랜덤 '문구 스타일 룰렛'(사이비 교주형, 감성 새벽형 등)은 제거했습니다.
+#      톤은 사이드바의 '카피 어조', 구조는 '기획 앵글'로 MD가 직접 고릅니다.
 def get_copy_variation() -> str:
-    """매 호출마다 다른 문구 변주 지시를 반환"""
-    v = _random.choice(COPY_VARIATION_SEEDS)
-    return (
-        f"\n\n===이번 생성의 문구 스타일 지침 [{v['style']}]===\n"
-        f"- bannerTitle 방향: {v['bannerTitle_hint']}\n"
-        f"- bannerLead/introDesc 방향: {v['lead_hint']}\n"
-        f"- whyReasons 방향: {v['why_hint']}\n"
-        f"- ctaSub/ctaTitle 방향: {v['cta_hint']}\n"
-        f"※ 위 스타일을 반드시 반영해 기존 예시와 완전히 다른 문구를 생성하라."
-    )
-    
-def _pick_layout_variant(sec_id: str) -> str:
-    """섹션 ID에 맞는 랜덤 레이아웃 변형 설명을 반환"""
-    variants = SEC_LAYOUT_VARIANTS.get(sec_id, [])
-    if not variants:
-        return ""
-    # 매번 다른 변형 선택 (현재 스타일 제외 가능성 높임)
-    weights = [1] + [3] * (len(variants) - 1)  # 첫 번째(현재 스타일) 확률 낮춤
-    chosen = _random.choices(variants, weights=weights, k=1)[0]
-    return chosen
-def gen_section(sec_id: str) -> dict:
-    inst_ctx = _get_instructor_context()
-    ptype = st.session_state.purpose_type
+    return ""
+
 # ═══════════════════════════════════════════════════════
 # 강좌 소개 AI 생성
 # ═══════════════════════════════════════════════════════
@@ -1788,189 +1530,59 @@ JSON만 반환:
 
 
 # ═══════════════════════════════════════════════════════
-# 섹션별 문구 재생성
+# [v8] 섹션별 문구 재생성 — 전체 생성과 같은 브리프·같은 검사 사용
 # ═══════════════════════════════════════════════════════
+SECTION_SCHEMAS = {
+    "banner": '{"bannerSub":"상단 라벨","bannerKicker":"한 줄 비유 정의 14~26자","bannerTitle":"강좌명 그대로","bannerLead":"설명 1~2문장, 핵심어 [[ ]] 30~60자","brandTagline":"영문 한 문장","bannerTags":["","",""],"ctaCopy":"버튼 문구","bannerVisual":"키비주얼 디렉션 60~120자"}',
+    "intro": '{"introEyebrow":"영문 2~3단어","introTitle":"강좌의 정체 선언, 핵심어 [[ ]] 25자 이내","introDesc":"80~150자","introBio":"20~40자","introVisual":"40~80자"}',
+    "why": '{"whyEyebrow":"영문 2~3단어","whyTitle":"학생이 겪는 장면, 핵심어 [[ ]] 30자 이내","whySub":"진단 한 문장 25~50자","whyReasons":[["01","증상 이름 4~10자","상황 한 문장 + 바뀌는 것 한 문장 50~90자"],["02","",""],["03","",""]],"whyVisual":"40~80자"}',
+    "curriculum": '{"curriculumEyebrow":"영문","curriculumTitle":"25자 이내, 핵심어 [[ ]]","curriculumSub":"20~45자","curriculumSteps":[["01","단계명 2~8자","40~70자","기간(입력 정보에 없으면 빈 문자열)"],["02","","",""],["03","","",""],["04","","",""]]}',
+    "target": '{"targetTitle":"20자 이내","targetItems":["구체 상황 25~45자","","",""]}',
+    "reviews": '{"reviews":[["예시 후기 40~80자, 수치·과장 없이","김*우","고3"],["","",""],["","",""]]}',
+    "faq": '{"faqs":[["실제 질문","입력 정보 기반 답, 모르면 [확인 필요]"],["",""],["",""],["",""]]}',
+    "cta": '{"ctaTitle":"25자 이내, 핵심어 [[ ]]","ctaSub":"25~50자","ctaCopy":"버튼 문구","ctaBadge":"짧은 라벨"}',
+    "video": '{"videoTitle":"20자 이내, 핵심어 [[ ]]","videoSub":"20~40자","videoTag":"OFFICIAL TRAILER"}',
+    "event_overview": '{"eventTitle":"20자 이내","eventDesc":"40~80자","eventDetails":[["📅","이벤트 기간","MD 입력값, 없으면 [기간 입력]"],["🎯","참여 대상","값"],["🎁","혜택","값"]]}',
+    "event_benefits": '{"benefitsTitle":"20자 이내","eventBenefits":[{"no":"01","icon":"이모지 1개","title":"혜택명","desc":"40~70자","badge":"8자 이내"},{"no":"02","icon":"","title":"","desc":"","badge":""},{"no":"03","icon":"","title":"","desc":"","badge":""}]}',
+    "event_deadline": '{"deadlineTitle":"20자 이내","deadlineMsg":"40~80자, 날짜는 MD 입력값만","ctaCopy":"버튼 문구"}',
+    "fest_hero": '{"festHeroTitle":"15자 이내","festHeroCopy":"14~26자","festHeroSub":"40~70자","brandTagline":"영문 한 문장","festHeroStats":[]}',
+    "fest_lineup": '{"festLineupTitle":"20자 이내","festLineupSub":"30~50자","festLineup":[{"name":"강사명(입력값만, 없으면 [강사명])","tag":"분야","tagline":"30~50자","badge":"8자 이내","emoji":""}]}',
+    "fest_benefits": '{"festBenefitsTitle":"20자 이내","festBenefits":[{"no":"01","icon":"","title":"혜택명","desc":"40~70자","badge":"8자 이내"},{"no":"02","icon":"","title":"","desc":"","badge":""},{"no":"03","icon":"","title":"","desc":"","badge":""}]}',
+    "fest_cta": '{"festCtaTitle":"핵심어 [[ ]]","festCtaSub":"30~60자"}',
+    "before_after": '{"baTitle":"25자 이내","baSub":"20~40자","baBeforeItems":["수강 전 구체 상황 25~45자","",""],"baAfterItems":["수강 후 달라지는 행동 25~45자","",""]}',
+    "method": '{"methodTitle":"25자 이내","methodSub":"20~40자","methodSteps":[{"step":"STEP 01","label":"단계명","desc":"40~70자"},{"step":"STEP 02","label":"","desc":""},{"step":"STEP 03","label":"","desc":""}]}',
+    "package": '{"pkgTitle":"25자 이내","pkgSub":"20~40자","packages":[{"icon":"📗","name":"구성명(입력 정보 기반)","desc":"30~60자","badge":"필수/포함/특전"}]}',
+    "grade_stats": '{"gradeTitle":"25자 이내","gradeSub":"20~40자"}',
+}
+
 def gen_section(sec_id: str) -> dict:
-    inst_ctx = _get_instructor_context()
-    ptype = st.session_state.purpose_type
-    course_name = st.session_state.get("purpose_label", "").strip()  # ✅ gen_section 전용
-
-    # 🌟 부분 재생성 시에도 메인 카피는 짧게 유지 🌟
-    schemas = {
-        "banner": (
-            '{"bannerSub":"12자","bannerTitle":"강좌명 포함 20자 선언형",'
-            '"brandTagline":"영문 슬로건 완결된 한 문장",'
-            '"bannerLead":"수험생 현실을 팩트로 짚는 리드. 150자 이상. 상황묘사→이유→변화 3단 구조",'
-            '"bannerTags":["키워드1","키워드2","키워드3"],'
-            '"bannerVisual":"[Visual Directing] 배너 연출 100자 이상","ctaCopy":"10자","statBadges":[]}'
-        ),
-        "intro": (
-            '{"introTitle":"25자 신뢰감 주는 제목",'
-            '"introDesc":"강사 철학·차별점·수업방식 200자 이상. 수강 후 변화 중심",'
-            '"introBio":"강사 핵심 강점 80자 이상. 구체적 강의 방식 포함",'
-            '"introVisual":"[Visual Directing] 인트로 연출 100자 이상","introBadges":[]}'
-        ),
-        "why": (
-            '{"whyTitle":"25자","whySub":"40자 — 구체적 고민 직접 언급",'
-            '"whyReasons":[["01","12자 직설적 제목","학생 현실 문제 제시→이 강의 해결책→수강 후 변화. 150자 이상"],'
-            '["02","12자","150자 이상"],["03","12자","150자 이상"]],'
-            '"whyVisual":"[Visual Directing] 100자 이상"}'
-        ),
-        "curriculum": (
-            '{"curriculumTitle":"25자","curriculumSub":"40자",'
-            '"curriculumSteps":[["01","8자","이 단계 학습 내용+달라지는 것 120자 이상","기간"],'
-            '["02","8자","120자 이상","기간"],["03","8자","120자 이상","기간"],'
-            '["04","8자","120자 이상","기간"]]}'
-        ),
-        "target": (
-            '{"targetTitle":"25자",'
-            '"targetItems":["이 강의가 필요한 구체적 상황 60자 이상",'
-            '"60자 이상","60자 이상","60자 이상"]}'
-        ),
-        "reviews": (
-            '{"reviews":[["생생하고 구체적 100자 이상 후기. 등급·점수·방식 변화 언급","이름","뱃지"],'
-            '["100자 이상","이름","뱃지"],["100자 이상","이름","뱃지"]]}'
-        ),
-        "faq": (
-            '{"faqs":[["15자 구체적 질문","명쾌한 답변 70자 이상"],'
-            '["질문","70자 이상"],["질문","70자 이상"]]}'
-        ),
-        "cta": (
-            '{"ctaTitle":"CTA 제목 25자","ctaSub":"지금 신청해야 하는 이유 80자 이상. 감정적 설득",'
-            '"ctaCopy":"10자","ctaBadge":"15자"}'
-        ),
-        "event_overview": (
-            '{"eventTitle":"20자","eventDesc":"이벤트 핵심을 설명하는 60자 이상 완결 문장",'
-            '"eventDetails":[["📅","이벤트 기간","날짜"],["🎯","대상","값"],["💰","혜택","값"]]}'
-        ),
-        "event_benefits": (
-            '{"benefitsTitle":"20자","eventBenefits":['
-            '{"icon":"이모지","title":"혜택명","desc":"혜택 상세 설명 60자 이상","badge":"8자","no":"01"},'
-            '{"icon":"이모지","title":"혜택명","desc":"60자 이상","badge":"8자","no":"02"},'
-            '{"icon":"이모지","title":"혜택명","desc":"60자 이상","badge":"8자","no":"03"}]}'
-        ),
-        "event_deadline": (
-            '{"deadlineTitle":"마감 제목 15자",'
-            '"deadlineMsg":"긴박감 있는 마감 안내 100자 이상. 학생 심리 자극","ctaCopy":"10자"}'
-        ),
-        "fest_hero": (
-            '{"festHeroTitle":"20자","festHeroCopy":"30자","festHeroSub":"70자 이상",'
-            '"brandTagline":"기획전 슬로건 한 문장","festHeroStats":[["수치","라벨"],["수치","라벨"]]}'
-        ),
-        "fest_lineup": (
-            '{"festLineupTitle":"20자","festLineupSub":"50자 이상",'
-            '"festLineup":[{"name":"강사명","tag":"8자","tagline":"50자 이상 소개","badge":"8자","emoji":"이모지"},'
-            '{"name":"강사명","tag":"8자","tagline":"50자 이상","badge":"8자","emoji":"이모지"},'
-            '{"name":"강사명","tag":"8자","tagline":"50자 이상","badge":"8자","emoji":"이모지"},'
-            '{"name":"강사명","tag":"8자","tagline":"50자 이상","badge":"8자","emoji":"이모지"}]}'
-        ),
-        "fest_benefits": (
-            '{"festBenefitsTitle":"20자",'
-            '"festBenefits":[{"icon":"이모지","title":"혜택명","desc":"혜택 상세 60자 이상","badge":"8자","no":"01"},'
-            '{"icon":"이모지","title":"혜택명","desc":"60자 이상","badge":"8자","no":"02"},'
-            '{"icon":"이모지","title":"혜택명","desc":"60자 이상","badge":"8자","no":"03"},'
-            '{"icon":"이모지","title":"혜택명","desc":"60자 이상","badge":"8자","no":"04"}]}'
-        ),
-        "fest_cta": '{"festCtaTitle":"CTA 제목 20자","festCtaSub":"통합신청 동기부여 80자 이상"}',
-        "video": '{"videoTitle":"20자","videoSub":"영상 설명 50자 이상","videoTag":"OFFICIAL TRAILER","videoUrl":""}',
-        "before_after": (
-            '{"baTitle":"25자","baSub":"40자",'
-            '"baBeforeItems":["수강 전 학생이 겪는 구체적 문제 60자 이상","60자 이상","60자 이상"],'
-            '"baAfterItems":["수강 후 달라지는 점 60자 이상","60자 이상","60자 이상"]}'
-        ),
-        "method": (
-            '{"methodTitle":"25자","methodSub":"40자",'
-            '"methodSteps":[{"step":"STEP 01","label":"단계명","desc":"이 단계에서 무엇을 어떻게 하는지 60자 이상"},'
-            '{"step":"STEP 02","label":"단계명","desc":"60자 이상"},'
-            '{"step":"STEP 03","label":"단계명","desc":"60자 이상"}]}'
-        ),
-        "package": (
-            '{"pkgTitle":"25자","pkgSub":"40자",'
-            '"packages":[{"icon":"📗","name":"구성명","desc":"구성 설명 60자 이상","badge":"필수"},'
-            '{"icon":"📖","name":"구성명","desc":"60자 이상","badge":"포함"},'
-            '{"icon":"🎯","name":"구성명","desc":"60자 이상","badge":"포함"},'
-            '{"icon":"💬","name":"구성명","desc":"60자 이상","badge":"특전"}]}'
-        ),
-    }
-
-    purpose_specific_rule = ""
-    if sec_id == "banner":
-        if ptype == "이벤트":
-            purpose_specific_rule = (
-                f'⚠️ [절대규칙] 이벤트 배너입니다. bannerTitle에는 강좌명이 아니라 '
-                f'이벤트 성격(예: 수강후기 이벤트, 모의고사 대비 특강)에 맞는 제목을 쓰세요. '
-                f'강좌명 "{course_name}"을 억지로 넣지 마세요. '
-                f'bannerTags는 이벤트용 단어(기간한정, 무료제공 등)로 작성하세요.'
-            )
-        else:
-            purpose_specific_rule = (
-                f'⚠️ [절대규칙] bannerTitle은 강좌명 "{course_name}"을 워드마크처럼 그대로 쓰세요. '
-                f'브랜드명에 동사·서술어를 붙여 문장으로 늘리지 마세요 '
-                f'(예: "{course_name}으로 끝낸다" 금지, "{course_name}" 단독 또는 뒤에 짧은 단어 하나만 허용). '
-                f'메시지·설득은 bannerLead에서 구체적으로 풀어내세요. '
-                f'근거 없는 수치("4등급→1등급", "3개월만에") 금지.'
-            )
-    user_course_info = st.session_state.get("course_info", "")
-    target_directive = f"\n[⚠️ 절대 규칙]: 강사의 기존 시그니처 커리큘럼(예: KISS Logic 등)을 무작정 섞어 쓰지 마세요. 사용자가 입력한 맥락({st.session_state.purpose_label})과 강좌정보({user_course_info})에만 100% 집중하세요. 특히 '구성 안내(package)'나 '커리큘럼' 생성 시, 추상적인 강좌명을 나열하지 말고 '본교재', '워크북', '모의고사', '학습 Q&A' 같은 구체적인 실물/서비스 위주로 작성하세요."
-    purpose_specific_rule += target_directive
-
+    brief = build_copy_brief(st.session_state.get("_last_ctx", ""))
+    schema = SECTION_SCHEMAS.get(sec_id, '{"title":"제목","desc":"설명"}')
     sec_name = SEC_LABELS.get(sec_id, sec_id)
-    schema = schemas.get(sec_id, '{"title":"제목","desc":"설명"}')
-
-    theme_decl = st.session_state.get("_theme_declaration", {})
-    declaration = theme_decl.get("declaration", "")
-    core_keyword = theme_decl.get("core_keyword", "")
-    
-    metaphor = st.session_state.get("metaphor", "").strip()
-    if metaphor:
-        metaphor_hint = (
-            f"\\n★★★ [필수] 핵심 메타포: [{metaphor}] ★★★\\n"
-            f"이 섹션의 제목(title)·설명(desc) 중 하나 이상에 "
-            f"메타포의 이미지/의미를 자연스럽게 녹이세요.\\n"
-            f"Visual Directing 필드가 있으면 메타포 이미지를 시각적으로 표현하세요.\\n"
-        )
-    else:
-        metaphor_hint = ""
-
-    declaration_hint = f"# ★ 이 섹션도 반드시 아래 방향으로 작성하세요:\n{declaration}\n# 핵심 키워드 [{core_keyword}]가 자연스럽게 녹아있어야 합니다.{metaphor_hint}" if declaration else metaphor_hint
-
-    # 🌟 매번 누를 때마다 파격적인 프롬프트를 생성 🌟
-    variation_hint = get_copy_variation()
-
-    prompt = f"""당신은 대한민국 최고 수준의 1타 강사 프로모션 카피라이터입니다. "{sec_name}" 섹션만 새롭게 생성하세요.
-{declaration_hint}
-
-{variation_hint}
-
-{inst_ctx}
-과목: {st.session_state.subject} | 브랜드: {st.session_state.purpose_label}
-카피 어조: {COPY_TONES.get(st.session_state.copy_tone, "")}
-
-{purpose_specific_rule}
-
-=== 🚨 카피라이팅 품질 및 이모지 규칙 🚨 ===
-1. 작위적인 비유, 번역기 돌린 듯한 문장("수험생은 ~할 수 있는가?"), 어색한 단어 조합("초고속 선택")을 절대 피하세요.
-2. 대치동 1타 강사들이 실제로 쓰는 세련되고 단호한 문장(존댓말 또는 부드러운 평어체)을 사용하세요.
-3. 이모지는 문맥에 완벽히 어울리는 경우에만 1개 이하로 최소화해서 사용하세요. 억지로 파격적인 이모지를 넣지 마세요.
-4. 버튼(CTA) 텍스트는 행동을 직관적으로 유도하는 자연스러운 한국어(예: "수강신청 바로가기", "지금 시작하기")로 작성하세요.
-5. 한자 금지, 확인되지 않은 수치 지어내기 절대 금지.
-
-아래 JSON 형식만 반환. 마크다운 금지:
-{schema}"""
-
+    cur = st.session_state.get("custom_copy") or {}
+    keep = {k: cur.get(k) for k in ("bannerTitle", "bannerKicker", "bannerLead", "whyTitle", "introTitle") if cur.get(k)}
+    ctx_line = f"\n[이미 페이지에 있는 문구 — 톤을 맞추되 같은 표현을 반복하지 말 것]\n{json.dumps(keep, ensure_ascii=False)}" if keep else ""
+    ptype = st.session_state.get("purpose_type", "신규 커리큘럼")
+    extra = ""
+    if sec_id == "banner" and ptype == "이벤트":
+        extra = "\n[이벤트 배너] bannerTitle은 이벤트 성격이 드러나는 이름으로. 강좌명을 억지로 넣지 말 것."
+    prompt = (f"{brief}{ctx_line}{extra}\n\n'{sec_name}' 섹션 문구만 새로 쓰세요. "
+              f"이전 버전과 다른 각도로 쓰되 같은 메타포를 유지하세요.\n\nJSON만 반환:\n{schema}")
     last_err = None
     plabel = st.session_state.get("purpose_label", "").strip()
-    for attempt in range(3):
+    for attempt in range(2):
         try:
-            result = safe_json(call_ai(prompt, max_tokens=2500))
+            result = safe_json(call_ai(prompt, max_tokens=2000, temperature=0.9))
             result = ban_other_curricula(result, plabel)
-            if sec_id == "banner":
+            if sec_id == "banner" and ptype != "이벤트":
                 result = ensure_course_name_in_title(result, plabel)
+            result = polish_copy(result, brief)
+            if sec_id == "reviews":
+                result["_reviews_sample"] = True
             return result
         except Exception as e:
             last_err = e
             time.sleep(1)
-
     raise last_err or Exception("AI 모델 응답 끊김 - 다시 시도해주세요.")
 
 # ── 강사 DB ─────────────────────────────────────────
@@ -2753,6 +2365,92 @@ section#grade-stats [style*="background:var(--bg3)"] p {
 
 
 # ══════════════════════════════════════════════════════
+# [v8] 디자인 시스템 CSS — '판에 박힌 AI 템플릿' 느낌의 원인 정리
+#  1) 한글 헤드라인이 Bebas/Orbitron 같은 영문 폰트로 지정돼 시스템 폰트로 깨져 보이던 문제
+#     → 한글은 Pretendard로 통일(--fh), 테마 폰트는 워드마크·영문 라벨에만(--fd)
+#  2) 섹션마다 64~80px 제목, 마키, 워터마크 숫자, 글리치가 겹쳐 보이던 문제
+#     → 실제 PR 페이지처럼 eyebrow + 2줄 헤드라인 + 서브카피의 일정한 리듬
+# ══════════════════════════════════════════════════════
+DS_CSS = """
+:root{--fk:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;--maxw:1080px}
+body{font-family:var(--fk);font-size:16px;letter-spacing:-.01em;line-height:1.6}
+.ds-sec{padding:clamp(72px,9vw,128px) clamp(20px,5vw,40px);position:relative;background:var(--bg);color:var(--text)}
+.ds-sec.bg2{background:var(--bg2)}
+.ds-sec.bg3{background:var(--bg3)}
+.ds-in{max-width:var(--maxw);margin:0 auto;position:relative;z-index:1}
+.ds-head{text-align:center;margin:0 auto clamp(40px,5vw,60px);max-width:760px}
+.ds-head.left{text-align:left;margin-left:0}
+.ds-eyebrow{display:inline-block;font-family:var(--fd),var(--fk);font-size:12px;font-weight:800;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--c1);padding:6px 14px;border:1.5px solid currentColor;border-radius:999px;margin-bottom:20px;line-height:1.2}
+.ds-h2{font-family:var(--fk);font-size:clamp(26px,3.4vw,42px);font-weight:800;line-height:1.34;letter-spacing:-.035em;color:var(--text);word-break:keep-all;margin:0}
+.ds-sub{margin:16px 0 0;font-size:clamp(15px,1.35vw,18px);line-height:1.75;color:var(--t70);word-break:keep-all}
+.hl{color:var(--c1)}
+.hl-box{background:var(--c1);color:var(--on-c1,#fff);padding:0 .2em;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.ds-grid{display:grid;gap:16px}
+.ds-g2{grid-template-columns:repeat(2,1fr)}
+.ds-g3{grid-template-columns:repeat(3,1fr)}
+.ds-g4{grid-template-columns:repeat(4,1fr)}
+.ds-card{background:var(--bg);border:1px solid var(--bd);border-radius:var(--r,12px);padding:30px 28px;color:var(--text)}
+.ds-sec.bg2 .ds-card,.ds-sec.bg3 .ds-card{background:var(--bg)}
+.ds-card h3{font-family:var(--fk);font-size:19px;font-weight:800;letter-spacing:-.03em;line-height:1.4;margin:16px 0 10px;color:var(--text)}
+.ds-card p{font-size:15px;line-height:1.75;color:var(--t70);margin:0;word-break:keep-all}
+.ds-num{display:inline-flex;align-items:center;justify-content:center;min-width:36px;height:36px;padding:0 10px;border-radius:999px;
+  background:var(--c1);color:var(--on-c1,#fff);font-family:var(--fd),var(--fk);font-weight:800;font-size:13px;letter-spacing:.04em}
+.ds-chip{display:inline-block;font-size:12px;font-weight:700;padding:5px 12px;border-radius:999px;border:1px solid var(--bd);color:var(--t70);background:var(--bg)}
+.ds-btns{display:flex;gap:10px;flex-wrap:wrap}
+.ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:56px;padding:0 30px;border-radius:var(--r-btn,8px);
+  font-family:var(--fk);font-weight:800;font-size:16px;letter-spacing:-.01em;background:var(--c1);color:var(--on-c1,#fff);border:1.5px solid var(--c1);text-decoration:none;transition:transform .15s,opacity .15s}
+.ds-btn:hover{transform:translateY(-1px);opacity:.92}
+.ds-btn.ghost{background:transparent;color:var(--text);border-color:var(--bd)}
+.ds-wordmark{font-family:var(--fd),var(--fk);font-weight:900;line-height:.98;letter-spacing:-.02em;color:var(--text);margin:0;word-break:keep-all}
+.ds-kicker{font-size:clamp(16px,1.7vw,22px);font-weight:700;letter-spacing:-.02em;color:var(--text);margin:0 0 18px}
+.ds-lead{font-size:clamp(16px,1.5vw,20px);line-height:1.7;color:var(--t70);margin:26px 0 0;word-break:keep-all}
+.ds-badge{display:inline-block;font-size:13px;font-weight:700;letter-spacing:.02em;padding:7px 16px;border-radius:999px;
+  background:color-mix(in srgb,var(--c1) 14%,transparent);color:var(--c1);margin-bottom:24px}
+.ds-tagline{margin-top:36px;font-family:var(--fd),var(--fk);font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:var(--t45)}
+.ds-split{display:grid;grid-template-columns:1fr 1fr;gap:clamp(32px,6vw,80px);align-items:center}
+.ds-steps{counter-reset:s}
+.ds-step{position:relative}
+.ds-step-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.ds-step-no{font-family:var(--fd),var(--fk);font-size:13px;font-weight:800;letter-spacing:.12em;color:var(--c1)}
+.ds-check{display:flex;gap:14px;align-items:flex-start}
+.ds-check svg{flex-shrink:0;margin-top:2px}
+.ds-check p{font-size:16px;font-weight:600;color:var(--text);line-height:1.6;margin:0}
+.ds-quote p{font-size:15.5px;color:var(--text);line-height:1.8}
+.ds-stars{color:var(--c1);letter-spacing:2px;font-size:14px}
+.ds-meta{margin-top:18px;padding-top:16px;border-top:1px solid var(--bd);display:flex;justify-content:space-between;font-size:13px;color:var(--t45)}
+.ds-sample{margin:24px auto 0;max-width:760px;text-align:center;font-size:12.5px;color:var(--t45);border:1px dashed var(--bd);padding:10px 14px;border-radius:8px}
+.ds-faq{max-width:820px;margin:0 auto;border-top:2px solid var(--text)}
+.ds-faq details{border-bottom:1px solid var(--bd)}
+.ds-faq summary{list-style:none;cursor:pointer;padding:22px 4px;display:flex;gap:14px;align-items:flex-start;font-weight:700;font-size:16.5px;color:var(--text)}
+.ds-faq summary::-webkit-details-marker{display:none}
+.ds-faq summary b{color:var(--c1);font-family:var(--fd),var(--fk)}
+.ds-faq summary::after{content:'+';margin-left:auto;color:var(--t45);font-weight:400;font-size:22px;line-height:1}
+.ds-faq details[open] summary::after{content:'−'}
+.ds-faq .a{padding:0 4px 24px 34px;color:var(--t70);font-size:15px;line-height:1.8}
+.ds-note{margin:28px 0 0;padding:18px 22px;border-left:3px solid var(--c1);background:var(--bg2);font-weight:700;color:var(--text);line-height:1.7}
+.ds-cta{padding:clamp(80px,10vw,128px) clamp(20px,5vw,40px);text-align:center}
+.ds-notice{background:#111;color:rgba(255,255,255,.62);padding:56px clamp(20px,5vw,40px)}
+.ds-notice h4{color:#fff;font-size:15px;font-weight:800;margin:0 0 16px}
+.ds-notice ul{margin:0;padding-left:18px}
+.ds-notice li{font-size:13px;line-height:1.9}
+.ds-video{aspect-ratio:16/9;width:100%;border-radius:var(--r,12px);overflow:hidden;background:var(--bg3);border:1px solid var(--bd);display:flex;align-items:center;justify-content:center;color:var(--t45)}
+.ds-video iframe{width:100%;height:100%;border:0}
+.ds-kv img{width:100%;max-height:560px;object-fit:contain;filter:drop-shadow(0 30px 40px rgba(0,0,0,.25))}
+@media(max-width:860px){
+  .ds-g2,.ds-g3,.ds-g4,.ds-split{grid-template-columns:1fr!important}
+  .ds-head.left{text-align:center}
+}
+/* 레거시 섹션(전후비교·교재 등)도 같은 타이포 리듬으로 맞춤 */
+.sec h2,.sec .sec-h2{font-family:var(--fk)!important;font-size:clamp(26px,3.4vw,42px)!important;line-height:1.34!important;letter-spacing:-.035em!important;font-weight:800!important}
+.sec h3,.sec h4{font-family:var(--fk)!important;letter-spacing:-.03em!important}
+.sec{padding:clamp(72px,9vw,128px) clamp(20px,5vw,40px)!important}
+.tag-line{font-family:var(--fd),var(--fk);font-size:12px!important;letter-spacing:.16em!important}
+.marquee-container,.typo-watermark{display:none!important}
+"""
+
+
+# ══════════════════════════════════════════════════════
 # 파티클 JS
 # ══════════════════════════════════════════════════════
 def _particle_js(particle: str) -> str:
@@ -2797,1196 +2495,368 @@ def _theme_fx(concept: str) -> str:
 # ══════════════════════════════════════════════════════
 # 섹션 빌더
 # ══════════════════════════════════════════════════════
-def _bg_vars(bg_url, dark):
+# ══════════════════════════════════════════════════════
+# [v8] 섹션 렌더러 — 핵심 섹션 전면 교체
+#  - 랜덤/해시로 레이아웃이 매번 바뀌던 구조 제거 → 같은 입력이면 같은 결과
+#  - 이모지 아이콘·★ 남발·하드코딩 감성 문구 제거
+#  - 문구는 [[핵심어]] 강조 → 포인트 컬러로 표시
+# ══════════════════════════════════════════════════════
+import html as _html
+
+def _t(v) -> str:
+    """AI/사용자 문구 → 안전한 HTML (줄바꿈 → <br>, [[ ]] → 강조)"""
+    s = strip_hanja(str(v or ""))
+    s = s.replace("<br>", "\n").replace("<br/>", "\n")
+    s = _html.escape(s, quote=False)
+    s = re.sub(r'\[\[(.+?)\]\]', r'<span class="hl">\1</span>', s)
+    return s.replace("\n", "<br>")
+
+def _head(eyebrow: str, title: str, sub: str = "", align: str = "center") -> str:
+    cls = "ds-head" + ("" if align == "center" else " left")
+    return (f'<div class="{cls} rv">'
+            + (f'<div class="ds-eyebrow">{_t(eyebrow)}</div><br>' if eyebrow else "")
+            + f'<h2 class="ds-h2">{_t(title)}</h2>'
+            + (f'<p class="ds-sub">{_t(sub)}</p>' if sub else "")
+            + '</div>')
+
+def _check_svg() -> str:
+    return ('<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">'
+            '<circle cx="12" cy="12" r="12" fill="var(--c1)"/>'
+            '<path d="M7 12.5l3.2 3.2L17 9" fill="none" stroke="var(--on-c1,#fff)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>')
+
+def _bg_vars(bg_url, dark):   # (레거시 호환용 — 다른 코드에서 쓸 수 있어 유지)
     if not bg_url:
-        return {"hero_bg":f"background:var(--bg)","overlay":"","tc":"color:var(--text)",
-                "t70c":"color:var(--t70)","c1c":"var(--c1)","bdc":"var(--bd)",
-                "card_bg":"rgba(255,255,255,.05)" if dark else "var(--bg)",
-                "btn_s":"","top_brd":"var(--bd)","blur":""}
-    return {"hero_bg":f"background:var(--bg) url('{bg_url}') center/cover no-repeat",
-            "overlay":'<div style="position:absolute;inset:0;background:rgba(0,0,0,0.60);z-index:1;pointer-events:none"></div>',
-            "tc":"color:#fff","t70c":"color:rgba(255,255,255,.82)","c1c":"#fff",
-            "bdc":"rgba(255,255,255,.28)","card_bg":"rgba(0,0,0,.7)",
-            "btn_s":"color:#fff;border-color:rgba(255,255,255,.4)",
-            "top_brd":"rgba(255,255,255,.22)","blur":"backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);"}
+        return {"hero_bg": "background:var(--bg)", "overlay": "", "tc": "color:var(--text)",
+                "t70c": "color:var(--t70)", "c1c": "var(--c1)", "bdc": "var(--bd)",
+                "card_bg": "rgba(255,255,255,.05)" if dark else "var(--bg)",
+                "btn_s": "", "top_brd": "var(--bd)", "blur": ""}
+    return {"hero_bg": f"background:var(--bg) url('{bg_url}') center/cover no-repeat",
+            "overlay": '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.60);z-index:1;pointer-events:none"></div>',
+            "tc": "color:#fff", "t70c": "color:rgba(255,255,255,.82)", "c1c": "#fff",
+            "bdc": "rgba(255,255,255,.28)", "card_bg": "rgba(0,0,0,.7)",
+            "btn_s": "color:#fff;border-color:rgba(255,255,255,.4)",
+            "top_brd": "rgba(255,255,255,.22)", "blur": "backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);"}
 
 
 def sec_banner(d, cp, T):
-    sub   = strip_hanja(cp.get("bannerSub", d["subject"]+" 완성"))
-    title = strip_hanja(cp.get("bannerTitle", d["purpose_label"]))
-    _tgt  = d.get("target", "")
-    lead  = strip_hanja(cp.get("bannerLead", f"{_tgt}을 위한 커리큘럼"))
-    cta   = strip_hanja(cp.get("ctaCopy", "수강신청하기"))
-    bg_url = cp.get("bg_photo_url", "")
-    dark   = T["dark"]
-    has_bg = bool(bg_url)
- 
-    # ✅ FIX ①: T["dark"] 대신 실제 bg 색상 휘도로 판단
-    # CSS vars에서 --bg 색상 추출 → luminance 계산
-    _vars = T.get("vars", "")
-    _bg_hex = "#111111"
-    if "--bg:" in _vars:
-        try:
-            _bg_hex = _vars.split("--bg:")[1].split(";")[0].strip()
-        except Exception:
-            pass
-    _bg_lum = _hex_luminance(_bg_hex)
-    # 배경이미지 있으면 무조건 어두운 오버레이 → 흰 글씨
-    # 배경이 실제로 어두우면(휘도 < 0.35) 흰 글씨
-    # 배경이 밝으면(휘도 >= 0.35) 검은 글씨
-    is_dark_context = has_bg or (_bg_lum < 0.35)
- 
-    text_col      = "#FFFFFF" if is_dark_context else "#0A0A0A"
-    lead_col      = "rgba(255,255,255,0.88)" if is_dark_context else "rgba(10,10,10,0.72)"
-    sub_text_col  = "#FFFFFF"   # var(--c1) 위에서 항상 흰색
-    sub_bg        = "var(--c1)"
- 
-    shadow = "text-shadow:0 2px 20px rgba(0,0,0,0.85),0 1px 6px rgba(0,0,0,1);" if has_bg else ""
-    # 밝은 배경 + 배경이미지 없을 때 → shadow 불필요
-    if not is_dark_context:
-        shadow = ""
+    title   = cp.get("bannerTitle") or d["purpose_label"] or f'{d["subject"]} 강좌'
+    kicker  = cp.get("bannerKicker", "")
+    lead    = cp.get("bannerLead", "")
+    sub     = cp.get("bannerSub", "")
+    tagline = cp.get("brandTagline", "")
+    cta     = cp.get("ctaCopy") or "수강신청 하기"
+    bg_url  = cp.get("bg_photo_url", "")
+    kv      = st.session_state.get("kv_img_b64", "")
+    active  = st.session_state.get("active_sections", [])
+    second  = ('<a class="ds-btn ghost" href="#video">OT 영상 보기</a>' if "video" in active
+               else '<a class="ds-btn ghost" href="#curriculum">커리큘럼 보기</a>' if "curriculum" in active else "")
+    n = len(strip_hanja(title))
+    size = "clamp(56px,10vw,136px)" if n <= 10 else "clamp(44px,7.5vw,104px)" if n <= 16 else "clamp(36px,5.5vw,76px)"
 
-    # 배경 설정
-    if has_bg:
-        bg_style = f"background:url('{bg_url}') center/cover no-repeat;"
-        # ✅ 그라디언트 오버레이: 위는 반투명, 아래로 갈수록 더 어둡게
-        overlay = (
-            '<div style="position:absolute;inset:0;'
-            'background:linear-gradient(to bottom,'
-            'rgba(0,0,0,0.45) 0%,'
-            'rgba(0,0,0,0.65) 50%,'
-            'rgba(0,0,0,0.80) 100%);'
-            'z-index:1;pointer-events:none"></div>'
-        )
+    # 배경 사진이 있으면 그 섹션 안에서만 글자색 변수를 흰색으로 덮어씀 → 가독성 자동 확보
+    if bg_url:
+        sec_style = (f"background:linear-gradient(180deg,rgba(0,0,0,.45),rgba(0,0,0,.72)),url('{bg_url}') center/cover no-repeat;"
+                     "--text:#fff;--t70:rgba(255,255,255,.82);--t45:rgba(255,255,255,.6);--bd:rgba(255,255,255,.35);")
     else:
-        bg_style = "background:var(--bg);" if not dark else \
-                   "background:linear-gradient(180deg,var(--bg) 0%,var(--bg2) 100%);"
-        overlay = ""
+        sec_style = ("background:radial-gradient(70% 55% at 50% 0%,color-mix(in srgb,var(--c1) 16%,transparent),transparent 70%),var(--bg);")
 
-    # 레이아웃 변형 (해시 기반 고정)
-    _seed = st.session_state.get("preview_key", 0)
-    text_hash = sum(ord(c) for c in (str(title or "") + str(lead or ""))) + _seed
-    v = (text_hash % 3) + 1
-
-    # ──────────────────────────────────────────────
-    # 공통 뱃지 HTML (bannerSub 표시용)
-    # ──────────────────────────────────────────────
-    sub_badge = (
-        f'<div style="display:inline-block;font-size:12px;font-weight:800;'
-        f'letter-spacing:0.15em;color:{sub_text_col};background:{sub_bg};'
-        f'padding:7px 20px;border-radius:50px;margin-bottom:28px;'
-        f'box-shadow:0 2px 12px rgba(0,0,0,0.3);">{sub}</div>'
+    align_center = not kv
+    text_html = (
+        (f'<div class="ds-badge">{_t(sub)}</div>' if sub else "")
+        + (f'<p class="ds-kicker">{_t(kicker)}</p>' if kicker else "")
+        + f'<h1 class="ds-wordmark st" style="font-size:{size}">{_t(title)}</h1>'
+        + (f'<p class="ds-lead">{_t(lead)}</p>' if lead else "")
+        + f'<div class="ds-btns" style="margin-top:40px;{"justify-content:center" if align_center else ""}">'
+        + f'<a class="ds-btn" href="#cta">{_t(cta)}</a>{second}</div>'
+        + (f'<div class="ds-tagline">{_t(tagline)}</div>' if tagline else "")
     )
-
-    # ──────────────────────────────────────────────
-    # v1: 거대 마키 스타일 (Brutal)
-    # ──────────────────────────────────────────────
-    if v == 1:
-        bg_text = f"{title} " * 6
-        return (
-            f'<section id="hero" style="position:relative;min-height:100vh;overflow:hidden;'
-            f'{bg_style}display:flex;flex-direction:column;justify-content:center;text-align:center;">'
-            + overlay +
-            f'<div class="marquee-container" style="z-index:1;">'
-            f'<div class="marquee-content" style="color:var(--c1);opacity:0.07;">'
-            f'{bg_text}{bg_text}</div></div>'
-            f'<div style="position:relative;z-index:2;padding:0 clamp(20px,5vw,80px);'
-            f'max-width:1100px;margin:0 auto;">'
-            # 뱃지
-            + sub_badge +
-            # 메인 타이틀
-            f'<h1 style="font-family:\'Black Han Sans\',var(--fh);'
-            f'font-size:clamp(52px,9vw,140px);font-weight:900;line-height:1.0;'
-            f'letter-spacing:-0.04em;color:{text_col};margin-bottom:32px;'
-            f'word-break:keep-all;{shadow}">{title}</h1>'
-            # 리드 문구
-            f'<p style="font-size:clamp(15px,2vw,20px);line-height:1.85;'
-            f'color:{lead_col};max-width:750px;margin:0 auto 48px;'
-            f'font-weight:600;word-break:keep-all;{shadow}">{lead}</p>'
-            # CTA 버튼
-            f'<a href="#cta" style="display:inline-block;background:var(--c1);'
-            f'color:#fff;padding:18px 52px;font-size:17px;font-weight:900;'
-            f'font-family:var(--fh);text-decoration:none;'
-            f'box-shadow:8px 8px 0px rgba(0,0,0,0.35);'
-            f'transition:transform 0.2s;">{cta} →</a>'
-            f'</div></section>'
-        )
-
-    # ──────────────────────────────────────────────
-    # v2: 프리미엄 중앙 정렬 (Apple 스타일)
-    # ──────────────────────────────────────────────
-    elif v == 2:
-        return (
-            f'<section id="hero" style="position:relative;min-height:90vh;display:flex;'
-            f'align-items:center;justify-content:center;text-align:center;overflow:hidden;{bg_style}">'
-            + overlay +
-            f'<div style="position:relative;z-index:2;max-width:980px;'
-            f'padding:clamp(60px,8vw,100px) clamp(20px,5vw,60px);'
-            f'display:flex;flex-direction:column;align-items:center;">'
-            # 뱃지
-            + sub_badge +
-            # 메인 타이틀
-            f'<h1 style="font-family:var(--fh);'
-            f'font-size:clamp(40px,7.5vw,108px);font-weight:900;'
-            f'color:{text_col};line-height:1.08;letter-spacing:-0.04em;'
-            f'margin-bottom:26px;word-break:keep-all;{shadow}">{title}</h1>'
-            # 리드 문구
-            f'<p style="font-size:clamp(15px,1.8vw,21px);color:{lead_col};'
-            f'font-weight:500;line-height:1.7;max-width:580px;'
-            f'margin:0 auto 44px;word-break:keep-all;{shadow}">{lead}</p>'
-            # CTA 버튼
-            f'<a href="#cta" style="display:inline-flex;align-items:center;'
-            f'justify-content:center;background:var(--c1);color:#fff;'
-            f'padding:17px 50px;border-radius:8px;'
-            f'font-size:clamp(15px,1.6vw,18px);font-weight:800;'
-            f'text-decoration:none;box-shadow:0 8px 30px rgba(0,0,0,0.3);'
-            f'transition:transform 0.2s;">{cta} →</a>'
-            f'</div></section>'
-        )
-
-    # ──────────────────────────────────────────────
-    # v3: 좌측 정렬 매거진 스타일 (Split)
-    # ──────────────────────────────────────────────
+    if kv:
+        inner = (f'<div class="ds-split"><div class="rv">{text_html}</div>'
+                 f'<div class="ds-kv rv d1"><img src="{kv}" alt="{_html.escape(strip_hanja(title))}"></div></div>')
     else:
-        return (
-            f'<section id="hero" style="position:relative;min-height:90vh;display:flex;'
-            f'align-items:center;overflow:hidden;{bg_style}">'
-            + overlay +
-            f'<div style="position:relative;z-index:2;'
-            f'padding:clamp(80px,10vw,120px) clamp(28px,6vw,80px);'
-            f'width:100%;max-width:1300px;margin:0 auto;">'
-            # 뱃지 (좌측 정렬)
-            f'<div style="margin-bottom:24px;">{sub_badge}</div>'
-            # 메인 타이틀
-            f'<h1 style="font-family:var(--fh);'
-            f'font-size:clamp(44px,7vw,108px);font-weight:900;'
-            f'color:{text_col};line-height:1.08;letter-spacing:-0.03em;'
-            f'margin-bottom:28px;word-break:keep-all;text-align:left;{shadow}">{title}</h1>'
-            # 구분선
-            f'<div style="width:56px;height:4px;background:var(--c1);margin-bottom:28px;"></div>'
-            # 리드 문구
-            f'<p style="font-size:clamp(14px,1.7vw,20px);color:{lead_col};'
-            f'font-weight:500;line-height:1.85;max-width:580px;'
-            f'margin-bottom:44px;text-align:left;word-break:keep-all;{shadow}">{lead}</p>'
-            # CTA 버튼
-            f'<div style="text-align:left;">'
-            f'<a href="#cta" style="display:inline-flex;align-items:center;gap:8px;'
-            f'background:var(--c1);color:#fff;'
-            f'padding:16px 44px;font-size:16px;font-weight:900;'
-            f'text-decoration:none;box-shadow:0 6px 24px rgba(0,0,0,0.3);'
-            f'transition:transform 0.2s;">{cta} →</a>'
-            f'</div></div></section>'
-        )
-        
-def sec_intro(d, cp, T):
-    """강좌 소개 — 3가지 다이내믹 레이아웃 (콘텐츠 풍부 버전)"""
-    label   = st.session_state.get("purpose_label", d["purpose_label"])
-    subj    = d["subject"]
-    tagline = strip_hanja(cp.get("brandTagline", ""))
-    desc    = strip_hanja(cp.get("introDesc", f"{label}이 특별한 이유가 있습니다."))
-    bio     = strip_hanja(cp.get("introBio", ""))
+        inner = f'<div class="rv" style="text-align:center;max-width:880px;margin:0 auto">{text_html}</div>'
+    return (f'<section id="hero" class="ds-sec" style="min-height:min(92vh,880px);display:flex;align-items:center;'
+            f'padding-top:clamp(96px,12vw,150px);padding-bottom:clamp(80px,10vw,130px);{sec_style}">'
+            f'<div class="ds-in" style="width:100%">{inner}</div></section>')
 
-    # ── 타 커리큘럼명 제거 ──
-    _plabel = st.session_state.get("purpose_label", "")
-    _BANNED = ["인셉션","O.V.S","OVS","파노라마","뉴런","R'gorithm",
-               "Starting Block","KICE Anatomy","세젤쉬","All Of KICE",
-               "VIC-FLIX","KISS Logic","KISSAVE","KISSCHEMA"]
-    for _b in _BANNED:
-        if _b.lower() not in _plabel.lower():
-            desc = desc.replace(_b, _plabel if _plabel else subj)
-
-    # 조사 교정
-    desc = postprocess_copy(desc, _plabel)
-    bio  = postprocess_copy(bio,  _plabel)
-
-    reasons = cp.get("whyReasons", [])
-    points  = []
-    for r in reasons[:3]:
-        if isinstance(r, (list, tuple)) and len(r) >= 3:
-            points.append((str(r[0]), str(r[1]), str(r[2])))
-    if not points:
-        points = [
-            ("01", "출제 원리 파악", f"감이 아닌 구조로 {subj}를 읽는 눈을 만들어 드립니다."),
-            ("02", "실전 속도 향상", "시간이 남는 경험, 3주차부터 달라집니다."),
-            ("03", "기출 완전 분석", "최근 기출 패턴을 꿰뚫으면 다음 수능이 보입니다."),
-        ]
-
-    # 태그라인 유효성 검사
-    _BAD = {"english","korean","math","science","tagline","slogan","없음","none","n/a"}
-    _tl  = tagline.strip().strip('"').strip("'")
-    _tl_ok = _tl and _tl.lower().replace(" ","") not in _BAD and len(_tl) >= 6
-
-    # 레이아웃 변형 선택
-    text_hash = sum(ord(c) for c in label + subj)
-    v = (text_hash % 3) + 1
-
-    # ── 공통 포인트 카드 HTML ──
-    def _point_card(i, no, tt, dc, compact=False):
-        pad = "20px 22px" if compact else "28px 26px"
-        return (
-            f'<div class="rv d{min(i+1,4)}" style="padding:{pad};background:var(--bg3);'
-            f'border-radius:var(--r,4px);border:1px solid var(--bd);'
-            f'border-top:3px solid var(--c1);transition:transform .25s,box-shadow .25s" '
-            f'onmouseover="this.style.transform=\'translateY(-4px)\';this.style.boxShadow=\'0 12px 32px rgba(0,0,0,.12)\'" '
-            f'onmouseout="this.style.transform=\'none\';this.style.boxShadow=\'none\'">'
-            f'<div style="font-family:var(--fh);font-size:28px;font-weight:900;'
-            f'color:var(--c1);opacity:.25;line-height:1;margin-bottom:12px">{no}</div>'
-            f'<div style="font-family:var(--fh);font-size:{"14px" if compact else "16px"};'
-            f'font-weight:900;color:var(--text);margin-bottom:10px;line-height:1.3">'
-            f'{strip_hanja(tt)}</div>'
-            f'<p style="font-size:{"12.5px" if compact else "14px"};line-height:1.85;'
-            f'color:var(--t70);margin:0">{strip_hanja(dc)}</p>'
-            f'</div>'
-        )
-
-    if v == 1:
-        # ── 스타일 1: 풀와이드 에디토리얼 (좌: 대형 텍스트 / 우: 상세 + 포인트) ──
-        pt_html = "".join(_point_card(i, no, tt, dc) for i, (no, tt, dc) in enumerate(points))
-        tl_html = (
-            f'<div style="margin-bottom:28px;padding:24px 28px;'
-            f'background:var(--c1);border-radius:var(--r,4px)">'
-            f'<p style="font-size:clamp(15px,1.5vw,18px);font-style:italic;font-weight:700;'
-            f'color:#fff;line-height:1.6;margin:0">"{_tl}"</p></div>'
-        ) if _tl_ok else ""
-
-        return (
-            f'<section class="sec" id="intro">'
-            f'<div style="max-width:1200px;margin:0 auto">'
-            # ── 상단: 강좌명 + 설명 2컬럼
-            f'<div class="rv" style="display:grid;grid-template-columns:1fr 1.6fr;'
-            f'gap:72px;align-items:start;padding-bottom:56px;'
-            f'border-bottom:1px solid var(--bd);margin-bottom:48px">'
-            # 좌
-            f'<div style="position:sticky;top:80px">'
-            f'<div class="tag-line">{subj} 강좌 소개</div>'
-            f'<h2 style="font-family:var(--fh);font-size:clamp(36px,5vw,64px);'
-            f'font-weight:900;line-height:1.05;color:var(--text);'
-            f'letter-spacing:-.04em;margin-bottom:20px">{label}</h2>'
-            f'<div style="width:48px;height:4px;background:var(--c1);margin-bottom:24px"></div>'
-            f'{bio and f"""<p style="font-size:14px;line-height:1.9;color:var(--t70);margin-bottom:20px">{bio}</p>""" or ""}'
-            f'<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">'
-            f'<span style="font-size:10px;font-weight:800;background:var(--c1);'
-            f'color:#fff;padding:4px 14px;border-radius:var(--r-btn,100px)">{subj}</span>'
-            f'<span style="font-size:10px;font-weight:700;color:var(--t45);'
-            f'padding:4px 14px;border:1px solid var(--bd);border-radius:var(--r-btn,100px)">'
-            f'{d["target"]}</span></div></div>'
-            # 우
-            f'<div>{tl_html}'
-            f'<p style="font-size:clamp(14px,1.5vw,16px);line-height:2.1;'
-            f'color:var(--t70);margin:0">{desc}</p></div>'
-            f'</div>'
-            # ── 하단: 3개 포인트 카드
-            f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">'
-            f'{pt_html}</div>'
-            f'</div></section>'
-        )
-
-    elif v == 2:
-        # ── 스타일 2: 대형 인용구 중앙 + 하단 3컬럼 ──
-        pt_html = "".join(_point_card(i, no, tt, dc) for i, (no, tt, dc) in enumerate(points))
-        return (
-            f'<section class="sec alt" id="intro">'
-            f'<div style="max-width:1100px;margin:0 auto">'
-            # 태그
-            f'<div class="rv" style="text-align:center;margin-bottom:64px">'
-            f'<div class="tag-line" style="justify-content:center">{subj} 강좌 소개</div>'
-            f'<h2 style="font-family:var(--fh);font-size:clamp(36px,5vw,64px);'
-            f'font-weight:900;color:var(--text);letter-spacing:-.04em;margin-bottom:24px">{label}</h2>'
-            # 큰 인용구
-            f'<div style="position:relative;max-width:800px;margin:0 auto 40px">'
-            f'<div style="position:absolute;top:-32px;left:-16px;font-family:var(--fh);'
-            f'font-size:120px;color:var(--c1);opacity:.08;line-height:1;pointer-events:none">"</div>'
-            + (f'<p style="font-size:clamp(15px,1.7vw,20px);font-style:italic;font-weight:700;'
-               f'color:var(--c1);line-height:1.7;margin-bottom:20px">{_tl}</p>'
-               if _tl_ok else "")
-            + f'<p style="font-size:clamp(13px,1.4vw,16px);line-height:2.1;'
-            f'color:var(--t70)">{desc}</p>'
-            f'</div>'
-            + (f'<p style="font-size:14px;font-weight:600;color:var(--t45);'
-               f'margin-top:20px">{bio}</p>' if bio else "")
-            + f'</div>'
-            # 포인트 카드
-            f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">'
-            f'{pt_html}</div>'
-            f'</div></section>'
-        )
-
-    elif v == 3:  # [스타일 4: 임팩트 스탯 강조]
-        stats = [
-            ("수능", "영어 전문"),
-            ("기출", "완전 분석"),  
-            ("실전", "속도 완성"),
-        ]
-        sh = "".join(
-            f'<div style="text-align:center;padding:32px 20px;'
-            f'border-right:1px solid var(--bd)" class="rv d{i+2}">'
-            f'<div style="font-family:var(--fh);font-size:clamp(48px,6vw,80px);'
-            f'font-weight:900;color:var(--c1);line-height:1">{sv}</div>'
-            f'<div style="font-size:12px;font-weight:700;color:var(--t45);'
-            f'letter-spacing:.12em;margin-top:8px">{sl}</div>'
-            f'</div>'
-            for i,(sv,sl) in enumerate(stats)
-        )
-        return (
-            f'<section class="sec" id="intro">'
-            f'<div style="max-width:1100px;margin:0 auto">'
-            f'<div class="rv" style="text-align:center;margin-bottom:64px">'
-            f'<div class="tag-line" style="justify-content:center">{subj} 강좌 소개</div>'
-            f'<h2 style="font-family:var(--fh);font-size:clamp(36px,5vw,64px);'
-            f'font-weight:900;color:var(--text);margin-bottom:24px">{label}</h2>'
-            f'<p style="font-size:18px;line-height:1.9;color:var(--t70);'
-            f'max-width:680px;margin:0 auto">{desc}</p>'
-            f'</div>'
-            f'<div style="display:grid;grid-template-columns:repeat(3,1fr);'
-            f'border:1px solid var(--bd);border-radius:var(--r,8px);overflow:hidden">{sh}</div>'
-            f'</div></section>'
-        )
-
-    else:
-        # ── 스타일 3: 좌우 비대칭 벤토박스 (설명 넓게 + 포인트 세로 스택) ──
-        pt_html = "".join(_point_card(i, no, tt, dc, compact=True)
-                          for i, (no, tt, dc) in enumerate(points))
-        tl_html = (
-            f'<div style="background:var(--c1);padding:24px 28px;'
-            f'border-radius:var(--r,4px);margin-bottom:24px">'
-            f'<p style="font-size:clamp(14px,1.5vw,17px);font-style:italic;font-weight:700;'
-            f'color:#fff;line-height:1.65;margin:0">"{_tl}"</p></div>'
-        ) if _tl_ok else ""
-
-        return (
-            f'<section class="sec" id="intro">'
-            f'<div style="max-width:1200px;margin:0 auto;'
-            f'display:grid;grid-template-columns:1.4fr 1fr;gap:56px;align-items:start">'
-            # 좌: 메인 설명
-            f'<div class="rv">'
-            f'<div class="tag-line">{subj} 강좌 소개</div>'
-            f'<h2 style="font-family:var(--fh);font-size:clamp(32px,4.5vw,56px);'
-            f'font-weight:900;color:var(--text);letter-spacing:-.04em;margin-bottom:20px">'
-            f'{label}</h2>'
-            f'{tl_html}'
-            f'<p style="font-size:clamp(13px,1.4vw,15.5px);line-height:2.1;'
-            f'color:var(--t70);margin-bottom:28px">{desc}</p>'
-            + (f'<div style="padding:20px 24px;background:var(--bg3);'
-               f'border-radius:var(--r,4px);border-left:4px solid var(--c1)">'
-               f'<p style="font-size:13.5px;font-weight:600;line-height:1.8;'
-               f'color:var(--text);margin:0">{bio}</p></div>' if bio else "")
-            + f'<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:24px">'
-            f'<span style="font-size:10px;font-weight:800;background:var(--c1);'
-            f'color:#fff;padding:4px 14px;border-radius:var(--r-btn,100px)">{subj}</span>'
-            f'<span style="font-size:10px;font-weight:700;color:var(--t45);'
-            f'padding:4px 14px;border:1px solid var(--bd);border-radius:var(--r-btn,100px)">'
-            f'{d["target"]}</span></div></div>'
-            # 우: 포인트 세로 스택
-            f'<div class="rv d1" style="position:sticky;top:80px">'
-            f'<div style="display:flex;flex-direction:column;gap:12px">{pt_html}</div>'
-            f'</div>'
-            f'</div></section>'
-        )
 
 def sec_why(d, cp, T):
-    t = strip_hanja(cp.get('whyTitle', '이 강의가 필요한 이유'))
-    s = strip_hanja(cp.get('whySub', f"{d['subject']} 1등급의 비결"))
-    reasons = cp.get('whyReasons', [])
-    
-    safe_r = []
-    for it in reasons:
+    reasons = []
+    for it in cp.get("whyReasons", []) or []:
         if isinstance(it, (list, tuple)) and len(it) >= 3:
-            safe_r.append((str(it[0]), str(it[1]), str(it[2])))
+            reasons.append((str(it[0]), str(it[1]), str(it[2])))
         elif isinstance(it, dict):
-            safe_r.append((it.get('no','01'), it.get('title',''), it.get('desc','')))
+            reasons.append((str(it.get("no", "")), str(it.get("title", "")), str(it.get("desc", ""))))
+    if not reasons:
+        return ""
+    cards = "".join(
+        f'<div class="ds-card rv d{min(i+1,4)}"><span class="ds-num">{i+1:02d}</span>'
+        f'<h3>{_t(tt)}</h3><p>{_t(dc)}</p></div>'
+        for i, (_no, tt, dc) in enumerate(reasons[:4]))
+    g = "ds-g3" if len(reasons) == 3 else "ds-g2"
+    return (f'<section id="why" class="ds-sec bg2"><div class="ds-in">'
+            + _head(cp.get("whyEyebrow") or "THE PROBLEM", cp.get("whyTitle") or "이런 고민, 하고 있지 않나요?", cp.get("whySub", ""))
+            + f'<div class="ds-grid {g}">{cards}</div></div></section>')
 
-    # 🌟 글자가 바뀔 때마다 레이아웃이 3가지 중 하나로 랜덤하게 변함 🌟
-    text_hash = sum(ord(c) for c in t + s)
-    v = (text_hash % 3) + 1
 
-    if v == 1: # [스타일 1: 거대 배경 숫자 + 다크 매거진 스타일]
-        bg_text = f"{t} " * 10
-        rh = ""
-        for i, (no, tt, dc) in enumerate(safe_r):
-            align_self = "flex-start" if i % 2 == 0 else "flex-end"
-            margin_top = "margin-top: -30px;" if i > 0 else "" 
-            rh += (
-                f'<div class="rv d{min(i+1,4)}" style="align-self:{align_self}; {margin_top} width: clamp(300px, 85%, 750px); position:relative; z-index:{i+2};">'
-                # 뒤에 깔리는 거대한 투명 숫자
-                f'<div style="position:absolute; top:-70px; left:-30px; font-family:var(--fh); font-size: clamp(150px, 18vw, 250px); font-weight:900; color:var(--c1); opacity:0.08; line-height:1; pointer-events:none; z-index:-1;">{i+1:02d}</div>'
-                # 카드 본체 (이모지 대신 심플한 라인 디자인)
-                f'<div style="background:var(--bg3); padding:50px 60px; border-radius:0; border-top: 4px solid var(--c1); box-shadow: 20px 20px 0px rgba(0,0,0,0.2);">'
-                f'<div style="font-family:var(--fh); font-size: 16px; color:var(--c1); letter-spacing:0.2em; font-weight:800; margin-bottom:16px;">POINT {i+1:02d}</div>'
-                f'<div style="font-family:var(--fh); font-size: clamp(28px, 3.5vw, 42px); font-weight:900; color:var(--text); margin-bottom:24px; word-break:keep-all; line-height:1.2;">{strip_hanja(tt)}</div>'
-                f'<p style="font-size: clamp(16px, 1.8vw, 20px); line-height:1.9; color:var(--t70); margin:0; font-weight:500;">{strip_hanja(dc)}</p>'
-                f'</div></div>'
-            )
-        # 핵심 영문 키워드 추출 (워터마크용)
-        wm_text = t[:10].upper().replace(' ','') if t else 'WHY'
-        return (
-            f'<section class="sec" id="why" style="position:relative; overflow:hidden; padding: 180px 20px;">'
-            f'<div class="typo-watermark">{wm_text}</div>'
-            f'<div class="marquee-container"><div class="marquee-content">{bg_text}{bg_text}</div></div>'
-            f'<div style="max-width:1100px; margin:0 auto; position:relative; z-index:2;">'
-            f'<div class="rv" style="margin-bottom:120px; text-align:center;">'
-            f'<div class="tag-line" style="justify-content:center; font-size:14px; letter-spacing:0.3em;">WHY CHOOSE US</div>'
-            f'<h2 style="font-family:\'Black Han Sans\',var(--fh); font-size:clamp(40px, 6vw, 80px); font-weight:900; color:var(--text); letter-spacing:-0.05em; margin-top:20px;">{t}</h2>'
-            f'<p class="sec-sub" style="margin: 24px auto 0; font-size:20px; color:var(--c1); font-weight:700;">{s}</p></div>'
-            f'<div style="display:flex; flex-direction:column; gap:60px;">{rh}</div>'
-            f'</div></section>'
-        )
+def sec_intro(d, cp, T):
+    label = d["purpose_label"] or d["subject"]
+    title = cp.get("introTitle") or f"이게 바로,\n[[{label}]]입니다."
+    desc  = cp.get("introDesc", "")
+    bio   = cp.get("introBio", "")
+    if not desc and not cp.get("introTitle"):
+        return ""
+    chips = "".join(f'<span class="ds-chip">{_t(x)}</span>' for x in [d["subject"], d.get("target", "")] + list(cp.get("bannerTags") or [])[:3] if x)
+    return (f'<section id="intro" class="ds-sec"><div class="ds-in"><div class="ds-split" style="align-items:start">'
+            f'<div class="rv"><div class="ds-eyebrow">{_t(cp.get("introEyebrow") or "THE SOLUTION")}</div><br>'
+            f'<h2 class="ds-h2" style="font-size:clamp(30px,4vw,52px)">{_t(title)}</h2></div>'
+            f'<div class="rv d1"><p style="font-size:clamp(16px,1.4vw,18px);line-height:1.95;color:var(--t70);margin:0;word-break:keep-all">{_t(desc)}</p>'
+            + (f'<p class="ds-note">{_t(bio)}</p>' if bio else "")
+            + (f'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:24px">{chips}</div>' if chips else "")
+            + '</div></div></div></section>')
 
-    elif v == 2: # [스타일 2: 애플 스타일 세로 정렬 (Clean & Minimal)]
-        rh = ""
-        for i, (no, tt, dc) in enumerate(safe_r):
-            rh += (
-                f'<div class="rv d{min(i+1,4)}" style="display:flex; gap:40px; align-items:flex-start; padding:50px 0; border-bottom:1px solid var(--bd);">'
-                f'<div style="font-family:var(--fh); font-size:60px; font-weight:900; color:var(--c1); line-height:1; flex-shrink:0;">{i+1:02d}.</div>'
-                f'<div><h3 style="font-family:var(--fh); font-size:clamp(26px, 3.5vw, 40px); font-weight:900; color:var(--text); margin-bottom:20px; letter-spacing:-0.03em;">{strip_hanja(tt)}</h3>'
-                f'<p style="font-size:clamp(16px, 1.8vw, 20px); color:var(--t70); line-height:1.85; margin:0; font-weight:500;">{strip_hanja(dc)}</p></div>'
-                f'</div>'
-            )
-        return (
-            f'<section class="sec alt" id="why" style="padding: 160px 20px;">'
-            f'<div style="max-width:900px; margin:0 auto;">'
-            f'<div class="rv" style="text-align:left; margin-bottom:80px;">'
-            f'<div class="tag-line" style="font-size:13px;">{s}</div>'
-            f'<h2 style="font-family:var(--fh); font-size:clamp(45px, 6vw, 75px); font-weight:900; color:var(--text); letter-spacing:-0.04em; margin-top:16px;">{t}</h2>'
-            f'</div><div style="border-top:2px solid var(--c1);">{rh}</div></div></section>'
-        )
 
-    elif v == 3:  # [스타일 4: 좌우 대형 텍스트 + 미니 카드]
-        rh = ""
-        for i, (no, tt, dc) in enumerate(safe_r):
-            rh += (
-                f'<div class="rv d{min(i+1,4)}" style="display:grid;'
-                f'grid-template-columns:200px 1fr;gap:32px;'
-                f'padding:40px 0;border-bottom:1px solid var(--bd);">'
-                f'<div style="font-family:var(--fh);font-size:clamp(80px,10vw,120px);'
-                f'font-weight:900;color:var(--c1);opacity:0.15;line-height:0.9;'
-                f'text-align:center">{i+1:02d}</div>'
-                f'<div>'
-                f'<h3 style="font-family:var(--fh);font-size:clamp(22px,2.5vw,32px);'
-                f'font-weight:900;color:var(--text);margin-bottom:16px">{strip_hanja(tt)}</h3>'
-                f'<p style="font-size:15px;line-height:1.9;color:var(--t70)">'
-                f'{strip_hanja(dc)}</p>'
-                f'</div></div>'
-            )
-        return (
-            f'<section class="sec alt" id="why">'
-            f'<div style="max-width:900px;margin:0 auto;">'
-            f'<div class="rv" style="margin-bottom:72px">'
-            f'<div class="tag-line">{s}</div>'
-            f'<h2 style="font-family:var(--fh);font-size:clamp(40px,6vw,72px);'
-            f'font-weight:900;color:var(--text)">{t}</h2>'
-            f'</div>'
-            f'<div style="border-top:3px solid var(--c1)">{rh}</div>'
-            f'</div></section>'
-        )
-
-    else: # [스타일 3: 벤토박스 비대칭 그리드]
-        rh = ""
-        BENTO_PATTERNS = ["bento-wide", "", "bento-tall", ""]
-        for i, (no, tt, dc) in enumerate(safe_r):
-            bento_cls = BENTO_PATTERNS[i % len(BENTO_PATTERNS)]
-            accent_h = "6px" if i == 0 else "3px"
-            rh += (
-                f'<div class="rv d{min(i+1,4)} {bento_cls}" '
-                f'style="padding:{"48px 40px" if i==0 else "32px 28px"}; '
-                f'background:{"var(--bg2)" if i%2==0 else "var(--bg3)"}; '
-                f'border:1px solid var(--bd); position:relative; overflow:hidden;">'
-                f'<div style="position:absolute;top:0;left:0;right:0;height:{accent_h};background:var(--c1)"></div>'
-                f'<div style="font-family:var(--fh); font-size:{"20px" if i==0 else "14px"}; '
-                f'font-weight:800; color:var(--c1); margin:8px 0 16px; letter-spacing:0.1em;">REASON 0{i+1}</div>'
-                f'<h3 style="font-family:var(--fh); '
-                f'font-size:clamp({"24px,3vw,36px" if i==0 else "18px,2.2vw,24px"}); '
-                f'font-weight:900; color:var(--text); margin-bottom:20px; line-height:1.3;">'
-                f'{strip_hanja(tt)}</h3>'
-                f'<p style="font-size:{"16px" if i==0 else "14px"}; color:var(--t70); line-height:1.85; margin:0;">'
-                f'{strip_hanja(dc)}</p>'
-                f'</div>'
-            )
-        return (
-            f'<section class="sec" id="why" style="padding:160px 20px; background:var(--bg2);">'
-            f'<div style="max-width:1200px; margin:0 auto;">'
-            f'<div class="rv" style="text-align:center; margin-bottom:80px;">'
-            f'<div class="tag-line" style="justify-content:center;">WHY THIS CLASS</div>'
-            f'<h2 style="font-family:var(--fh); font-size:clamp(36px,5vw,64px); '
-            f'font-weight:900; color:var(--text);">{t}</h2>'
-            f'<p style="font-size:18px; color:var(--t70); margin-top:20px;">{s}</p>'
-            f'</div>'
-            f'<div class="bento-grid">{rh}</div>'
-            f'</div></section>'
-        )
 def sec_curriculum(d, cp, T):
-    """커리큘럼 — 3가지 다이내믹 레이아웃"""
-    t = strip_hanja(cp.get("curriculumTitle", f"{d['purpose_label']} 커리큘럼"))
-    s = strip_hanja(cp.get("curriculumSub", "단계별 완성 로드맵"))
-    steps = cp.get("curriculumSteps", [])
+    steps = [s for s in (cp.get("curriculumSteps") or []) if isinstance(s, (list, tuple)) and len(s) >= 3]
     if not steps:
-        steps = [["01","개념 완성","핵심 개념을 정확히 이해","4주"], ["02","훈련","기출 완전 분석","4주"], ["03","심화","고난도 특훈","3주"], ["04","파이널","실전 완성","3주"]]
+        return ""
+    n = len(steps)
+    g = {1: "ds-g2", 2: "ds-g2", 3: "ds-g3"}.get(n, "ds-g4" if n == 4 else "ds-g3")
+    cards = ""
+    for i, s in enumerate(steps):
+        period = str(s[3]).strip() if len(s) > 3 else ""
+        cards += (f'<div class="ds-card ds-step rv d{min(i+1,4)}" style="border-top:3px solid var(--c1)">'
+                  f'<div class="ds-step-top"><span class="ds-step-no">STEP {i+1:02d}</span>'
+                  + (f'<span class="ds-chip">{_t(period)}</span>' if period else "")
+                  + f'</div><h3>{_t(s[1])}</h3><p>{_t(s[2])}</p></div>')
+    return (f'<section id="curriculum" class="ds-sec bg2"><div class="ds-in">'
+            + _head(cp.get("curriculumEyebrow") or "ROADMAP", cp.get("curriculumTitle") or f"{d['purpose_label']} 커리큘럼", cp.get("curriculumSub", ""))
+            + f'<div class="ds-grid {g} ds-steps">{cards}</div></div></section>')
 
-    import random
-    v = random.randint(1, 3)
-    sh = ""
-
-    if v == 1:
-        # [스타일 1: 중앙 집중형 거대 넘버링 카드 (Editorial Stack)]
-        for i, step in enumerate(steps):
-            du = str(step[3]) if len(step) > 3 else "4주"
-            sh += (
-                f'<div class="rv d{min(i+1,4)} sticky-card" style="display:flex; flex-direction:column; align-items:center; text-align:center; background:var(--bg); border:1px solid var(--bd); border-radius:var(--r, 12px); padding:48px 32px; box-shadow:0 10px 30px rgba(0,0,0,0.05); margin-bottom:24px; position:relative; overflow:hidden;">'
-                f'<div style="position:absolute; top:-30px; left:50%; transform:translateX(-50%); font-family:var(--fh); font-size:200px; font-weight:900; color:var(--c1); opacity:0.04; line-height:1; pointer-events:none;">{i+1:02d}</div>'
-                f'<div style="display:inline-block; font-size:12px; font-weight:800; background:var(--bg3); color:var(--c1); padding:6px 16px; border-radius:100px; margin-bottom:20px; border:1px solid var(--bd); position:relative; z-index:1;">{du} 완성</div>'
-                f'<h3 style="font-family:var(--fh); font-size:clamp(24px, 3.5vw, 36px); font-weight:900; color:var(--text); margin-bottom:16px; position:relative; z-index:1;">{strip_hanja(str(step[1]))}</h3>'
-                f'<p style="font-size:15px; line-height:1.8; color:var(--t70); max-width:600px; margin:0; position:relative; z-index:1;">{strip_hanja(str(step[2]))}</p>'
-                f'</div>'
-            )
-        return (
-            f'<section class="sec alt" id="curriculum">'
-            f'<div style="max-width:800px; margin:0 auto">'
-            f'<div class="rv" style="text-align:center; margin-bottom:56px;">'
-            f'<div class="tag-line" style="justify-content:center;">CURRICULUM</div>'
-            f'<h2 style="font-family:var(--fh); font-size:clamp(36px, 5vw, 64px); font-weight:900; color:var(--text); letter-spacing:-0.03em; margin-bottom:16px;">{t}</h2>'
-            f'<p style="font-size:16px; color:var(--t70);">{s}</p>'
-            f'</div>'
-            f'<div class="sticky-stack">{sh}</div>'
-            f'</div></section>'
-        )
-
-    elif v == 2:
-        # [스타일 2: 좌우 지그재그 타임라인 (Timeline)]
-        for i, step in enumerate(steps):
-            du = str(step[3]) if len(step) > 3 else "4주"
-            align_left = (i % 2 == 0)
-            sh += (
-                f'<div class="rv d{min(i+1,4)}" style="display:flex; justify-content:{"flex-start" if align_left else "flex-end"}; position:relative; margin-bottom:32px;">'
-                f'<div style="width:calc(50% - 24px); background:var(--bg); border:1px solid var(--bd); border-radius:var(--r, 8px); padding:32px; box-shadow:0 4px 15px rgba(0,0,0,0.03); text-align:{"right" if align_left else "left"};">'
-                f'<div style="font-family:var(--fh); font-size:48px; font-weight:900; color:var(--c1); line-height:1; margin-bottom:12px;">{i+1:02d}</div>'
-                f'<div style="margin-bottom:12px;"><span style="font-size:10px; font-weight:800; background:var(--bg3); color:var(--text); padding:4px 12px; border-radius:100px;">{du}</span></div>'
-                f'<h3 style="font-family:var(--fh); font-size:22px; font-weight:800; color:var(--text); margin-bottom:12px;">{strip_hanja(str(step[1]))}</h3>'
-                f'<p style="font-size:14px; line-height:1.75; color:var(--t70); margin:0;">{strip_hanja(str(step[2]))}</p>'
-                f'</div>'
-                f'<div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:16px; height:16px; background:var(--c1); border-radius:50%; border:4px solid var(--bg2);"></div>'
-                f'</div>'
-            )
-        return (
-            f'<section class="sec alt" id="curriculum">'
-            f'<div style="max-width:1000px; margin:0 auto; text-align:center;">'
-            f'<div class="rv" style="margin-bottom:64px;">'
-            f'<div class="tag-line" style="justify-content:center;">단계별 로드맵</div>'
-            f'<h2 style="font-family:var(--fh); font-size:clamp(36px, 5vw, 56px); font-weight:900; color:var(--text); margin-bottom:16px;">{t}</h2>'
-            f'<p style="font-size:16px; color:var(--t70);">{s}</p>'
-            f'</div>'
-            f'<div style="position:relative;">'
-            f'<div style="position:absolute; top:0; bottom:0; left:50%; transform:translateX(-50%); width:2px; background:var(--bd);"></div>'
-            f'{sh}'
-            f'</div>'
-            f'</div></section>'
-        )
-
-    elif v == 3:  # [스타일 4: 가로 나열 화살표 스텝퍼]
-        sh = ""
-        for i, step in enumerate(steps):
-            du = str(step[3]) if len(step) > 3 else "4주"
-            sh += (
-                f'<div class="rv d{min(i+1,4)}" style="flex:1;min-width:180px;'
-                f'background:var(--bg);border:1px solid var(--bd);'
-                f'border-top:4px solid var(--c1);padding:28px 20px;'
-                f'position:relative;">'
-                f'<div style="font-family:var(--fh);font-size:11px;font-weight:900;'
-                f'color:var(--c1);letter-spacing:.12em;margin-bottom:12px">STEP {i+1:02d}</div>'
-                f'<h3 style="font-family:var(--fh);font-size:18px;font-weight:900;'
-                f'color:var(--text);margin-bottom:10px">{strip_hanja(str(step[1]))}</h3>'
-                f'<p style="font-size:12.5px;line-height:1.75;color:var(--t70);margin-bottom:16px">'
-                f'{strip_hanja(str(step[2]))}</p>'
-                f'<span style="font-size:10px;background:var(--bg3);color:var(--c1);'
-                f'padding:4px 12px;border-radius:100px;font-weight:800">{du}</span>'
-                + (f'<div style="position:absolute;top:50%;right:-16px;'
-                   f'transform:translateY(-50%);font-size:20px;'
-                   f'color:var(--c1);z-index:2;font-weight:900">›</div>' if i < len(steps)-1 else '')
-                + f'</div>'
-            )
-        return (
-            f'<section class="sec alt" id="curriculum">'
-            f'<div style="max-width:1200px;margin:0 auto">'
-            f'<div class="rv" style="text-align:center;margin-bottom:56px">'
-            f'<div class="tag-line" style="justify-content:center">커리큘럼</div>'
-            f'<h2 style="font-family:var(--fh);font-size:clamp(36px,5vw,64px);'
-            f'font-weight:900;color:var(--text);margin-bottom:16px">{t}</h2>'
-            f'<p style="font-size:16px;color:var(--t70)">{s}</p>'
-            f'</div>'
-            f'<div class="rv d1" style="display:flex;gap:0;align-items:stretch;'
-            f'overflow-x:auto;padding-bottom:16px">{sh}</div>'
-            f'</div></section>'
-        )
-
-    else:
-        # [스타일 3: 기존 스플릿 (Sticky Left) 디자인 다듬기]
-        for idx, step in enumerate(steps):
-            du = str(step[3]) if len(step) > 3 else "4주"
-            sh += (
-                f'<div class="rv d{min(idx+1,4)}" style="display:flex; gap:0; align-items:stretch; margin-bottom:16px; box-shadow:0 4px 15px rgba(0,0,0,0.02);">'
-                f'<div style="flex-shrink:0; width:100px; background:{"var(--c1)" if idx%2==0 else "var(--bg3)"}; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px 12px; border-radius:var(--r,8px) 0 0 var(--r,8px);">'
-                f'<div style="font-family:var(--fh); font-size:11px; font-weight:900; color:{"var(--bg)" if idx%2==0 else "var(--c1)"}; opacity:0.7; letter-spacing:0.1em; margin-bottom:4px;">STEP</div>'
-                f'<div style="font-family:var(--fh); font-size:40px; font-weight:900; color:{"var(--bg)" if idx%2==0 else "var(--c1)"}; line-height:1;">{idx+1:02d}</div>'
-                f'</div>'
-                f'<div style="flex:1; padding:32px; background:var(--bg); border-radius:0 var(--r,8px) var(--r,8px) 0; border:1px solid var(--bd); border-left:none;">'
-                f'<div style="display:flex; align-items:center; gap:16px; margin-bottom:12px;">'
-                f'<h3 style="font-family:var(--fh); font-size:22px; font-weight:900; color:var(--text); margin:0;">{strip_hanja(str(step[1]))}</h3>'
-                f'<span style="font-size:11px; background:var(--bg3); color:var(--c1); padding:4px 14px; border-radius:100px; font-weight:800; border:1px solid var(--bd); flex-shrink:0;">{du}</span>'
-                f'</div>'
-                f'<p style="font-size:14.5px; line-height:1.85; color:var(--t70); margin:0;">{strip_hanja(str(step[2]))}</p>'
-                f'</div></div>'
-            )
-        return (
-            f'<section class="sec alt" id="curriculum">'
-            f'<div style="display:grid; grid-template-columns:1fr 1.5fr; gap:60px; align-items:start; max-width:1200px; margin:0 auto;">'
-            f'<div class="rv" style="position:sticky; top:100px;">'
-            f'<div class="tag-line">커리큘럼</div>'
-            f'<h2 style="font-family:var(--fh); font-size:clamp(36px, 5vw, 64px); font-weight:900; color:var(--text); margin-bottom:20px; line-height:1.1;">{t}</h2>'
-            f'<p style="font-size:16px; line-height:1.9; color:var(--t70); margin-bottom:40px;">{s}</p>'
-            f'<div style="padding:32px; background:var(--c1); border-radius:var(--r,8px); color:var(--bg);">'
-            f'<div style="font-size:12px; font-weight:800; letter-spacing:0.15em; text-transform:uppercase; opacity:0.8; margin-bottom:12px;">TOTAL DURATION</div>'
-            f'<div style="font-family:var(--fh); font-size:64px; font-weight:900; line-height:1;">{len(steps)*4}주</div>'
-            f'</div></div>'
-            f'<div>{sh}</div>'
-            f'</div></section>'
-        )
 
 def sec_target(d, cp, T):
-    t = strip_hanja(cp.get("targetTitle","이런 분들께 추천합니다"))
-    items = [strip_hanja(str(it)) for it in cp.get("targetItems",[
-        f"수능까지 {d['subject']} 점수를 확실히 올리고 싶은 분",
-        "개념은 아는데 실전에서 점수가 안 나오는 분",
-        "N수를 준비하며 체계적인 커리큘럼이 필요한 분",
-        f"{d['subject']} 상위권 도약을 원하는 분",
-    ])]
- 
-    v = random.randint(0, 3)
- 
-    if v == 1:
-        # 체크마크 리스트
-        ih = "".join(
-            f'<div class="rv d{min(i+1,4)}" style="display:flex;gap:16px;align-items:flex-start;'
-            f'padding:16px 0;border-bottom:1px solid var(--bd)">'
-            f'<div style="flex-shrink:0;width:28px;height:28px;border-radius:50%;background:var(--c1);'
-            f'display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;font-weight:900">✓</div>'
-            f'<p style="font-size:15px;line-height:1.7;color:var(--text);font-weight:600;margin:0">{txt}</p>'
-            f'</div>'
-            for i,txt in enumerate(items)
-        )
-        return (
-            f'<section class="sec" id="target"><div style="max-width:800px;margin:0 auto">'
-            f'<div class="rv" style="text-align:center;margin-bottom:40px">'
-            f'<div class="tag-line" style="justify-content:center">수강 대상</div>'
-            f'<h2 class="sec-h2 st" style="text-align:center">{t}</h2></div>'
-            f'{ih}</div></section>'
-        )
- 
-    elif v == 2:
-        # 큰 번호 강조
-        ih = "".join(
-            f'<div class="rv d{min(i+1,4)}" style="display:grid;grid-template-columns:80px 1fr;'
-            f'gap:20px;align-items:center;padding:20px 0;border-bottom:1px solid var(--bd)">'
-            f'<div style="font-family:var(--fh);font-size:clamp(44px,5vw,64px);font-weight:900;'
-            f'color:var(--c1);opacity:.3;line-height:1;text-align:center">{i+1:02d}</div>'
-            f'<p style="font-size:15px;line-height:1.75;color:var(--text);font-weight:600;margin:0">{txt}</p>'
-            f'</div>'
-            for i,txt in enumerate(items)
-        )
-        return (
-            f'<section class="sec alt" id="target"><div style="max-width:900px;margin:0 auto">'
-            f'<div class="rv" style="margin-bottom:40px">'
-            f'<div class="tag-line">수강 대상</div><h2 class="sec-h2 st">{t}</h2></div>'
-            f'{ih}</div></section>'
-        )
- 
-    elif v == 3:
-        # 페르소나 카드
-        emojis = ["📚","✏️","🎯","💪"]
-        grades = ["고3","N수생","고2","재학생"]
-        ih = "".join(
-            f'<div class="card rv d{min(i+1,4)}" style="padding:28px;text-align:center">'
-            f'<div style="font-size:40px;margin-bottom:12px">{emojis[i%len(emojis)]}</div>'
-            f'<div style="display:inline-block;background:var(--c1);color:#fff;font-size:10px;'
-            f'font-weight:800;padding:3px 12px;border-radius:var(--r-btn,100px);margin-bottom:14px">{grades[i%len(grades)]}</div>'
-            f'<p style="font-size:13.5px;line-height:1.75;color:var(--text);font-weight:600;margin:0">{txt}</p>'
-            f'</div>'
-            for i,txt in enumerate(items)
-        )
-        return (
-            f'<section class="sec" id="target"><div style="max-width:1200px;margin:0 auto">'
-            f'<div class="rv" style="text-align:center;margin-bottom:40px">'
-            f'<div class="tag-line" style="justify-content:center">수강 대상</div>'
-            f'<h2 class="sec-h2 st" style="text-align:center">{t}</h2></div>'
-            f'<div style="display:grid;grid-template-columns:repeat({min(len(items),2)},1fr);gap:16px">{ih}</div>'
-            f'</div></section>'
-        )
- 
-    else:
-        # 기존 엇갈린 카드
-        left_items  = [(i,txt) for i,txt in enumerate(items) if i%2==0]
-        right_items = [(i,txt) for i,txt in enumerate(items) if i%2==1]
-        def card(i,txt):
-            return (
-                f'<div class="rv d{min(i+1,4)}" style="padding:22px 26px;border:1px solid var(--bd);'
-                f'border-radius:var(--r,4px);background:var(--bg);margin-bottom:12px;'
-                f'display:flex;gap:16px;align-items:flex-start">'
-                f'<div style="flex-shrink:0;width:36px;height:36px;border-radius:var(--r-btn,4px);'
-                f'background:var(--c1);display:flex;align-items:center;justify-content:center;'
-                f'font-family:var(--fh);font-size:14px;font-weight:900;color:#fff">{i+1:02d}</div>'
-                f'<p style="font-size:14px;font-weight:600;line-height:1.7;color:var(--text);margin:0">{txt}</p>'
-                f'</div>'
-            )
-        lh = "".join(card(i,t2) for i,t2 in left_items)
-        rh = "".join(card(i,t2) for i,t2 in right_items)
-        return (
-            f'<section class="sec" id="target"><div style="max-width:1200px;margin:0 auto">'
-            f'<div class="rv" style="display:grid;grid-template-columns:1fr 2fr;gap:60px;align-items:start">'
-            f'<div style="position:sticky;top:60px"><div class="tag-line">수강 대상</div>'
-            f'<h2 class="sec-h2 st">{t}</h2></div>'
-            f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 20px">'
-            f'<div>{lh}</div><div style="margin-top:56px">{rh}</div>'
-            f'</div></div></div></section>'
-        )
+    items = [x for x in (cp.get("targetItems") or []) if str(x).strip()]
+    if not items:
+        return ""
+    cards = "".join(f'<div class="ds-card ds-check rv d{min(i+1,4)}">{_check_svg()}<p>{_t(x)}</p></div>'
+                    for i, x in enumerate(items))
+    return (f'<section id="target" class="ds-sec"><div class="ds-in">'
+            + _head("FOR YOU", cp.get("targetTitle") or "이런 학생에게 추천합니다")
+            + f'<div class="ds-grid ds-g2" style="max-width:920px;margin:0 auto">{cards}</div></div></section>')
+
+
+def _parse_reviews(cp):
+    out = []
+    for r in cp.get("reviews", []) or []:
+        if isinstance(r, dict):
+            out.append([str(r.get("quote", r.get("text", ""))), str(r.get("name", "수강생")), str(r.get("badge", ""))])
+        elif isinstance(r, (list, tuple)) and r:
+            row = list(r) + ["", ""]
+            out.append([str(row[0]), str(row[1]), str(row[2])])
+    return [x for x in out if x[0].strip()]
 
 def sec_reviews(d, cp, T):
-    reviews = cp.get("reviews", [
-        [f'"개념이 이렇게 명확하게 보인 적이 없었어요. {d["subject"]} 공부가 달라졌습니다."', "고3 김OO","등급 향상"],
-        ['"3주 만에 독해 속도가 확실히 빨라졌어요. 실전에서 시간이 남는 게 느껴졌습니다."', "N수 이OO","실전 완성"],
-        [f'"선생님 덕분에 {d["subject"]} 구조가 보이기 시작했어요."', "고2 박OO","자신감 회복"],
-    ])
-    reviews = []
-    for r in cp.get("reviews", []):
-        if isinstance(r, dict):
-            txt   = strip_hanja(str(r.get("quote", r.get("text", r.get("content", str(r))))))
-            nm    = strip_hanja(str(r.get("name",  r.get("author", "수강생"))))
-            badge = strip_hanja(str(r.get("badge", r.get("tag", "수강 완료"))))
-            reviews.append([txt, nm, badge])
-        elif isinstance(r, (list, tuple)):
-            row = list(r) + ["", ""]
-            reviews.append([strip_hanja(str(row[0])), strip_hanja(str(row[1])), strip_hanja(str(row[2]))])
-        else:
-            reviews.append([strip_hanja(str(r)), "수강생", "수강 완료"])
+    reviews = _parse_reviews(cp)
     if not reviews:
-        reviews = [
-            [f"{d['subject']} 공부 방식이 완전히 달라졌어요. 이제 지문이 보입니다.", "고3 김OO", "등급 향상"],
-            ["막막했던 실전이 이제는 자신 있어요. 시간도 남아요.", "N수 이OO", "실전 완성"],
-            [f"{d['subject']} 구조가 보이기 시작했어요. 선생님 덕분입니다.", "고2 박OO", "자신감 회복"],
-        ]
+        return ""
+    label = d["purpose_label"] or d["subject"]
+    cards = "".join(
+        f'<div class="ds-card ds-quote rv d{min(i+1,4)}"><div class="ds-stars">★★★★★</div>'
+        f'<p style="margin-top:14px">{_t(txt)}</p>'
+        f'<div class="ds-meta"><span>{_t(nm)}</span><span>{_t(bd)}</span></div></div>'
+        for i, (txt, nm, bd) in enumerate(reviews[:6]))
+    g = "ds-g3" if len(reviews) % 3 == 0 else "ds-g2"
+    sample_note = ('<p class="ds-sample">※ AI가 만든 예시 후기입니다. 게시 전 실제 수강평으로 교체하세요. '
+                   '(왼쪽 \'문구 직접 편집 → 수강평\'에서 교체하면 이 안내는 사라집니다)</p>'
+                   if cp.get("_reviews_sample") and not st.session_state.get("_exporting") else "")
+    return (f'<section id="reviews" class="ds-sec bg2"><div class="ds-in">'
+            + _head("REAL REVIEW", cp.get("reviewsTitle") or f"수강생이 말하는 [[{label}]]")
+            + f'<div class="ds-grid {g}">{cards}</div>{sample_note}</div></section>')
 
 
-
-
-## 문제 2 — AI 문구 품질 + 수강평 스키마 강화
-
- 
-    if not reviews:
-        reviews = [
-            [f"{d['subject']} 공부 방식이 완전히 달라졌어요. 이제 지문이 보입니다.", "고3 김OO", "등급 향상"],
-            ["막막했던 실전이 이제는 자신 있어요. 시간도 남아요.", "N수 이OO", "실전 완성"],
-            [f"{d['subject']} 구조가 보이기 시작했어요. 선생님 덕분입니다.", "고2 박OO", "자신감 회복"],
-        ]
-
-    import hashlib
-    v = int(hashlib.md5((d.get("name","") + d.get("subject","") + str(len(reviews))).encode()).hexdigest(), 16) % 4
- 
-    if v == 1:
-        # SNS 카드 스타일
-        rh = "".join(
-            f'<div class="card rv d{min(i+1,4)}" style="padding:24px">'
-            f'<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">'
-            f'<div style="width:40px;height:40px;border-radius:50%;background:var(--c1);'
-            f'display:flex;align-items:center;justify-content:center;font-family:var(--fh);'
-            f'font-size:16px;font-weight:900;color:#fff;flex-shrink:0">{nm[0] if nm else "익"}</div>'
-            f'<div><div style="font-size:13px;font-weight:800;color:var(--text)">{nm}</div>'
-            f'<div style="font-size:10px;color:var(--t45)">수강생</div></div>'
-            f'<div style="margin-left:auto;font-size:10px;background:var(--bg3);color:var(--c1);'
-            f'padding:3px 10px;border-radius:100px;font-weight:700;border:1px solid var(--bd)">{badge}</div>'
-            f'</div>'
-            f'<div style="display:flex;gap:2px;color:#F59E0B;font-size:12px;margin-bottom:12px">{"★"*5}</div>'
-            f'<p style="font-size:13.5px;line-height:1.9;color:var(--text);font-weight:500">{strip_hanja(txt)}</p>'
-            f'</div>'
-            for i,(txt,nm,badge) in enumerate(reviews)
-        )
-        return (
-            f'<section class="sec alt" id="reviews"><div style="max-width:1200px;margin:0 auto">'
-            f'<div class="rv" style="margin-bottom:40px">'
-            f'<div class="tag-line">수강평</div><h2 class="sec-h2 st">생생한 수강생 후기</h2></div>'
-            f'<div style="display:grid;grid-template-columns:repeat({min(len(reviews),3)},1fr);gap:14px">{rh}</div>'
-            f'</div></section>'
-        )
- 
-    elif v == 2:
-        # 큰 인용부호 강조
-        rh = "".join(
-            f'<div class="rv d{min(i+1,4)}" style="padding:40px;background:{"var(--bg2)" if i%2==0 else "var(--bg3)"};'
-            f'border-radius:var(--r,4px);position:relative;overflow:hidden;margin-bottom:12px">'
-            f'<div style="position:absolute;top:-20px;left:16px;font-family:var(--fh);font-size:140px;'
-            f'font-weight:900;color:var(--c1);opacity:.06;line-height:1;pointer-events:none">"</div>'
-            f'<p style="font-size:clamp(15px,1.5vw,18px);line-height:1.9;font-style:italic;'
-            f'color:var(--text);font-weight:600;position:relative;z-index:1">{strip_hanja(txt)}</p>'
-            f'<div style="display:flex;align-items:center;justify-content:space-between;margin-top:20px;'
-            f'padding-top:16px;border-top:1px solid var(--bd)">'
-            f'<div style="display:flex;gap:2px;color:#F59E0B;font-size:12px">{"★"*5}</div>'
-            f'<div style="display:flex;align-items:center;gap:10px">'
-            f'<span style="font-size:12px;color:var(--t45)">— {nm}</span>'
-            f'<span style="font-size:10px;background:var(--c1);color:#fff;padding:3px 12px;'
-            f'border-radius:100px;font-weight:700">{badge}</span>'
-            f'</div></div></div>'
-            for i,(txt,nm,badge) in enumerate(reviews)
-        )
-        return (
-            f'<section class="sec" id="reviews"><div style="max-width:800px;margin:0 auto">'
-            f'<div class="rv" style="text-align:center;margin-bottom:40px">'
-            f'<div class="tag-line" style="justify-content:center">수강평</div>'
-            f'<h2 class="sec-h2 st" style="text-align:center">생생한 수강생 후기</h2></div>'
-            f'{rh}</div></section>'
-        )
- 
-    elif v == 3:
-        # 점수 강조 카드
-        rh = "".join(
-            f'<div class="card rv d{min(i+1,4)}" style="padding:28px">'
-            f'<div style="display:flex;gap:3px;color:#F59E0B;font-size:14px;margin-bottom:14px">{"★"*5}</div>'
-            f'<p style="font-size:14px;line-height:1.9;color:var(--text);font-weight:500;flex:1;margin-bottom:20px">{strip_hanja(txt)}</p>'
-            f'<div style="display:flex;align-items:center;justify-content:space-between;'
-            f'padding:14px 16px;background:var(--bg3);border-radius:var(--r,4px)">'
-            f'<div style="font-family:var(--fh);font-size:22px;font-weight:900;color:var(--c1)">{badge}</div>'
-            f'<div style="font-size:11px;color:var(--t45)">— {nm} 학생</div>'
-            f'</div></div>'
-            for i,(txt,nm,badge) in enumerate(reviews)
-        )
-        return (
-            f'<section class="sec alt" id="reviews"><div style="max-width:1200px;margin:0 auto">'
-            f'<div class="rv" style="margin-bottom:40px">'
-            f'<div class="tag-line">수강평</div><h2 class="sec-h2 st">생생한 수강생 후기</h2></div>'
-            f'<div style="display:grid;grid-template-columns:repeat({min(len(reviews),3)},1fr);gap:14px">{rh}</div>'
-            f'</div></section>'
-        )
- 
-    else:
-        # 기존 스타일 (첫 카드 풀와이드 강조)
-        rh = ""
-        for i,(txt,nm,badge) in enumerate(reviews):
-            if i == 0:
-                rh += (
-                    f'<div class="rv d1" style="grid-column:1 / -1;display:grid;grid-template-columns:1fr 1fr;gap:0;overflow:hidden;border-radius:var(--r,4px);border:2px solid var(--c1);box-shadow:0 0 40px rgba(0,0,0,.3)">'
-                    f'<div style="background:var(--c1);padding:48px 40px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden">'
-                    f'<div style="position:absolute;top:-30px;left:-10px;font-family:\'Black Han Sans\',var(--fh);font-size:180px;font-weight:900;color:rgba(0,0,0,.12);line-height:1;pointer-events:none">"</div>'
-                    f'<div style="position:relative;z-index:1">'
-                    f'<div style="display:flex;gap:3px;color:#fff;font-size:20px;margin-bottom:20px;opacity:.7">{"★"*5}</div>'
-                    f'<p style="font-size:clamp(16px,1.6vw,20px);line-height:1.85;font-weight:700;color:#fff">{strip_hanja(txt)}</p>'
-                    f'</div>'
-                    f'<div style="display:flex;align-items:center;justify-content:space-between;margin-top:28px;padding-top:20px;border-top:1px solid rgba(255,255,255,.25);position:relative;z-index:1">'
-                    f'<span style="font-size:13px;font-weight:700;color:rgba(255,255,255,.85)">— {nm} 학생</span>'
-                    f'<span style="font-size:11px;background:rgba(0,0,0,.2);color:#fff;padding:5px 16px;border-radius:var(--r-btn,100px);font-weight:800;border:1px solid rgba(255,255,255,.3)">{badge}</span>'
-                    f'</div></div>'
-                    f'<div style="background:var(--bg3);padding:48px 40px;display:flex;flex-direction:column;justify-content:center;gap:20px">'
-                    f'<div style="display:inline-flex;align-items:center;gap:8px">'
-                    f'<div style="width:32px;height:3px;background:var(--c1)"></div>'
-                    f'<span style="font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--c1)">BEST REVIEW</span>'
-                    f'</div>'
-                    f'<p style="font-size:clamp(22px,2.5vw,32px);font-family:\'Black Han Sans\',var(--fh);font-weight:900;color:var(--text);line-height:1.3">이 수강생의<br>{d["subject"]} 공부가<br>완전히 달라졌습니다.</p>'
-                    f'<p style="font-size:13px;line-height:1.9;color:var(--t70)">직접 경험한 변화를 그대로 담았습니다. 다음은 당신의 차례입니다.</p>'
-                    f'</div></div>'
-                )
-            else:
-                rh += (
-                    f'<div class="rv d{min(i+1,4)}" style="display:flex;flex-direction:column;gap:14px;padding:32px;background:var(--bg3);border-radius:var(--r,4px);border:1px solid var(--bd);position:relative;overflow:hidden">'
-                    f'<div style="position:absolute;top:-16px;right:12px;font-family:\'Black Han Sans\',var(--fh);font-size:100px;font-weight:900;color:var(--c1);opacity:.06;line-height:1;pointer-events:none">"</div>'
-                    f'<div style="display:flex;gap:2px;color:#F59E0B;font-size:14px;position:relative;z-index:1">{"★"*5}</div>'
-                    f'<p style="font-size:14px;line-height:1.95;font-weight:500;flex:1;position:relative;z-index:1;color:var(--text)">{strip_hanja(txt)}</p>'
-                    f'<div style="display:flex;align-items:center;justify-content:space-between;padding-top:14px;border-top:1px solid var(--bd);position:relative;z-index:1">'
-                    f'<div style="display:flex;align-items:center;gap:8px">'
-                    f'<div style="width:28px;height:28px;border-radius:50%;background:var(--c1);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#fff;flex-shrink:0">{nm[0] if nm else "익"}</div>'
-                    f'<span style="font-size:12px;color:var(--t70);font-weight:600">— {nm} 학생</span>'
-                    f'</div>'
-                    f'<span style="font-size:10px;background:var(--bg);color:var(--c1);padding:4px 14px;border-radius:var(--r-btn,100px);font-weight:800;border:1.5px solid var(--c1)">{badge}</span>'
-                    f'</div></div>'
-                )
-                    
-        return (
-            f'<section class="sec alt" id="reviews"><div style="max-width:1200px;margin:0 auto">'
-            f'<div class="rv" style="margin-bottom:40px;display:flex;align-items:flex-end;justify-content:space-between">'
-            f'<div><div class="tag-line">수강평</div><h2 class="sec-h2 st">생생한 수강생 후기</h2></div>'
-            f'<div style="font-family:var(--fh);font-size:clamp(32px,4vw,52px);font-weight:900;color:var(--c1);opacity:.12;line-height:1">{len(reviews)}</div>'
-            f'</div>'
-            f'<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">{rh}</div>'
-            f'</div></section>'
-        )
-        
 def sec_faq(d, cp, T):
-    raw = cp.get("faqs",[
-        ["수강 기간은 얼마나 되나요?","기본 30일이며, 연장권 구매 시 최대 90일까지 연장하실 수 있습니다. 학습 진도에 맞게 유연하게 조절 가능합니다."],
-        ["교재는 별도 구매인가요?","별도 구매입니다. 수강 신청 페이지에서 강의와 함께 패키지로 구매하실 수 있으며, 패키지 구매 시 할인 혜택이 적용됩니다."],
-        ["모바일에서도 수강 가능한가요?","PC, 태블릿, 스마트폰 모두 지원합니다. 앱에서 오프라인 다운로드도 가능하여 인터넷 없이도 학습하실 수 있습니다."],
-    ])
     faqs = []
-    for item in raw:
-        if isinstance(item, dict): faqs.append([item.get("question",item.get("q","")), item.get("answer",item.get("a",""))])
-        elif isinstance(item, list) and len(item)>=2: faqs.append([str(item[0]),str(item[1])])
-    fh = ""
-    for i,(q,a) in enumerate(faqs):
-        fh += (
-            f'<div class="rv d{min(i+1,3)}" style="margin-bottom:6px">'
-            f'<details style="border:1px solid var(--bd);border-radius:var(--r,4px);overflow:hidden">'
-            f'<summary style="padding:16px 22px;background:var(--bg3);display:flex;align-items:center;gap:12px;cursor:pointer;list-style:none;user-select:none">'
-            f'<span style="color:var(--c1);font-weight:900;font-size:14px;flex-shrink:0;font-family:var(--fh)">Q.</span>'
-            f'<span style="font-weight:700;font-size:14px;line-height:1.5;flex:1">{strip_hanja(q)}</span>'
-            f'<span style="font-size:18px;color:var(--c1);flex-shrink:0;transition:transform .2s">＋</span>'
-            f'</summary>'
-            f'<div style="padding:18px 22px 20px;background:var(--bg);display:flex;gap:12px;align-items:flex-start;border-top:1px solid var(--bd)">'
-            f'<span style="color:var(--t45);font-weight:700;font-size:14px;flex-shrink:0;font-family:var(--fh)">A.</span>'
-            f'<p style="font-size:13.5px;line-height:1.9;color:var(--t70);margin:0">{strip_hanja(a)}</p>'
-            f'</div></details></div>'
-        )
-    return (
-        f'<section class="sec" id="faq">'
-        f'<div style="display:grid;grid-template-columns:1fr 1.8fr;gap:72px;align-items:start;max-width:1200px;margin:0 auto">'
-        f'<div class="rv" style="position:sticky;top:60px">'
-        f'<div class="tag-line">FAQ</div>'
-        f'<h2 class="sec-h2 st">자주 묻는 질문</h2>'
-        f'<p class="sec-sub">궁금한 점을 클릭해 답변을 확인하세요.</p>'
-        f'<div style="margin-top:24px;font-size:12px;color:var(--t45);line-height:1.8">더 궁금한 사항은<br>카카오톡 채널로 문의해 주세요.</div>'
-        f'</div>'
-        f'<div class="rv d1">{fh}</div>'
-        f'</div></section>'
-    )
+    for item in cp.get("faqs", []) or []:
+        if isinstance(item, dict):
+            faqs.append([item.get("question", item.get("q", "")), item.get("answer", item.get("a", ""))])
+        elif isinstance(item, (list, tuple)) and len(item) >= 2:
+            faqs.append([str(item[0]), str(item[1])])
+    faqs = [f for f in faqs if str(f[0]).strip()]
+    if not faqs:
+        return ""
+    rows = "".join(f'<details{" open" if i == 0 else ""}><summary><b>Q</b><span>{_t(q)}</span></summary>'
+                   f'<div class="a">{_t(a)}</div></details>' for i, (q, a) in enumerate(faqs))
+    return (f'<section id="faq" class="ds-sec"><div class="ds-in">'
+            + _head("FAQ", cp.get("faqTitle") or "자주 묻는 질문")
+            + f'<div class="ds-faq rv">{rows}</div></div></section>')
 
 
 def sec_cta(d, cp, T):
-    tt    = strip_hanja(cp.get("ctaTitle", f"지금 바로 시작해<br>{d['subject']} 1등급을 확보하세요"))
-    sub   = strip_hanja(cp.get("ctaSub",   f"{d['name']} 선생님과 함께라면 가능합니다." if d["name"] else f"{d['subject']} 1등급, 지금 시작하세요."))
-    cc    = strip_hanja(cp.get("ctaCopy",  "지금 수강신청하기"))
-    badge = strip_hanja(cp.get("ctaBadge", f"{d['target']} 전용"))
-    ct    = _cta_text_color(T)  # ← 자동 텍스트 색상
+    tt    = cp.get("ctaTitle") or f"{d['purpose_label'] or d['subject']}, 지금 시작하세요"
+    sub   = cp.get("ctaSub", "")
+    cc    = cp.get("ctaCopy") or "수강신청 하기"
+    badge = cp.get("ctaBadge", "")
+    ct    = _cta_text_color(T)
+    title_html = _t(tt).replace('class="hl"', 'class="hl" style="color:inherit;text-decoration:underline;text-underline-offset:.18em"')
     return (
-        f'<section style="padding:clamp(80px,10vw,120px) clamp(28px,6vw,72px);text-align:center;position:relative;overflow:hidden;background:{T["cta"]}">'
-        f'<div style="position:absolute;inset:0;background:radial-gradient(ellipse 70% 60% at 50% 0%,rgba(255,255,255,.07),transparent 60%);pointer-events:none"></div>'
-        f'<div style="position:absolute;top:-200px;right:-200px;width:600px;height:600px;border-radius:50%;background:rgba(255,255,255,.04);pointer-events:none"></div>'
-        f'<div style="position:absolute;bottom:-120px;left:-120px;width:500px;height:500px;border-radius:50%;background:rgba(255,255,255,.03);pointer-events:none"></div>'
-        f'<div style="position:relative;z-index:1">'
-        f'<div style="display:inline-flex;align-items:center;gap:8px;background:{ct["badge_bg"]};backdrop-filter:blur(8px);padding:7px 22px;border-radius:100px;font-size:10px;font-weight:800;color:{ct["txt"]};margin-bottom:28px;letter-spacing:.16em;text-transform:uppercase;border:1px solid {ct["badge_bd"]}">{badge}</div>'
-        f'<h2 style="font-family:\'Black Han Sans\',var(--fh);font-size:clamp(32px,5.5vw,64px);font-weight:900;line-height:1.05;letter-spacing:-.02em;color:{ct["txt"]};margin-bottom:16px">{tt}</h2>'
-        f'<p style="color:{ct["txt70"]};font-size:15px;line-height:1.9;margin-bottom:48px;max-width:460px;margin-left:auto;margin-right:auto">{sub}</p>'
-        f'<div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;align-items:center">'
-        f'<a style="display:inline-flex;align-items:center;gap:10px;background:{ct["btn_bg"]};color:{ct["btn_col"]};font-weight:900;padding:18px 56px;border-radius:var(--r-btn,4px);font-size:17px;text-decoration:none;letter-spacing:.01em;box-shadow:0 8px 32px rgba(0,0,0,.18);transition:transform .15s" href="#">{cc} →</a>'
-        f'<a style="display:inline-flex;align-items:center;gap:8px;background:{ct["btn2_bg"]};backdrop-filter:blur(8px);color:{ct["btn2_col"]};font-weight:700;padding:17px 36px;border-radius:var(--r-btn,4px);border:1.5px solid {ct["btn2_bd"]};font-size:15px;text-decoration:none" href="#">카카오톡 문의 💬</a>'
-        f'</div>'
-        f'<p style="margin-top:28px;font-size:11px;color:{ct["txt35"]};letter-spacing:.08em">지금 신청하는 수험생이 먼저 시작합니다</p>'
-        f'</div></section>'
-    )
+        f'<section id="cta" class="ds-cta" style="background:{T["cta"]};--text:{ct["txt"]};--t70:{ct["txt70"]};--c1:{ct["btn_bg"]};--on-c1:{ct["btn_col"]}">'
+        f'<div class="ds-in rv">'
+        + (f'<div class="ds-eyebrow" style="color:{ct["txt"]}">{_t(badge)}</div><br>' if badge else "")
+        + f'<h2 class="ds-h2" style="color:{ct["txt"]};font-size:clamp(28px,4vw,48px)">{title_html}</h2>'
+        + (f'<p class="ds-sub" style="color:{ct["txt70"]}">{_t(sub)}</p>' if sub else "")
+        + f'<div class="ds-btns" style="justify-content:center;margin-top:36px"><a class="ds-btn" href="#">{_t(cc)}</a></div>'
+        + '</div></section>')
 
 
-def sec_event_overview(d, cp, T):
-    t = strip_hanja(cp.get("eventTitle", d["purpose_label"]))
-    desc = strip_hanja(cp.get("eventDesc", "기간 한정 이벤트입니다."))
-    details = cp.get("eventDetails", [["📅","기간","진행중"],["🎯","대상","수험생"],["💰","혜택","확인"]])
-    
-    dh = ""
-    for i, row in enumerate(details):
-        ic = str(row[0]) if len(row)>0 else "✦"
-        lb = str(row[1]) if len(row)>1 else "정보"
-        vl = str(row[2]) if len(row)>2 else "-"
-        dh += f'<div class="card rv d{i+1}" style="text-align:center;padding:32px 20px"><div style="font-size:36px;margin-bottom:14px">{ic}</div><div style="font-size:10px;font-weight:800;color:var(--c1);letter-spacing:.14em;text-transform:uppercase;margin-bottom:10px">{lb}</div><div style="font-family:var(--fh);font-size:19px;font-weight:700">{vl}</div></div>'
-        
-    return f'<section class="sec" id="event-overview"><div style="max-width:1200px;margin:0 auto"><div class="rv"><div class="tag-line">이벤트 개요</div><h2 class="sec-h2 st">{t}</h2><p class="sec-sub">{desc}</p></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">{dh}</div></div></section>'
+DEFAULT_NOTICE = """본 강좌의 수강 기간, 교재 배송 일정은 수강신청 페이지의 안내를 따릅니다.
+이벤트 혜택은 대성마이맥 회원 정보 기준으로 지급되며, 부정 참여 시 지급이 취소될 수 있습니다.
+이벤트 내용은 회사 사정에 따라 사전 고지 없이 변경 또는 조기 종료될 수 있습니다.
+경품의 제세공과금은 대성마이맥이 부담합니다. (해당 시)"""
+
+def sec_notice(d, cp, T):
+    raw = st.session_state.get("notice_text") or DEFAULT_NOTICE
+    items = [x.strip(" -•\t") for x in raw.splitlines() if x.strip()]
+    if not items:
+        return ""
+    lis = "".join(f"<li>{_html.escape(x)}</li>" for x in items)
+    return (f'<section id="notice" class="ds-notice"><div class="ds-in">'
+            f'<h4>유의사항</h4><ul>{lis}</ul></div></section>')
 
 def sec_video(d, cp, T):
-    """영상 미리보기 섹션 렌더러"""
-    t = strip_hanja(cp.get("videoTitle", "영상 미리보기"))
-    sub = strip_hanja(cp.get("videoSub", "영상을 통해 자세한 내용을 확인하세요"))
-    tag = strip_hanja(cp.get("videoTag", "OFFICIAL TRAILER"))
-    
-    # 사이드바에서 입력한 videoUrl 가져오기
+    """[v8] OT 영상 섹션"""
     v_url = cp.get("videoUrl", "")
+    m = re.search(r'(?:youtu\.be/|v=|embed/|shorts/)([A-Za-z0-9_-]{11})', v_url or "")
+    v_url = f"https://www.youtube.com/embed/{m.group(1)}" if m else ""   # 일반 유튜브 링크도 자동 변환
+    body = (f'<iframe src="{v_url}" title="OT 영상" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'
+            if v_url else '<span>사이드바에 유튜브 링크를 넣으면 이 자리에 영상이 들어갑니다</span>')
+    label = d["purpose_label"] or d["subject"]
+    return (f'<section id="video" class="ds-sec"><div class="ds-in">'
+            + _head(cp.get("videoTag") or "OFFICIAL TRAILER", cp.get("videoTitle") or f"[[{label}]] 오리엔테이션", cp.get("videoSub", ""))
+            + f'<div class="ds-video rv" style="max-width:920px;margin:0 auto">{body}</div></div></section>')
 
-    # ✅ YouTube embed URL이 아니면 무효 처리
-    if v_url and not v_url.startswith("https://www.youtube.com/embed/"):
-        v_url = ""
-        
-    if not v_url:
-        video_html = (
-            f'<div style="width:100%; aspect-ratio:16/9; background:var(--bg3); border-radius:var(--r, 8px); display:flex; align-items:center; justify-content:center; color:var(--t45); border:1px dashed var(--bd);">'
-            f'사이드바에서 YouTube embed URL을 입력해주세요.'
-            f'</div>'
-        )
-    else:
-        video_html = (
-            f'<iframe width="100%" style="aspect-ratio:16/9; border-radius:var(--r, 8px); border:none; box-shadow:0 12px 40px rgba(0,0,0,.15);" '
-            f'src="{v_url}" title="YouTube video" frameborder="0" '
-            f'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'
-        )
+# ══════════════════════════════════════════════════════
+# [v8] 이벤트 · 기획전 섹션 — 디자인 시스템 적용 + 지어낸 기본값(‘D-30’, ‘최대 30%’, ‘성적 보장’) 제거
+# ══════════════════════════════════════════════════════
+def _info_table(rows) -> str:
+    trs = "".join(
+        f'<div style="display:grid;grid-template-columns:140px 1fr;border-bottom:1px solid var(--bd)">'
+        f'<div style="padding:16px 18px;background:var(--text);color:var(--bg);font-weight:800;font-size:14px">{_t(k)}</div>'
+        f'<div style="padding:16px 20px;font-weight:600;color:var(--text);font-size:15px">{_t(v)}</div></div>'
+        for k, v in rows)
+    return f'<div class="rv" style="max-width:760px;margin:0 auto;border-top:2px solid var(--text)">{trs}</div>'
 
-    return (
-        f'<section class="sec" id="video">'
-        f'<div style="max-width:1000px; margin:0 auto; text-align:center;">'
-        f'<div class="rv" style="margin-bottom:48px;">'
-        f'<div class="tag-line" style="justify-content:center;">{tag}</div>'
-        f'<h2 style="font-family:var(--fh); font-size:clamp(32px, 5vw, 56px); font-weight:900; color:var(--text); margin-bottom:16px;">{t}</h2>'
-        f'<p style="font-size:16px; color:var(--t70);">{sub}</p>'
-        f'</div>'
-        f'<div class="rv d1">{video_html}</div>'
-        f'</div></section>'
-    )
+def sec_event_overview(d, cp, T):
+    rows = []
+    for row in cp.get("eventDetails") or []:
+        if isinstance(row, (list, tuple)):
+            r = [str(x) for x in row]
+            if len(r) >= 3: rows.append((r[1], r[2]))
+            elif len(r) == 2: rows.append((r[0], r[1]))
+    if not rows:
+        rows = [("이벤트 기간", st.session_state.get("event_info") or "[기간 입력]"), ("참여 대상", "[대상 입력]"), ("당첨자 발표", "[발표일 입력]")]
+    return (f'<section id="event-overview" class="ds-sec"><div class="ds-in">'
+            + _head("EVENT", cp.get("eventTitle") or "이벤트 안내", cp.get("eventDesc", ""))
+            + _info_table(rows) + '</div></section>')
+
+def _benefit_cards(items) -> str:
+    out = ""
+    for i, b in enumerate(items):
+        if not isinstance(b, dict):
+            continue
+        badge = b.get("badge", "")
+        out += (f'<div class="ds-card rv d{min(i+1,4)}"><div style="display:flex;justify-content:space-between;align-items:center">'
+                f'<span class="ds-num">{i+1:02d}</span>'
+                + (f'<span class="ds-chip" style="color:var(--c1);border-color:var(--c1)">{_t(badge)}</span>' if badge else "")
+                + f'</div><h3>{_t(b.get("title",""))}</h3><p>{_t(b.get("desc",""))}</p></div>')
+    return out
 
 def sec_event_benefits(d, cp, T):
-    t = strip_hanja(cp.get("benefitsTitle", "이벤트 특별 혜택"))
-    benefits = cp.get("eventBenefits", [{"icon":"🎁","title":"할인","desc":"혜택제공","badge":"혜택","no":"01"}])
-    
-    bh = ""
-    for i, b in enumerate(benefits):
-        if not isinstance(b, dict): continue
-        icon, no = b.get("icon","✦"), b.get("no",f"{i+1:02d}")
-        badge, title, desc = strip_hanja(b.get("badge","혜택")), strip_hanja(b.get("title","")), strip_hanja(b.get("desc",""))
-        bh += (
-            f'<div class="card rv d{min(i+1,4)}" style="display:grid;grid-template-columns:64px 1fr;gap:20px;align-items:flex-start;padding:24px">'
-            f'<div style="width:64px;height:64px;border-radius:var(--r,4px);background:linear-gradient(135deg,var(--c1),var(--c2));display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0">{icon}</div>'
-            f'<div><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
-            f'<span style="font-size:9px;font-weight:800;color:var(--c1);opacity:.7">NO.{no}</span>'
-            f'<span style="background:var(--c1);color:#fff;font-size:9px;font-weight:800;padding:2px 10px;border-radius:100px">{badge}</span></div>'
-            f'<div style="font-family:var(--fh);font-size:15px;font-weight:700;margin-bottom:7px" class="st">{title}</div>'
-            f'<p style="font-size:12.5px;line-height:1.85;color:var(--t70)">{desc}</p>'
-            f'</div></div>'
-        )
-    return f'<section class="sec alt" id="event-benefits"><div style="max-width:1200px;margin:0 auto"><div class="rv"><div class="tag-line">이벤트 혜택</div><h2 class="sec-h2 st">{t}</h2></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">{bh}</div></div></section>'
+    items = [b for b in (cp.get("eventBenefits") or []) if isinstance(b, dict) and b.get("title")]
+    if not items:
+        return ""
+    g = "ds-g3" if len(items) == 3 else "ds-g2"
+    return (f'<section id="event-benefits" class="ds-sec bg2"><div class="ds-in">'
+            + _head("BENEFIT", cp.get("benefitsTitle") or "참여 혜택")
+            + f'<div class="ds-grid {g}">{_benefit_cards(items)}</div></div></section>')
 
 def sec_event_deadline(d, cp, T):
-    t   = strip_hanja(cp.get("deadlineTitle","마감 안내"))
-    msg = strip_hanja(cp.get("deadlineMsg","기간 한정 운영됩니다."))
-    cc  = strip_hanja(cp.get("ctaCopy","이벤트 신청하기"))
-    return (
-        f'<section id="event-deadline" style="padding:clamp(80px,10vw,120px) clamp(28px,6vw,72px);text-align:center;position:relative;overflow:hidden;background:{T["cta"]}">'
-        f'<div class="rv" style="max-width:680px;margin:0 auto;position:relative;z-index:1">'
-        f'<div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.15);backdrop-filter:blur(8px);padding:7px 22px;border-radius:100px;font-size:11px;font-weight:800;color:#fff;margin-bottom:24px;border:1px solid rgba(255,255,255,.25)">⏰ 마감 임박</div>'
-        f'<h2 style="font-family:\'Black Han Sans\',var(--fh);font-size:clamp(28px,5vw,56px);font-weight:900;color:#fff;margin-bottom:16px">{t}</h2>'
-        f'<p style="color:rgba(255,255,255,.7);font-size:15px;line-height:1.9;margin:0 auto 32px">{msg}</p>'
-        f'<a style="display:inline-flex;align-items:center;background:#fff;color:#0A0A0A;font-weight:900;padding:18px 52px;border-radius:var(--r-btn,4px);font-size:17px;text-decoration:none" href="#cta">{cc} →</a>'
-        f'</div></section>'
-    )
-
+    msg = cp.get("deadlineMsg", "")
+    if not msg and not cp.get("deadlineTitle"):
+        return ""
+    ct = _cta_text_color(T)
+    return (f'<section id="event-deadline" class="ds-cta" style="background:{T["cta"]};--text:{ct["txt"]};--t70:{ct["txt70"]};--c1:{ct["btn_bg"]};--on-c1:{ct["btn_col"]}">'
+            f'<div class="ds-in rv"><div class="ds-eyebrow" style="color:{ct["txt"]}">NOTICE</div><br>'
+            f'<h2 class="ds-h2" style="color:{ct["txt"]}">{_t(cp.get("deadlineTitle") or "마감 안내")}</h2>'
+            f'<p class="ds-sub" style="color:{ct["txt70"]}">{_t(msg)}</p>'
+            f'<div class="ds-btns" style="justify-content:center;margin-top:32px"><a class="ds-btn" href="#cta">{_t(cp.get("ctaCopy") or "이벤트 참여하기")}</a></div>'
+            f'</div></section>')
 
 def sec_fest_hero(d, cp, T):
-    t    = strip_hanja(cp.get("festHeroTitle", f"{d['subject']} 기획전"))
-    cc   = strip_hanja(cp.get("festHeroCopy", "최고의 강사들이 한 자리에"))
-    sub  = strip_hanja(cp.get("festHeroSub",  f"수능 {d['subject']} 전 강사 라인업."))
-    stats  = cp.get("festHeroStats", [])
+    t   = cp.get("festHeroTitle") or f"{d['subject']} 기획전"
+    cc  = cp.get("festHeroCopy", "")
+    sub = cp.get("festHeroSub", "")
     bg_url = cp.get("bg_photo_url", "")
-
-    # 배경 처리 — 이미지 있으면 오버레이 포함, 없으면 그라디언트
-    if bg_url:
-        hero_bg  = f"background:url('{bg_url}') center/cover no-repeat"
-        overlay  = '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.58);z-index:1;pointer-events:none"></div>'
-        grad_overlay = '<div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.3) 0%,rgba(0,0,0,.7) 100%);z-index:1;pointer-events:none"></div>'
-    else:
-        hero_bg  = f"background:{T['cta']}"
-        overlay  = ""
-        grad_overlay = '<div style="position:absolute;inset:0;background:radial-gradient(ellipse 80% 70% at 50% 30%,rgba(255,255,255,.07),transparent 65%);pointer-events:none"></div>'
-
-    sh = "".join(
-        f'<div style="text-align:center">'
-        f'<div style="font-family:var(--fh);font-size:clamp(22px,3.5vw,36px);font-weight:900;color:var(--c1)">{sv}</div>'
-        f'<div style="font-size:9px;color:rgba(255,255,255,.5);font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-top:4px">{sl}</div>'
-        f'</div>'
-        for sv, sl in stats
-    ) if stats else ""
-
-    return (
-        f'<section id="fest-hero" style="position:relative;min-height:80vh;overflow:hidden;'
-        f'{hero_bg};display:flex;flex-direction:column;justify-content:center;'
-        f'text-align:center;padding:clamp(80px,10vw,120px) clamp(28px,6vw,80px)">'
-        + overlay
-        + grad_overlay
-        + f'<div style="position:relative;z-index:2">'
-        + f'<div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);'
-        +  f'backdrop-filter:blur(8px);padding:7px 22px;border-radius:var(--r-btn,4px);'
-        +  f'font-size:11px;font-weight:800;color:#fff;margin-bottom:28px;'
-        +  f'border:1px solid rgba(255,255,255,.2)">🏆 {d["subject"]} 기획전</div>'
-        + f'<h1 style="font-family:\'Black Han Sans\',var(--fh);font-size:clamp(48px,9vw,128px);font-weight:900;'
-        +  f'line-height:.88;letter-spacing:-.02em;color:#fff;margin-bottom:22px" class="st">{t}</h1>'
-        + f'<p style="font-size:clamp(18px,2.5vw,24px);color:rgba(255,255,255,.85);'
-        +  f'margin-bottom:12px;font-weight:700">{cc}</p>'
-        + f'<p style="font-size:15px;color:rgba(255,255,255,.6);margin-bottom:52px;'
-        +  f'max-width:500px;margin-left:auto;margin-right:auto">{sub}</p>'
-        + (f'<div style="display:flex;gap:52px;justify-content:center;flex-wrap:wrap;'
-           f'padding-top:40px;border-top:1px solid rgba(255,255,255,.15)">{sh}</div>' if sh else "")
-        + f'</div></section>'
-    )
-
+    style = (f"background:linear-gradient(180deg,rgba(0,0,0,.45),rgba(0,0,0,.72)),url('{bg_url}') center/cover no-repeat;--text:#fff;--t70:rgba(255,255,255,.82);"
+             if bg_url else "background:radial-gradient(70% 55% at 50% 0%,color-mix(in srgb,var(--c1) 16%,transparent),transparent 70%),var(--bg);")
+    stats = "".join(f'<div><div style="font-family:var(--fd),var(--fk);font-size:32px;font-weight:900;color:var(--c1)">{_t(a)}</div>'
+                    f'<div style="font-size:13px;color:var(--t70);margin-top:4px">{_t(b)}</div></div>'
+                    for a, b in (cp.get("festHeroStats") or []) if str(a).strip())
+    return (f'<section id="fest-hero" class="ds-sec" style="min-height:min(86vh,820px);display:flex;align-items:center;{style}">'
+            f'<div class="ds-in rv" style="text-align:center;width:100%">'
+            f'<div class="ds-badge">{_t(d["subject"])} 기획전</div>'
+            + (f'<p class="ds-kicker">{_t(cc)}</p>' if cc else "")
+            + f'<h1 class="ds-wordmark st" style="font-size:clamp(48px,8vw,112px)">{_t(t)}</h1>'
+            + (f'<p class="ds-lead" style="max-width:680px;margin-left:auto;margin-right:auto">{_t(sub)}</p>' if sub else "")
+            + (f'<div style="display:flex;gap:56px;justify-content:center;margin-top:48px">{stats}</div>' if stats else "")
+            + '</div></section>')
 
 def sec_fest_lineup(d, cp, T):
-    t = strip_hanja(cp.get("festLineupTitle","강사 라인업"))
-    s = strip_hanja(cp.get("festLineupSub",f"{d['subject']} 전 영역 최강 강사진"))
-    lineup = cp.get("festLineup",[{"name":"강사A","tag":"독해·문법","tagline":"수능 영어 독해의 정석","badge":"베스트셀러","emoji":"📖"},{"name":"강사B","tag":"EBS 연계","tagline":"EBS 연계율 완벽 적중","badge":"적중률 1위","emoji":"🎯"},{"name":"강사C","tag":"어법·어휘","tagline":"어법·어휘 전문 빠른 풀이","badge":"속도UP","emoji":"⚡"},{"name":"강사D","tag":"파이널","tagline":"수능 D-30 파이널 완성","badge":"파이널 특화","emoji":"🏆"}])
-    def _safe_l(l, i):
-        if isinstance(l, dict):
-            emoji   = l.get("emoji","📖")
-            tag     = strip_hanja(str(l.get("tag","")))
-            name    = strip_hanja(str(l.get("name","")))
-            tagline = strip_hanja(str(l.get("tagline","")))
-            badge   = strip_hanja(str(l.get("badge","")))
-        else:
-            emoji, tag, name, tagline, badge = "📖","강사","강사","강사 소개",""
-        return (
-            f'<div class="card rv d{min(i+1,4)}" style="text-align:center;padding:32px 24px">'
-            f'<div style="font-size:44px;margin-bottom:16px">{emoji}</div>'
-            f'<div style="display:inline-flex;align-items:center;gap:6px;background:var(--bg3);color:var(--c1);font-size:9.5px;font-weight:800;padding:4px 14px;border-radius:var(--r-btn,100px);margin-bottom:14px;border:1px solid var(--bd)">{tag}</div>'
-            f'<div style="font-family:var(--fh);font-size:20px;font-weight:900;margin-bottom:9px" class="st">{name}</div>'
-            f'<p style="font-size:12.5px;line-height:1.75;color:var(--t70);margin-bottom:14px">{tagline}</p>'
-            f'<span style="font-size:10px;background:var(--c1);color:#fff;padding:4px 16px;border-radius:100px;font-weight:800">{badge}</span>'
-            f'</div>'
-        )
-    lh = "".join(_safe_l(l, i) for i, l in enumerate(lineup))
-    return f'<section class="sec alt" id="fest-lineup"><div style="max-width:1200px;margin:0 auto"><div class="rv"><div class="tag-line">강사 라인업</div><h2 class="sec-h2 st">{t}</h2><p class="sec-sub">{s}</p></div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">{lh}</div></div></section>'
-
+    lineup = [l for l in (cp.get("festLineup") or []) if isinstance(l, dict) and l.get("name")]
+    if not lineup:
+        return ""
+    cards = "".join(
+        f'<div class="ds-card rv d{min(i+1,4)}" style="text-align:center">'
+        f'<div style="width:96px;height:96px;border-radius:50%;margin:0 auto 18px;background:var(--bg3);border:1px solid var(--bd);'
+        f'display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--t45)">사진</div>'
+        + (f'<span class="ds-chip">{_t(l.get("tag",""))}</span>' if l.get("tag") else "")
+        + f'<h3>{_t(l.get("name",""))}</h3><p>{_t(l.get("tagline",""))}</p></div>'
+        for i, l in enumerate(lineup))
+    g = "ds-g4" if len(lineup) >= 4 else "ds-g3" if len(lineup) == 3 else "ds-g2"
+    return (f'<section id="fest-lineup" class="ds-sec bg2"><div class="ds-in">'
+            + _head("LINE UP", cp.get("festLineupTitle") or "강사 라인업", cp.get("festLineupSub", ""))
+            + f'<div class="ds-grid {g}">{cards}</div></div></section>')
 
 def sec_fest_benefits(d, cp, T):
-    t = strip_hanja(cp.get("festBenefitsTitle","기획전 특별 혜택"))
-    raw_b = cp.get("festBenefits",[])
-    defaults = [
-        {"icon":"🎁","title":"전 강사 통합 수강료 특가","desc":"최대 30% 추가 할인 혜택.","badge":"최대 30%","no":"01"},
-        {"icon":"📚","title":"통합 학습 자료 무료","desc":"통합 교재 및 기출 자료 무료 제공.","badge":"무료 제공","no":"02"},
-        {"icon":"🔥","title":"주간 라이브 특강","desc":"매주 전 강사 참여 라이브 특강.","badge":"전 강사","no":"03"},
-        {"icon":"🏆","title":"목표 등급 보장","desc":"목표 등급 미달성 시 재수강 지원.","badge":"성적 보장","no":"04"},
-    ]
-    benefits = raw_b if isinstance(raw_b, list) and raw_b else defaults
-    def _safe_fb(b, i):
-        if isinstance(b, dict):
-            icon  = b.get("icon","✦")
-            no    = b.get("no", f"{i+1:02d}")
-            badge = strip_hanja(str(b.get("badge","혜택")))
-            title = strip_hanja(str(b.get("title","")))
-            desc  = strip_hanja(str(b.get("desc","")))
-        else:
-            icon, no, badge, title, desc = "✦", f"{i+1:02d}", "혜택", strip_hanja(str(b)), ""
-        return (
-            f'<div class="card rv d{min(i+1,4)}" style="display:grid;grid-template-columns:64px 1fr;gap:20px;align-items:flex-start;padding:24px">'
-            f'<div style="width:64px;height:64px;border-radius:var(--r,4px);background:linear-gradient(135deg,var(--c1),var(--c2));display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0">{icon}</div>'
-            f'<div><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
-            f'<span style="font-size:9px;font-weight:800;color:var(--c1);opacity:.7">NO.{no}</span>'
-            f'<span style="background:var(--c1);color:#fff;font-size:9px;font-weight:800;padding:2px 10px;border-radius:100px">{badge}</span></div>'
-            f'<div style="font-family:var(--fh);font-size:15px;font-weight:700;margin-bottom:7px" class="st">{title}</div>'
-            f'<p style="font-size:12.5px;line-height:1.85;color:var(--t70)">{desc}</p>'
-            f'</div></div>'
-        )
-    bh = "".join(_safe_fb(b, i) for i, b in enumerate(benefits))
-    return f'<section class="sec" id="fest-benefits"><div style="max-width:1200px;margin:0 auto"><div class="rv"><div class="tag-line">기획전 혜택</div><h2 class="sec-h2 st">{t}</h2></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">{bh}</div></div></section>'
-
+    items = [b for b in (cp.get("festBenefits") or []) if isinstance(b, dict) and b.get("title")]
+    if not items:
+        return ""
+    g = "ds-g3" if len(items) == 3 else "ds-g2"
+    return (f'<section id="fest-benefits" class="ds-sec"><div class="ds-in">'
+            + _head("BENEFIT", cp.get("festBenefitsTitle") or "기획전 혜택")
+            + f'<div class="ds-grid {g}">{_benefit_cards(items)}</div></div></section>')
 
 def sec_fest_cta(d, cp, T):
-    t = strip_hanja(cp.get("festCtaTitle",f"지금 바로 {d['subject']} 기획전<br>전체 강사 라인업을 만나세요"))
-    s = strip_hanja(cp.get("festCtaSub",f"최고의 강사들과 함께 {d['subject']} 1등급 완성."))
-    return (f'<section style="padding:clamp(72px,10vw,112px) clamp(28px,6vw,72px);text-align:center;position:relative;overflow:hidden;background:{T["cta"]}"><div style="position:absolute;top:-120px;left:50%;transform:translateX(-50%);width:700px;height:700px;border-radius:50%;background:rgba(255,255,255,.03);pointer-events:none"></div><div style="position:relative;z-index:1"><div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);padding:7px 22px;border-radius:var(--r-btn,4px);font-size:11px;font-weight:800;color:#fff;margin-bottom:26px;border:1px solid rgba(255,255,255,.2)">🏆 {d["subject"]} 기획전 통합 신청</div><h2 style="font-family:var(--fh);font-size:clamp(28px,5vw,60px);font-weight:900;line-height:1.05;letter-spacing:-.04em;color:#fff;margin-bottom:18px">{t}</h2><p style="color:rgba(255,255,255,.6);font-size:15px;line-height:1.85;margin-bottom:44px;max-width:480px;margin-left:auto;margin-right:auto">{s}</p><div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap"><a style="display:inline-flex;align-items:center;gap:8px;background:#fff;color:#0A0A0A;font-weight:800;padding:18px 52px;border-radius:var(--r-btn,4px);font-size:16px;text-decoration:none" href="#">기획전 통합 신청 →</a><a style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);backdrop-filter:blur(8px);color:rgba(255,255,255,.82);font-weight:600;padding:17px 32px;border-radius:var(--r-btn,4px);border:1.5px solid rgba(255,255,255,.3);font-size:14px;text-decoration:none" href="#">강사 개별 신청</a></div></div></section>')
+    tmp = dict(cp)
+    tmp["ctaTitle"] = cp.get("festCtaTitle") or f"{d['subject']} 기획전, 지금 신청하세요"
+    tmp["ctaSub"]   = cp.get("festCtaSub", "")
+    tmp["ctaCopy"]  = "기획전 통합 신청"
+    tmp["ctaBadge"] = ""
+    return sec_cta(d, tmp, T).replace('id="cta"', 'id="fest-cta"', 1)
+
 # ═══════════════════════════════════════════════════════
 # SB 시트 생성
 # ═══════════════════════════════════════════════════════
 def generate_sb_sheet(cp: dict, ordered_secs: list) -> str:
-    LAYOUT_NAMES = {
-        "banner":     ["마키 타이포그래피형", "Apple 중앙정렬형", "매거진 좌정렬형"],
-        "intro":      ["에디토리얼 2컬럼형", "중앙 인용구형", "스탯 강조형", "비대칭 벤토형"],
-        "why":        ["에디토리얼 스택형", "클린 타임라인형", "벤토박스 그리드형", "숫자 대비형"],
-        "curriculum": ["스티키 카드 스택형", "지그재그 타임라인형", "수평 스텝퍼형", "스플릿 고정형"],
-        "target":     ["엇갈린 카드형", "체크리스트형", "페르소나 카드형", "숫자 강조형"],
-        "reviews":    ["SNS 카드형", "인용구 강조형", "점수 카드형", "첫카드 풀와이드형"],
-        "cta":        ["그라디언트 중앙형", "풀와이드 2컬럼형", "카운트다운 긴박형"],
-        "faq":        ["아코디언 2컬럼형", "탭 카테고리형", "채팅 버블형"],
+    LAYOUT_NAMES = {   # [v8] 레이아웃 고정 → 디자이너 전달용 이름
+        "banner":     ["킥커 + 워드마크 + 설명 (키비주얼 있으면 좌우 분할)"],
+        "why":        ["THE PROBLEM — 헤드라인 + 증상 카드 3개"],
+        "intro":      ["THE SOLUTION — 좌: 정체 선언 / 우: 설명"],
+        "video":      ["OT 영상 16:9"],
+        "curriculum": ["ROADMAP — 단계 카드 가로 배열"],
+        "target":     ["체크 카드 2열"],
+        "reviews":    ["후기 카드 그리드"],
+        "faq":        ["아코디언 1열"],
+        "cta":        ["풀폭 컬러 블록 + 버튼"],
     }
 
     lines = [
@@ -4019,6 +2889,7 @@ def generate_sb_sheet(cp: dict, ordered_secs: list) -> str:
 
         # 섹션별 핵심 카피 추출
         if sec_id == "banner":
+            lines.append(f"- **킥커:** {cp.get('bannerKicker', '—')}")
             lines.append(f"- **메인 카피:** {cp.get('bannerTitle', '—')}")
             lines.append(f"- **서브 뱃지:** {cp.get('bannerSub', '—')}")
             lines.append(f"- **리드 문구:** {(cp.get('bannerLead') or '')[:80]}{'...' if len(cp.get('bannerLead') or '') > 80 else ''}")
@@ -4100,9 +2971,9 @@ def gen_custom_sec(topic: str) -> dict:
             f"\"prize_img\":\"\","
             f"\"raffle_count\":\"30명\","
             f"\"event_details\":["
-            f"[\"이벤트 기간\",\"2026. 04. 01(수) ~ 04. 30(목)\"],"
+            f"[\"이벤트 기간\",\"{st.session_state.get('event_info') or '[기간 입력]'}\"],"
             f"[\"이벤트 대상\",\"강좌 수강생\"],"
-            f"[\"당첨자 발표\",\"2026. 05. 07(목) 홈 공지\"],"
+            f"[\"당첨자 발표\",\"[발표일 입력]\"],"
             f"[\"혜택\",\"상품명\"]]"
             f"}}"
         )
@@ -4619,12 +3490,7 @@ def sec_course_intro(d, cp, T):
     """강좌 소개 섹션 — 3가지 다이내믹 레이아웃 (벤토박스 / 에디토리얼 / 스플릿)"""
     c = cp.get("course_copy") or st.session_state.get("course_copy") or {}
     if not c:
-        return (
-            f'<section class="sec alt" id="course-intro">'
-            f'<div style="max-width:900px;margin:0 auto;text-align:center;padding:40px 0">'
-            f'<p style="color:var(--t45);font-size:14px">사이드바 → 강좌 정보 입력 후 "강좌 소개 생성" 버튼을 눌러주세요</p>'
-            f'</div></section>'
-        )
+        return ""   # [v8] 강좌 정보가 없으면 섹션 자체를 숨김
 
     title   = strip_hanja(c.get("courseTitle", "강좌 소개"))
     sub     = strip_hanja(c.get("courseSub", ""))
@@ -4734,12 +3600,7 @@ def sec_textbook_sale(d, cp, T):
     """교재 소개·판매 섹션 — 3가지 다이내믹 프리미엄 레이아웃"""
     c = cp.get("textbook_copy") or st.session_state.get("textbook_copy") or {}
     if not c:
-        return (
-            f'<section class="sec alt" id="textbook-sale">'
-            f'<div style="max-width:900px;margin:0 auto;text-align:center;padding:40px 0">'
-            f'<p style="color:var(--t45);font-size:14px">사이드바 → 교재 정보 입력 후 "교재 소개 생성" 버튼을 눌러주세요</p>'
-            f'</div></section>'
-        )
+        return ""   # [v8] 교재 정보가 없으면 섹션 자체를 숨김
 
     title    = strip_hanja(c.get("tbTitle", "교재 소개"))
     sub      = strip_hanja(c.get("tbSub", ""))
@@ -4955,160 +3816,87 @@ def sec_instructor_philosophy(d, cp, T):
     )
 
 # ══════════════════════════════════════════════════════
-# HTML 빌더
+# HTML 빌더 [v8]
+#  - 사선 구분선·고정 내비·다크모드 토글·'📸 저장' 버튼 제거(다운로드한 HTML에도 박혀 있었음)
+#  - 파티클·글리치 같은 효과는 사이드바 '배경 효과' 체크 시에만
+#  - 한글 폰트 Pretendard 통일, 테마 폰트는 워드마크/영문 라벨 전용
 # ══════════════════════════════════════════════════════
-# ══════════════════════════════════════════════════════
-# 섹션 사이 사선 구분선 헬퍼
-# ══════════════════════════════════════════════════════
-def _with_divider(html: str, idx: int, dark: bool) -> str:
-    if idx == 0:
-        return html
-    direction = "polygon(0 0,100% 4%,100% 100%,0 100%)" if idx % 2 == 0 else "polygon(0 4%,100% 0,100% 100%,0 100%)"
-    fill = "var(--bg2)" if dark else "var(--bg)"
-    divider = (
-        f'<div style="height:48px;background:{fill};'
-        f'clip-path:{direction};margin-top:-24px;position:relative;z-index:3"></div>'
-    )
-    return divider + html
+def _font_vars(T: dict) -> str:
+    """테마 --fh(영문 디스플레이 폰트)를 --fd로 옮기고, --fh는 한글 폰트로 바꿈 + 포인트색 위 글자색 계산"""
+    v = T["vars"].replace("--fh:", "--fd:")
+    v += "--fh:var(--fk);"
+    if "--on-c1:" not in v:
+        m = re.search(r'--c1:\s*(#[0-9A-Fa-f]{3,6})', v)
+        on = "#0A0A0A" if (m and _hex_luminance(m.group(1)) > 0.45) else "#FFFFFF"
+        v += f"--on-c1:{on};"
+    return v
 
+RENDERERS = {}   # build_html 안에서 채움 (사이드바에서 섹션 목록 필터용)
 
-def build_html(secs: list) -> str:
+def build_html(secs: list, exporting: bool = False) -> str:
+    st.session_state["_exporting"] = exporting
     T  = get_theme()
     cp = dict(st.session_state.custom_copy or {})
     if st.session_state.get("uploaded_bg_b64"):
         cp["bg_photo_url"] = st.session_state.uploaded_bg_b64
     elif st.session_state.bg_photo_url:
         cp["bg_photo_url"] = st.session_state.bg_photo_url
-    d = {"name":st.session_state.instructor_name or "",
-         "subject":st.session_state.subject,
-         "purpose_label":st.session_state.purpose_label,
-         "target":st.session_state.target}
-    # heroStyle 결정
+    d = {"name": st.session_state.instructor_name or "",
+         "subject": st.session_state.subject,
+         "purpose_label": st.session_state.purpose_label,
+         "target": st.session_state.target}
     if st.session_state.concept == "custom" and st.session_state.custom_theme:
-        T["heroStyle"] = st.session_state.custom_theme.get("heroStyle","typographic")
+        T["heroStyle"] = st.session_state.custom_theme.get("heroStyle", "typographic")
     else:
-        T["heroStyle"] = THEMES.get(st.session_state.concept,{}).get("heroStyle","typographic")
-    # dark 테마 카드 보정
-    dc = ".card{background:var(--bg2)!important}" if T["dark"] else ""
+        T["heroStyle"] = THEMES.get(st.session_state.concept, {}).get("heroStyle", "typographic")
     mp = {
-        "banner":sec_banner,"intro":sec_intro,"why":sec_why,"curriculum":sec_curriculum,
-        "target":sec_target,"reviews":sec_reviews,"faq":sec_faq,"cta":sec_cta,
-        "video":sec_video,"before_after":sec_before_after,"method":sec_method,"package":sec_package,
-        "grade_stats":sec_grade_stats, 
-        "event_overview":sec_event_overview,"event_benefits":sec_event_benefits,
-        "event_deadline":sec_event_deadline,"fest_hero":sec_fest_hero,
-        "fest_lineup":sec_fest_lineup,"fest_benefits":sec_fest_benefits,
-        "fest_cta":sec_fest_cta,"custom_section":sec_custom,
-        "course_intro": sec_course_intro,             # ← 추가
-        "textbook_sale": sec_textbook_sale,           # ← 추가
-        "instructor_philosophy": sec_instructor_philosophy,  # ← 추가
+        "banner": sec_banner, "intro": sec_intro, "why": sec_why, "curriculum": sec_curriculum,
+        "target": sec_target, "reviews": sec_reviews, "faq": sec_faq, "cta": sec_cta, "notice": sec_notice,
+        "video": sec_video, "before_after": sec_before_after, "method": sec_method, "package": sec_package,
+        "grade_stats": sec_grade_stats,
+        "event_overview": sec_event_overview, "event_benefits": sec_event_benefits,
+        "event_deadline": sec_event_deadline, "fest_hero": sec_fest_hero,
+        "fest_lineup": sec_fest_lineup, "fest_benefits": sec_fest_benefits,
+        "fest_cta": sec_fest_cta, "custom_section": sec_custom,
+        "course_intro": sec_course_intro, "textbook_sale": sec_textbook_sale,
+        "instructor_philosophy": sec_instructor_philosophy,
     }
-    # 네비게이션 섹션 레이블 맵
-    NAV_LABELS = {
-        "banner":"홈","intro":"강사 소개","why":"수강 이유",
-        "curriculum":"커리큘럼","target":"수강 대상","reviews":"수강평",
-        "faq":"FAQ","cta":"수강신청",
-        "video":"미리보기","before_after":"수강 전/후","method":"학습법","package":"구성",
-        "event_overview":"이벤트","event_benefits":"혜택","event_deadline":"마감",
-        "fest_hero":"기획전","fest_lineup":"라인업","fest_benefits":"혜택","fest_cta":"신청",
-        "course_intro": "강좌소개",          # ← 추가
-        "textbook_sale": "교재",             # ← 추가
-        "instructor_philosophy": "강사철학",  # ← 추가
-    }
-    nav_items = [s for s in secs if s in NAV_LABELS and s != "banner"]
-    nav_id_map = {
-        "intro":"intro","why":"why","curriculum":"curriculum","target":"target",
-        "reviews":"reviews","faq":"faq","cta":"cta","video":"video",
-        "before_after":"before-after","method":"method","package":"package",
-        "event_overview":"event-overview","event_benefits":"event-benefits",
-        "event_deadline":"event-deadline","fest_hero":"fest-hero",
-        "fest_lineup":"fest-lineup","fest_benefits":"fest-benefits","fest_cta":"fest-cta",
-    }
-    nav_html = (
-        f'<nav id="site-nav" style="position:fixed;top:0;left:0;right:0;z-index:9990;'
-        f'background:rgba(0,0,0,0);backdrop-filter:blur(0px);-webkit-backdrop-filter:blur(0px);'
-        f'border-bottom:1px solid transparent;transition:all .35s cubic-bezier(.16,1,.3,1);padding:0">'
-        f'<div style="max-width:1200px;margin:0 auto;padding:0 clamp(20px,4vw,60px);'
-        f'display:flex;align-items:center;justify-content:space-between;height:56px">'
-        # 로고
-        f'<div style="font-family:\'Black Han Sans\',var(--fh);font-size:16px;font-weight:900;'
-        f'color:#fff;letter-spacing:.04em;white-space:nowrap">'
-        f'{d["name"] if d["name"] else d["subject"]} <span style="color:var(--c1)">·</span> {d["subject"]}</div>'
-        # 메뉴
-        f'<div style="display:flex;align-items:center;gap:4px;overflow-x:auto;scrollbar-width:none">'
-        + "".join(
-            f'<a href="#{nav_id_map.get(s,s)}" style="font-size:11px;font-weight:700;'
-            f'color:rgba(255,255,255,.65);padding:6px 12px;border-radius:var(--r-btn,4px);'
-            f'text-decoration:none;white-space:nowrap;transition:color .15s,background .15s;'
-            f'letter-spacing:.04em" '
-            f'onmouseover="this.style.color=\'#fff\';this.style.background=\'rgba(255,255,255,.1)\'" '
-            f'onmouseout="this.style.color=\'rgba(255,255,255,.65)\';this.style.background=\'transparent\'">'
-            f'{NAV_LABELS.get(s,s)}</a>'
-            for s in nav_items[:7]
-        )
-        + f'</div>'
-        # CTA 버튼
-        f'<a href="#cta" class="btn-p" style="font-size:11px;padding:8px 20px;flex-shrink:0;'
-        f'margin-left:12px">수강신청 →</a>'
-        f'</div></nav>'
-        # 네비 스크롤 JS
-        f'<script>'
-        f'(function(){{'
-        f'var nav=document.getElementById("site-nav");'
-        f'var scrolled=false;'
-        f'window.addEventListener("scroll",function(){{'
-        f'if(window.scrollY>80){{if(!scrolled){{'
-        f'nav.style.background="rgba(10,10,18,.92)";'
-        f'nav.style.backdropFilter="blur(20px)";'
-        f'nav.style.webkitBackdropFilter="blur(20px)";'
-        f'nav.style.borderBottomColor="rgba(255,255,255,.08)";'
-        f'nav.style.padding="0";'
-        f'scrolled=true;'
-        f'}}}}else{{if(scrolled){{'
-        f'nav.style.background="rgba(0,0,0,0)";'
-        f'nav.style.backdropFilter="blur(0px)";'
-        f'nav.style.webkitBackdropFilter="blur(0px)";'
-        f'nav.style.borderBottomColor="transparent";'
-        f'scrolled=false;'
-        f'}}}}'
-        f'}});'
-        f'}})();'
-        f'</script>'
-    )
-    
+    RENDERERS.update(mp)
     sections_html = []
-    for i, s in enumerate(secs):
+    for s in secs:
         if s in mp:
-            sec_html = mp[s](d, cp, T)
-            sections_html.append(_with_divider(sec_html, i, T["dark"]))
-    body = nav_html + "\n".join(sections_html)
-    ttl  = cp.get("bannerTitle", cp.get("festHeroTitle", d["purpose_label"]))
-    particle_js = _particle_js(T.get("particle","none"))
-    concept_key = st.session_state.concept if st.session_state.concept != "custom" else "custom"
+            try:
+                h = mp[s](d, cp, T)
+            except Exception as e:     # 한 섹션 오류가 페이지 전체를 깨뜨리지 않도록
+                h = "" if exporting else f'<div style="padding:16px;color:#c00;font-size:12px">[{s}] 렌더 오류: {_html.escape(str(e))}</div>'
+            if h:
+                sections_html.append(h)
+    body = "\n".join(sections_html)
+    # 레거시 섹션에 남은 [[강조]]도 일괄 변환
+    body = re.sub(r'\[\[(.+?)\]\]', r'<span class="hl">\1</span>', body)
+
+    ttl = strip_hanja(str(cp.get("bannerTitle", cp.get("festHeroTitle", d["purpose_label"]))))
+    ttl = re.sub(r'\[\[|\]\]', '', ttl)
+    fx = ""
+    if st.session_state.get("fx_on"):
+        concept_key = st.session_state.concept if st.session_state.concept != "custom" else "custom"
+        fx = _particle_js(T.get("particle", "none")) + _theme_fx(concept_key)
+    dark_card = ".card{background:var(--bg2)!important}" if T["dark"] else ""
     return (
-    f'<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"/>'
-    f'<meta name="viewport" content="width=device-width,initial-scale=1.0"/>'
-    f'<title>{d["name"]} {d["subject"]} · {ttl}</title>'
-    f'<link rel="preconnect" href="https://fonts.googleapis.com"/>'
-    f'<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>'
-    f'<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap" rel="stylesheet"/>'
-    f'<link href="{T["fonts"]}" rel="stylesheet"/>'
-    f'<style>:root{{{T["vars"]}}}{BASE_CSS}{T["extra_css"]}{dc}</style>'
-    f'</head><body>{body}'
-    + _particle_js(T.get("particle","none"))
-    + _theme_fx(concept_key)
-    + f'<script>'
-    + f'const ro=new IntersectionObserver(es=>{{es.forEach(e=>{{if(e.isIntersecting){{'
-    + f'e.target.classList.add("on");ro.unobserve(e.target);}}}});}},{{threshold:.06,rootMargin:"0px 0px -40px 0px"}});'
-    + f'document.querySelectorAll(".rv,.rv-left,.rv-right").forEach(el=>ro.observe(el));'
-    + f'document.querySelectorAll(".reveal-text").forEach(el=>ro.observe(el));'
-    + f'</script>'
-    + f'<button id="mode-toggle" onclick="(function(){{var b=document.body;b.classList.toggle(\'light-mode\');localStorage.setItem(\'mode\',b.classList.contains(\'light-mode\')?\' light\':\'dark\');this.textContent=b.classList.contains(\'light-mode\')?\'🌙\':\'☀️\'}}).call(this)" title="다크/라이트 모드">☀️</button>'
-    + f'<script>(function(){{var m=localStorage.getItem(\'mode\');var btn=document.getElementById(\'mode-toggle\');if(m===\'light\'){{document.body.classList.add(\'light-mode\');if(btn)btn.textContent=\'🌙\'}}}})()</script>'
-    + f'<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>'
-    + f'<button onclick="html2canvas(document.body).then(canvas => {{ let a = document.createElement(\'a\'); a.href = canvas.toDataURL(\'image/png\'); a.download = \'landing_page.png\'; a.click(); }})" style="position:fixed; bottom:100px; left:24px; z-index:9999; padding:14px 24px; background:#FF2244; color:#fff; border:none; border-radius:50px; font-weight:900; font-size:16px; cursor:pointer; box-shadow:0 8px 24px rgba(255,34,68,0.4);">📸 전체 화면 이미지로 저장</button>'
-    + f'</body></html>'
-)
+        '<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"/>'
+        '<meta name="viewport" content="width=device-width,initial-scale=1.0"/>'
+        f'<title>{_html.escape(d["name"])} {d["subject"]} · {_html.escape(ttl)}</title>'
+        '<link rel="preconnect" href="https://fonts.googleapis.com"/>'
+        '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>'
+        '<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>'
+        f'<link href="{T["fonts"]}" rel="stylesheet"/>'
+        f'<style>:root{{{_font_vars(T)}}}{BASE_CSS}{T["extra_css"]}{dark_card}{DS_CSS}</style>'
+        f'</head><body>{body}{fx}'
+        '<script>'
+        'const ro=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add("on");ro.unobserve(e.target);}});},{threshold:.06,rootMargin:"0px 0px -40px 0px"});'
+        'document.querySelectorAll(".rv,.rv-left,.rv-right,.reveal-text").forEach(el=>ro.observe(el));'
+        '</script></body></html>'
+    )
 
 # ══════════════════════════════════════════════════════
 # UI CSS (사이드바 + 메인)
@@ -5383,17 +4171,43 @@ with st.sidebar:
 
     # 영상 섹션 URL 입력 (video 섹션이 활성화된 경우)
     if "video" in st.session_state.active_sections:
-        st.markdown("**🎬 영상 섹션 YouTube URL**")
-        st.caption("예: https://www.youtube.com/embed/XXXXXXXXXXX")
+        st.markdown("**🎬 OT 영상 YouTube 링크**")
+        st.caption("일반 유튜브 주소(youtu.be/…, watch?v=…)를 그대로 붙여도 됩니다")
         yt_key = "yt_url_input"
         cur_yt = (st.session_state.custom_copy or {}).get("videoUrl","") if st.session_state.custom_copy else ""
         yt_in = st.text_input("YouTube embed URL", value=cur_yt,
-                              placeholder="https://www.youtube.com/embed/...",
+                              placeholder="https://youtu.be/...",
                               label_visibility="collapsed", key=yt_key)
         if yt_in and yt_in != cur_yt:
             if st.session_state.custom_copy is None:
                 st.session_state.custom_copy = {}
             st.session_state.custom_copy["videoUrl"] = yt_in
+            st.rerun()
+
+    # [v8] 히어로 키비주얼 (교재 표지·누끼 PNG) — 실제 PR 페이지처럼 오른쪽에 크게 배치
+    st.markdown("**📘 히어로 키비주얼 (교재 표지·누끼 이미지)**")
+    st.caption("배경이 투명한 PNG를 올리면 히어로가 좌우 분할 레이아웃으로 바뀝니다")
+    kv_file = st.file_uploader("키비주얼", type=["png", "jpg", "jpeg", "webp"],
+                               label_visibility="collapsed", key="kv_uploader")
+    if kv_file is None:
+        if st.session_state.get("kv_img_b64"):
+            st.session_state.kv_img_b64 = ""
+            st.rerun()
+    else:
+        from PIL import Image
+        import io
+        _kv = Image.open(kv_file)
+        _kv = _kv.convert("RGBA") if _kv.mode in ("RGBA", "LA", "P") else _kv.convert("RGB")
+        if _kv.width > 1400:
+            _kv = _kv.resize((1400, int(_kv.height * 1400 / _kv.width)), Image.LANCZOS)
+        _buf = io.BytesIO()
+        if _kv.mode == "RGBA":
+            _kv.save(_buf, format="PNG", optimize=True); _mime = "png"
+        else:
+            _kv.save(_buf, format="JPEG", quality=85); _mime = "jpeg"
+        _new_kv = f"data:image/{_mime};base64,{base64.b64encode(_buf.getvalue()).decode()}"
+        if st.session_state.get("kv_img_b64") != _new_kv:
+            st.session_state.kv_img_b64 = _new_kv
             st.rerun()
 
     # 프리셋 테마 버튼
@@ -5522,7 +4336,7 @@ with st.sidebar:
     # 설정
     st.markdown('<div class="sec-hdr">📝 기획 방향 설정</div>', unsafe_allow_html=True)
     pl = st.text_input("브랜드명", value=st.session_state.purpose_label,
-                   placeholder="2026 수능 파이널 완성", label_visibility="collapsed")
+                   placeholder="강좌명 (예: 2028 KISS LOGIC)", label_visibility="collapsed")
 
     # ✅ 브랜드명 바뀌면 생성된 문구도 초기화 (이전 강좌 내용 방지)
     if pl != st.session_state.purpose_label:
@@ -5533,6 +4347,41 @@ with st.sidebar:
                        placeholder="예: Surfing, Racing, 등대, 해부학",
                        help="기획안 전체를 관통하는 비유적 표현을 입력하면 카피와 시각적 디렉션에 반영됩니다.")
     st.session_state.metaphor = mt
+
+    # [v8] 기획 앵글 — 랜덤 문구 룰렛 대신 MD가 구조를 고름
+    angle_opts = list(PAGE_ANGLES.keys())
+    if st.session_state.get("page_angle") not in angle_opts:
+        st.session_state.page_angle = angle_opts[0]
+    st.session_state.page_angle = st.selectbox("기획 앵글", angle_opts,
+        index=angle_opts.index(st.session_state.page_angle),
+        help="페이지 전체의 설득 구조를 정합니다. '자동'이면 AI가 강좌 성격에 맞게 고릅니다.")
+
+    # [v8] 기준 수능 · 시즌 — 날짜는 코드가 계산하고 AI는 지어내지 않음
+    st.markdown('<div class="sec-hdr">🗓 기준 수능 · 시즌</div>', unsafe_allow_html=True)
+    _auto_year = default_target_year()
+    _years = sorted(set(list(SUNEUNG_SCHEDULE.keys()) + [_auto_year, _auto_year + 1]))
+    if not st.session_state.get("target_year"):
+        st.session_state.target_year = _auto_year
+    def _yr_label(y):
+        ex, est = exam_date_for(y)
+        return f"{y}학년도 ({ex.year}.{ex.month:02d}.{ex.day:02d}{' 추정' if est else ''})"
+    st.session_state.target_year = st.selectbox("기준 수능", _years,
+        index=_years.index(st.session_state.target_year) if st.session_state.target_year in _years else 0,
+        format_func=_yr_label, label_visibility="collapsed")
+    _ss = get_season()
+    st.caption(f"오늘 {_ss['today'].month}/{_ss['today'].day} 기준 → **{_ss['label']}** · 수능까지 {_ss['days']}일")
+    if _ss["dday_possible"]:
+        st.session_state.allow_dday = st.checkbox(f"문구에 D-day 숫자 사용 (D-{_ss['days']})",
+                                                  value=st.session_state.get("allow_dday", False))
+    else:
+        st.session_state.allow_dday = False
+        st.caption("D-day 숫자는 수능 100일 이내 + 공식 일정일 때만 켤 수 있습니다.")
+
+    if st.session_state.purpose_type == "이벤트":
+        st.session_state.event_info = st.text_area("이벤트 일정·조건 (AI가 이 값만 사용)",
+            value=st.session_state.get("event_info", ""), height=80,
+            placeholder="예: 기간 2026.12.01(화)~12.21(월) / 대상 KISSAVE 수강생 / 발표 12.28(월) 공지사항 / 경품 스타벅스 30명")
+
     st.markdown('<div class="sec-hdr">🎯 수강 대상</div>', unsafe_allow_html=True)
     tgt = st.radio("대상", ["고3·N수","고1·2 — 기초 완성"], horizontal=True, label_visibility="collapsed")
     st.session_state.target = tgt
@@ -5578,11 +4427,18 @@ with st.sidebar:
         if "custom_section" in st.session_state.active_sections:
             st.session_state.active_sections.remove("custom_section")
 
+    # [v8] 유의사항 · 표시 옵션
+    with st.expander("📄 유의사항 · 표시 옵션", expanded=False):
+        st.session_state.notice_text = st.text_area("유의사항 (한 줄에 한 항목)",
+            value=st.session_state.get("notice_text") or DEFAULT_NOTICE, height=140)
+        st.session_state.fx_on = st.checkbox("배경 효과 사용 (파티클·글리치·필름 그레인)",
+            value=st.session_state.get("fx_on", False),
+            help="실무 페이지에서는 끄는 것을 권장합니다. 텍스트 가독성과 로딩 속도가 좋아집니다.")
+
 # ══════════════════════════════════════════════════════
 # MAIN
 # ══════════════════════════════════════════════════════
-ordered = [s for s in PURPOSE_SECTIONS[st.session_state.purpose_type]
-           if s in st.session_state.active_sections]
+ordered = list(st.session_state.active_sections)   # [v8] 멀티셀렉트에서 고른 순서 그대로
 if st.session_state.custom_section_on and "custom_section" not in ordered:
     if st.session_state.custom_copy and st.session_state.custom_copy.get("custom_section_data"):
         ordered.append("custom_section")
@@ -5596,7 +4452,7 @@ with L:
     st.markdown("### ✍️ AI 문구 생성")
     st.caption(PURPOSE_HINTS[st.session_state.purpose_type])
     ph_map = {
-        "신규 커리큘럼": "예: 2026 수능 영어 파이널. 선티 선생님의 KISS Logic 방법론.",
+        "신규 커리큘럼": "예: 2028 신규 런칭. 독해 논리 기본서. 개념→기출→적용 4단계, 노베이스~3등급 대상. 교재 2권 구성. 문장을 '번역'하던 습관을 '논리'로 바꾸는 게 핵심.",
         "이벤트":       "예: 6월 모의고사 대비 특강. 3주 한정 수강료 할인.",
         "기획전":       "예: 2026 영어 기획전. 독해·EBS·어법·파이널 4인 강사 통합.",
     }
@@ -5617,12 +4473,13 @@ with L:
 
             # 목적별로 gen_copy가 커버하는 섹션과 개별 생성할 섹션 구분
             COPY_COVERS = {
-                "신규 커리큘럼": ["banner","intro","why","curriculum","target","reviews","faq","cta"],
+                "신규 커리큘럼": ["banner","intro","why","curriculum","target","reviews","faq","cta","video"],
                 "이벤트":       ["banner","event_overview","event_benefits","event_deadline","reviews","cta"],
                 "기획전":       ["fest_hero","fest_lineup","fest_benefits","fest_cta"],
             }
             covered     = set(COPY_COVERS.get(ptype, []))
-            extra_secs  = [s for s in active if s not in covered and s != "custom_section"]
+            NO_AI = {"custom_section", "notice", "course_intro", "textbook_sale", "instructor_philosophy"}  # 입력 기반/AI 불필요
+            extra_secs  = [s for s in active if s not in covered and s not in NO_AI]
             total_steps = 1 + len(extra_secs)
 
             prog   = st.progress(0)
@@ -5631,6 +4488,7 @@ with L:
             try:
                 # 1단계: gen_copy로 메인 문구 생성 (톤+맥락 반영)
                 status.info(f"✍️ 전체 문구 생성 중... (1/{total_steps})")
+                st.session_state["_last_ctx"] = ctx
                 r = gen_copy(ctx, ptype,
                              st.session_state.target, st.session_state.purpose_label)
                 st.session_state.custom_copy = r
@@ -5675,6 +4533,12 @@ with L:
 
     if st.session_state.custom_copy:
         st.success("✓ AI 문구 적용됨", icon="✅")
+        if st.session_state.get("_last_model"):
+            st.caption(f"사용 모델: `{st.session_state['_last_model']}`")
+            if st.session_state.get("_last_model_errors"):
+                with st.expander("앞 순위 모델이 실패한 이유", expanded=False):
+                    for _e in st.session_state["_last_model_errors"]:
+                        st.caption(_e)
         if st.button("✕ 문구 초기화", use_container_width=True):
             st.session_state.custom_copy = None
             st.rerun()
@@ -5729,28 +4593,33 @@ with L:
         if pt == "신규 커리큘럼":
             edit_sections = [
                 ("🏠 배너", [
-                    ("text_input","메인 제목","bannerTitle"),
-                    ("text_area","리드 문구","bannerLead"),
+                    ("text_input","상단 라벨","bannerSub"),
+                    ("text_input","킥커 (워드마크 위 한 줄)","bannerKicker"),
+                    ("text_input","워드마크 (강좌명)","bannerTitle"),
+                    ("text_area","설명","bannerLead"),
                     ("text_input","버튼 텍스트","ctaCopy"),
-                    ("text_input","브랜드 문구","brandTagline"),
+                    ("text_input","영문 슬로건","brandTagline"),
                 ]),
-                ("👤 강사 소개", [
-                    ("text_input","소개 제목","introTitle"),
-                    ("text_area","소개 본문","introDesc"),
-                    ("text_input","한줄 약력","introBio"),
+                ("💡 문제 제기", [
+                    ("text_input","eyebrow","whyEyebrow"),
+                    ("text_input","헤드라인","whyTitle"),
+                    ("text_input","서브카피","whySub"),
                 ]),
-                ("💡 수강 이유", [
-                    ("text_input","섹션 제목","whyTitle"),
-                    ("text_input","서브 제목","whySub"),
+                ("📖 강좌의 정체", [
+                    ("text_input","eyebrow","introEyebrow"),
+                    ("text_input","선언 문장","introTitle"),
+                    ("text_area","설명","introDesc"),
+                    ("text_input","한 줄 포지션","introBio"),
                 ]),
                 ("📚 커리큘럼", [
-                    ("text_input","섹션 제목","curriculumTitle"),
-                    ("text_input","서브 제목","curriculumSub"),
+                    ("text_input","헤드라인","curriculumTitle"),
+                    ("text_input","서브카피","curriculumSub"),
                 ]),
                 ("📣 CTA", [
-                    ("text_area","CTA 제목","ctaTitle"),
-                    ("text_input","서브문구","ctaSub"),
+                    ("text_input","헤드라인","ctaTitle"),
+                    ("text_input","서브카피","ctaSub"),
                     ("text_input","버튼 텍스트","ctaCopy"),
+                    ("text_input","라벨","ctaBadge"),
                 ]),
             ]
         elif pt == "이벤트":
@@ -5784,6 +4653,7 @@ with L:
                 ]),
             ]
 
+        st.caption("💡 헤드라인에서 [[단어]]처럼 감싸면 그 단어만 포인트 컬러로 강조됩니다.")
         for sec_label, fields in edit_sections:
             with st.expander(sec_label, expanded=False):
                 changed = {}
@@ -5800,6 +4670,21 @@ with L:
                     if st.button("✓ 적용", key=f"apply_{sec_label}_btn"):
                         st.session_state.custom_copy.update(changed)
                         st.rerun()
+        # [v8] 수강평은 반드시 실제 후기로 교체 (AI 예시 후기를 그대로 게시하지 않도록)
+        with st.expander("⭐ 수강평 (실제 후기로 교체)", expanded=bool(cp.get("_reviews_sample"))):
+            st.caption("한 줄에 하나씩 `후기 내용 | 이름(마스킹) | 뱃지` 형식으로 붙여넣으세요.")
+            cur_rv = "\n".join(" | ".join(str(x) for x in (list(r) + ["", ""])[:3])
+                                for r in (cp.get("reviews") or []) if isinstance(r, (list, tuple)))
+            new_rv = st.text_area("수강평", value=cur_rv, height=140, label_visibility="collapsed", key="ed_reviews")
+            if st.button("✓ 실제 후기로 적용", key="apply_reviews"):
+                rows = []
+                for line in new_rv.splitlines():
+                    if line.strip():
+                        p = [x.strip() for x in line.split("|")] + ["", ""]
+                        rows.append(p[:3])
+                st.session_state.custom_copy["reviews"] = rows
+                st.session_state.custom_copy["_reviews_sample"] = False
+                st.rerun()
     else:
         st.caption("💡 AI로 문구를 먼저 생성하면 여기서 항목별로 수정할 수 있습니다.")
 
@@ -5894,7 +4779,7 @@ with L:
           else st.session_state.concept)
     st.download_button(
         "📥 HTML 파일 다운로드",
-        data=final_html.encode("utf-8"),
+        data=build_html(ordered, exporting=True).encode("utf-8"),
         file_name=f"{st.session_state.instructor_name or 'page'}_{st.session_state.subject}_{cn}.html",
         mime="text/html",
         use_container_width=True,
@@ -5958,5 +4843,9 @@ with R:
         st.rerun()
 
     preview_height = 1400 if st.session_state.preview_large else 700
-    import streamlit.components.v1 as components
-    components.html(final_html, height=preview_height, width=preview_width, scrolling=True)
+    # [v8] Streamlit 최신 버전은 components.html이 폐기 예정 → st.iframe 우선 사용
+    if hasattr(st, "iframe"):
+        st.iframe(final_html, height=preview_height, width=preview_width or "stretch")
+    else:
+        import streamlit.components.v1 as components
+        components.html(final_html, height=preview_height, width=preview_width, scrolling=True)
