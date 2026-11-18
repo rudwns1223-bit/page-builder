@@ -1,5 +1,6 @@
 """
-강사 페이지 빌더 Pro v10 — 실무용 정리판
+강사 페이지 빌더 Pro v14 — 실무용 정리판
+[v14] ✨ 시안형: 모든 섹션을 먼저 펼쳐 놓고 순서·표시를 직접 고르기 / 핵심 문구 후보 3개 + 디렉터 선택(카피 워크숍)
 [v10] ✨ 시안형 PR 페이지 모드: 컨셉 키트 + 블록 구성 + 스타일 팩 (실제 PR 시안 문법)
 [v9] 📝 강좌 특징 HTML 모드 추가: 원고 → 관리자 페이지용 인라인 CSS HTML(.txt) + 미리보기(.html)
 [문구]
@@ -1125,7 +1126,8 @@ CLICHE_WORDS = [
     "하는 당신", "당신을 위한", "지금 바로 시작하세요", "압도적인 결과", "차원이 다른",
 ]
 _SKIP_LINT_KEYS = {"bannerVisual", "introVisual", "whyVisual", "concept", "videoUrl",
-                   "bg_photo_url", "custom_section_data", "course_copy", "textbook_copy"}
+                   "bg_photo_url", "custom_section_data", "course_copy", "textbook_copy",
+                   "_alts", "_needs", "hidden"}
 
 def _walk(obj, fn, path=""):
     """문자열 필드마다 fn(path, text) → 새 text"""
@@ -1225,7 +1227,8 @@ def polish_copy(cp: dict, brief: str) -> dict:
 # [v11] 교정 패스 — 맞춤법·어법·어색한 표현만 고치는 마지막 단계
 #  (예: '지문을 읽은 게 두려워졌습니다', '내용이 멍들어서', '첫 단추를 채우세요' 같은 오류)
 # ═══════════════════════════════════════════════════════
-PROOF_SKIP_KEYS = {"type", "variant", "nav", "pack", "pct", "no", "concept_en", "_reviews_sample", "videoUrl", "bg_photo_url"}
+PROOF_SKIP_KEYS = {"type", "variant", "nav", "pack", "pct", "no", "concept_en", "_reviews_sample", "videoUrl", "bg_photo_url",
+                   "_alts", "_needs", "hidden", "layout"}
 
 def proofread_copy(obj, label: str = ""):
     """문자열만 골라 교정 → 같은 구조로 되돌림. 실패하면 원본 그대로."""
@@ -4694,7 +4697,7 @@ ED_LAYOUT_BLOCKS = {"prologue": "가운데 정렬 / 이미지+텍스트 2단 / �
                     "quote": "밝은 배경 / 어두운 배경 / 좌우 분할",
                     "three_col": "이미지 띠 / 카드형 / 지그재그 행",
                     "statement": "밝은 배경 / 어두운 배경"}
-ED_COPIED_PHRASES = ["통합의 시대를 설계", "파이널은 밸런스 싸움", "허점은 닫고", "감각은 열고", "A distinct INSIGHT",
+ED_COPIED_PHRASES = ["빈칸은 감이 아니라 근거", "주어부터 찾는 습관", "통합의 시대를 설계", "파이널은 밸런스 싸움", "허점은 닫고", "감각은 열고", "A distinct INSIGHT",
                      "A clear GUIDELINE", "완성도를 설계", "깊이감을 설계", "무엇을 알고, 어디까지 이해하고"]
 
 ED_STYLE_GUIDE = """
@@ -4718,6 +4721,35 @@ D. 컨셉 메타포에서 나온 「키워드」 3개를 기획 의도 포인트
 - 숫자·가격·기간·비율은 [강좌 정보]에 있는 것만. 없으면 그 블록을 쓰지 않는다.
 - 쓰지 않는 표현: 체계적인, 최고의, 함께라면, 비법, 여정, 첫걸음, 잠재력, 한계를 넘어, ~하는 당신.
 """
+
+ED_CRAFT_GUIDE = """
+[세련된 카피 — 시니어 카피라이터가 실제로 고민하는 지점. 예시 문장은 그대로 쓰지 말 것]
+1. 먼저 '이 강좌를 들을 학생이 속으로 하는 말'을 찾는다. 히어로·프롤로그는 그 말에서 출발한다.
+   (방향 예: "해석은 되는데 답이 안 보인다면" 처럼 학생이 실제로 겪는 상황)
+2. 형용사 대신 구체적인 행동을 쓴다. '확실한 실력' ✗ → '처음 보는 지문에서도 주어와 동사부터 찾는다' ✓
+3. 이 강좌에만 맞는 말인지 확인한다. 강좌명만 바꿔 다른 강좌에 붙여도 말이 되면 다시 쓴다.
+4. 재정의(학생이 잘못 알고 있는 것을 바로잡는 문장)는 페이지 전체에서 1번. 'A가 아니라 B' 구조를 반복하지 않는다.
+5. 리듬: 짧은 문장 다음에 조금 긴 문장. 제목은 10~22자. 명사로 끝나는 제목과 '~합니다'로 끝나는 설명을 섞는다.
+   같은 어미(~다, ~는, ~까)로 끝나는 제목이 세 번 연달아 나오지 않게 한다.
+6. 덜어내기: 같은 뜻이 두 번 나오면 하나를 지운다. 매우·정말·완벽한·확실한·제대로 같은 강조어는 쓰지 않는다.
+7. 근거 없는 약속(반드시 오른다, 등급 보장)은 쓰지 않는다. 마지막 한 줄은 느낌표·명령형 대신 담백하게 끝낸다.
+"""
+
+ED_FULL_ORDER = ["hero", "prologue", "statement", "points", "quote", "three_col", "course_stages", "index_tiles",
+                 "combo", "feature_stat", "balance", "manifesto", "video", "lineup", "pass_box", "benefit"]
+
+# 핵심 문구(후보를 여러 개 써 볼 가치가 있는 칸)와 그 역할
+ED_KEY_FIELDS = {
+    "hero": {"kicker": "히어로 워드마크 위 한 줄 (첫인상)", "sub": "히어로 한 줄 정의"},
+    "prologue": {"title": "프롤로그 제목 (컨셉 명사구)", "sub": "프롤로그 부제", "closing": "프롤로그 마무리 한 줄"},
+    "statement": {"line": "섹션 사이 큰 선언 문장", "sub": "선언을 받는 한 줄"},
+    "quote": {"title": "기획 의도 질문형 제목", "closing": "기획 의도 마무리"},
+    "three_col": {"title_ko": "특징 섹션 한글 제목"},
+    "manifesto": {"kicker": "메시지 섹션 윗줄", "title": "메시지 섹션 선언형 제목", "closing": "메시지 마무리 한 줄"},
+    "index_tiles": {"title": "라인업 제목"}, "combo": {"title": "구성 다이어그램 제목"},
+    "feature_stat": {"title": "구성 수치 섹션 제목"}, "lineup": {"title_ko": "교재 섹션 한글 제목"},
+    "video": {"title": "OT 영상 제목"},
+}
 
 ED_BLOCK_SPECS = {
     "hero": ('히어로(항상 첫 블록)',
@@ -5420,9 +5452,12 @@ def ed_build_html(plan: dict, x: dict, export: bool = False) -> str:
     blocks = plan.get("blocks") or []
     x = dict(x); x["motif"] = " ".join(str((plan.get("kit") or {}).get(k, "")) for k in ("motif", "concept_en"))
     x["concept_en"] = str((plan.get("kit") or {}).get("concept_en", "")); x["deco"] = plan.get("deco", True)
-    navs = [(f"ed-b{i}", b.get("nav")) for i, b in enumerate(blocks) if b.get("nav") and b.get("type") != "hero"]
+    _show = lambda b: not b.get("hidden") and (b.get("type") in ("hero", "pass_box", "video") or not _ed_is_empty(b))
+    navs = [(f"ed-b{i}", b.get("nav")) for i, b in enumerate(blocks) if b.get("nav") and b.get("type") != "hero" and _show(b)]
     secs = []
     for i, b in enumerate(blocks):
+        if not _show(b):
+            continue
         fn = ED_RENDERERS.get(b.get("type"))
         if not fn:
             continue
@@ -5470,7 +5505,7 @@ def ed_brief() -> str:
     concept = st.session_state.get("ed_concept", "").strip()
     return "\n".join([
         "당신은 대성마이맥 컨텐츠기획실의 시니어 카피라이터 겸 PR 페이지 기획자입니다.",
-        ED_STYLE_GUIDE, season_prompt_block(),
+        ED_STYLE_GUIDE, ED_CRAFT_GUIDE, season_prompt_block(),
         "[강좌 정보 — 여기에 없는 사실·숫자·가격·기간은 쓰지 않는다]", _ed_inputs_text(),
         (f"[컨셉 지정] {concept} — 이 단어/이미지로 컨셉 키트를 만든다." if concept else ""),
         "[모범 예시 — 6~8등급 입문 강좌 'KEY STEP'의 앞부분. 컨셉 동사·「키워드」가 이어지는 방식과 말맛만 참고하고, 문장은 재사용하지 말 것]",
@@ -5499,7 +5534,169 @@ def ed_generate_plan(avoid: str = "") -> dict:
     st.session_state["_last_ctx"] = _ed_inputs_text()   # 품질 검사에서 '입력된 숫자'로 인정
     plan = safe_json(call_ai(prompt, max_tokens=7000, temperature=0.85))
     plan = ed_polish(plan)
+    plan = ed_copy_workshop(plan)
     plan["blocks"] = proofread_copy(plan["blocks"], st.session_state.get("ed_label", ""))
+    return plan
+
+
+# ── [v14] 모든 섹션을 먼저 펼쳐 놓기 ─────────────────────────
+def ed_block_needs() -> dict:
+    """블록 type → 부족한 입력 정보 이름 ('' 이면 바로 작성 가능). 정보 없이 쓰면 내용을 지어내게 되는 블록만."""
+    g = st.session_state.get
+    memo = str(g("ed_memo") or "")
+    courses = [t for t in str(g("ed_courses") or "").splitlines() if t.strip()]
+    has_books = bool(str(g("ed_books") or "").strip() or g("ed_books_img"))
+    return {
+        "index_tiles": "" if len(courses) >= 3 else "강좌 라인업 3개 이상",
+        "course_stages": "" if courses else "강좌 라인업",
+        "balance": "" if re.search(r"\d+\s*%", memo) else "기획 메모에 비율(%)",
+        "feature_stat": "" if re.search(r"\d+\s*(강|회|문항|문제|주|권|세트|Sessions?|Questions?)", memo, re.I) else "기획 메모에 회차·문항 수",
+        "video": "" if g("ed_video") else "OT 영상 링크",
+        "lineup": "" if has_books else "교재 정보",
+        "pass_box": "" if g("ed_pass_name") else "구매 상품명",
+        "benefit": "" if g("ed_benefit") else "혜택·이벤트",
+    }
+
+def _ed_is_empty(b: dict) -> bool:
+    return not any(v not in ("", [], {}, None) for k, v in b.items()
+                   if k not in ("type", "layout", "variant", "nav", "hidden") and not str(k).startswith("_"))
+
+def _ed_auto_layouts(blocks: list) -> list:
+    """레이아웃이 비었으면 a/b/c를 돌려가며 — 밝은/어두운 섹션이 번갈아 나오게"""
+    seq = ["b", "a", "c", "a", "b", "c"]
+    j = 0
+    for b in blocks:
+        if b.get("type") in ED_LAYOUT_BLOCKS:
+            n = len(ED_LAYOUT_BLOCKS[b["type"]].split(" / "))
+            if b.get("layout") not in ("a", "b", "c")[:n]:
+                b["layout"] = seq[j % len(seq)] if seq[j % len(seq)] in ("a", "b", "c")[:n] else "a"
+            j += 1
+    return blocks
+
+def ed_generate_full(avoid: str = "") -> dict:
+    """[v14] 블록 라이브러리의 모든 섹션을 한 번에 작성 → MD가 순서·표시를 직접 고른다.
+    정보가 없는 섹션은 내용을 지어내지 않고 '숨김 + 필요한 정보' 상태로 자리만 만들어 둔다."""
+    needs = ed_block_needs()
+    ai_types = [t for t in ED_FULL_ORDER if t != "hero" and not needs.get(t)]
+    g1, g2 = ai_types[:6], ai_types[6:]
+    packs = ", ".join(f"{k}({v['name']})" for k, v in ED_PACKS.items())
+    cat = lambda ts: "\n".join(f"- {t}: {ED_BLOCK_SPECS[t][0]}\n  {ED_BLOCK_SPECS[t][1]}" for t in ["hero"] + ts if t in ED_BLOCK_SPECS)
+    rules = ("[작성 규칙]\n"
+             "- 각 섹션은 페이지에서 서로 다른 역할을 한다. 같은 문장·같은 표현을 다른 섹션에서 반복하지 않는다.\n"
+             "- prologue는 '왜 이 강좌인가', points/quote는 '어떻게 가르치는가', three_col은 '무엇이 다른가', manifesto는 '강사의 목소리'.\n"
+             "- 모든 섹션 제목은 컨셉 키트의 동사·키워드로 이어지게, 설명은 평이하게.\n"
+             "- MD가 이 중 일부만 골라 쓰므로, 어느 섹션을 빼도 페이지가 어색하지 않게 각 섹션을 독립적으로 쓴다.\n")
+    st.session_state["_last_ctx"] = _ed_inputs_text()
+    p1 = (f"{ed_brief()}\n\n[작성할 블록 — 아래 type을 이 순서대로 하나씩, 빠짐없이]\n{cat(g1)}\n\n{rules}"
+          f"- pack은 다음 중 컨셉에 어울리는 하나: {packs}\n" + (f"- 이전 결과와 다른 컨셉으로: {avoid}\n" if avoid else "")
+          + '\nJSON 하나만 반환:\n{"kit":{"concept_en":"컨셉 영단어","verb":"컨셉 동사","motif":"시각 모티프",'
+          '"keywords":["「키워드」1","2","3"],"antithesis":"대구 한 줄"},"pack":"팩 키","blocks":[hero, ' + ", ".join(g1) + ']}')
+    plan = safe_json(call_ai(p1, max_tokens=7000, temperature=0.85))
+    blocks = [b for b in (plan.get("blocks") or []) if isinstance(b, dict)]
+    if g2:
+        done = [{k: b.get(k) for k in ("type", "title", "title_ko", "kicker", "line", "closing") if b.get(k)} for b in blocks]
+        p2 = (f"{ed_brief()}\n\n[이 페이지의 컨셉 키트]\n{json.dumps(plan.get('kit', {}), ensure_ascii=False)}\n"
+              f"[이미 쓴 섹션 — 이 표현들과 겹치지 않게]\n{json.dumps(done, ensure_ascii=False)}\n\n"
+              f"[작성할 블록 — 아래 type을 이 순서대로 하나씩, 빠짐없이]\n{cat(g2)}\n\n{rules}"
+              '\nJSON 하나만 반환:\n{"blocks":[' + ", ".join(g2) + ']}')
+        try:
+            more = safe_json(call_ai(p2, max_tokens=6000, temperature=0.85))
+            blocks += [b for b in (more.get("blocks") or []) if isinstance(b, dict)]
+        except Exception:
+            pass
+    by_type = {}
+    for b in blocks:
+        by_type.setdefault(b.get("type"), b)
+    final = []
+    for t in ED_FULL_ORDER:
+        if t in by_type:
+            b = by_type[t]
+        elif needs.get(t):
+            b = {"type": t, "hidden": True, "_needs": needs[t]}
+        else:
+            b = {"type": t, "hidden": True, "_needs": "다시 쓰기"}   # AI가 빠뜨린 블록 — 자리만
+        final.append(b)
+    plan["blocks"] = _ed_auto_layouts(final)
+    plan["full"] = True
+    plan = ed_polish(plan)
+    plan = ed_copy_workshop(plan)
+    plan["blocks"] = proofread_copy(plan["blocks"], st.session_state.get("ed_label", ""))
+    return plan
+
+
+# ── [v14] 카피 워크숍: 핵심 문구마다 후보 3개 → 디렉터가 하나 고르기 ───────────
+def _ed_cand_ok(t: str, orig: str) -> bool:
+    if not isinstance(t, str) or not t.strip():
+        return False
+    season, facts = get_season(), _user_facts()
+    if any(not _allowed_hit(m.group(0), season, facts) for m in list(_DDAY_ANY_RE.finditer(t)) + list(_FAKE_NUM_RE.finditer(t))):
+        return False
+    if any(w in t for w in CLICHE_WORDS) or any(ph in t for ph in ED_COPIED_PHRASES):
+        return False
+    return len(t) <= max(44, int(len(orig or "") * 1.8))
+
+def ed_copy_workshop(plan: dict, only_idx=None) -> dict:
+    """히어로·제목·선언 같은 핵심 문구마다 서로 다른 각도의 후보 3개를 쓰고,
+    크리에이티브 디렉터 기준으로 하나를 고른다. 나머지 후보는 블록 편집에서 바꿔 끼울 수 있게 보관."""
+    if not st.session_state.get("api_key"):
+        return plan
+    blocks = plan.get("blocks") or []
+    fields, flat = [], {}
+    for i, b in enumerate(blocks):
+        if only_idx is not None and i != only_idx:
+            continue
+        if b.get("hidden") and only_idx is None:
+            continue
+        for k, role in ED_KEY_FIELDS.get(b.get("type"), {}).items():
+            v = b.get(k)
+            if isinstance(v, str) and v.strip():
+                fid = f"f{len(fields)}"
+                fields.append((i, k))
+                flat[fid] = {"역할": role, "현재": v}
+    if not fields:
+        return plan
+    kit = plan.get("kit") or {}
+    others = [b.get(k) for b in blocks for k in ED_KEY_FIELDS.get(b.get("type"), {}) if isinstance(b.get(k), str)] if only_idx is not None else []
+    prompt = (
+        f"{ed_brief()}\n\n[이 페이지의 컨셉 키트]\n{json.dumps(kit, ensure_ascii=False)}\n"
+        + (f"[페이지의 다른 핵심 문구 — 겹치지 않게]\n{json.dumps(others, ensure_ascii=False)}\n" if others else "")
+        + "\n당신은 이 페이지의 크리에이티브 디렉터입니다. 아래 핵심 문구마다 두 단계로 작업하세요.\n"
+        "1) 서로 다른 각도의 후보 3개를 새로 씁니다.\n"
+        "   A안: 이 강좌를 들을 학생의 실제 고민·속마음에서 출발\n"
+        "   B안: 강좌가 실제로 하는 일을 구체적이고 정확하게\n"
+        f"   C안: 컨셉어({kit.get('concept_en', '')}·{kit.get('verb', '')})를 한 번만, 절제해서\n"
+        "2) '현재' 문구까지 4개 중 가장 좋은 것을 고릅니다. 기준 —\n"
+        "   ① 읽자마자 뜻이 통하는가 ② 구체적인가 ③ 다른 강좌에 붙이면 어색한가(이 강좌에만 맞는 말인가)\n"
+        "   ④ 과장·상투어·억지 비유가 없는가 ⑤ 소리 내 읽었을 때 리듬이 좋은가\n"
+        "- 길이는 현재 문구와 비슷하게(±40%). 숫자·사실은 강좌 정보에 있는 것만. 「 」·[[ ]] 표시는 써도 된다.\n"
+        "- 문구끼리도 비교해, 같은 어미·같은 문장 구조가 페이지에서 반복되지 않게 고른다.\n\n"
+        f"{json.dumps(flat, ensure_ascii=False)}\n\n"
+        'JSON만 반환: {"f0":{"cands":["A안","B안","C안"],"pick":0,"why":"고른 이유 한 줄"}, ...}  (pick: 0=현재 유지, 1~3=후보 번호)'
+    )
+    try:
+        res = safe_json(call_ai(prompt, max_tokens=5000, temperature=0.8))
+    except Exception:
+        return plan
+    for n, (i, k) in enumerate(fields):
+        r = res.get(f"f{n}")
+        if not isinstance(r, dict):
+            continue
+        orig = blocks[i][k]
+        cands = [strip_hanja(str(c)).strip() for c in (r.get("cands") or [])][:3]
+        ok = [c for c in cands if _ed_cand_ok(c, orig) and c != orig]
+        try:
+            pick = int(r.get("pick", 0))
+        except Exception:
+            pick = 0
+        chosen = cands[pick - 1] if 1 <= pick <= len(cands) and cands[pick - 1] in ok else orig
+        opts = []
+        for c in [chosen, orig] + ok:
+            if c and c not in opts:
+                opts.append(c)
+        blocks[i][k] = chosen
+        if len(opts) > 1:
+            blocks[i].setdefault("_alts", {})[k] = {"opts": opts, "why": str(r.get("why", ""))[:80]}
+    plan["blocks"] = blocks
     return plan
 
 def ed_polish(plan: dict) -> dict:
@@ -5532,7 +5729,7 @@ def ed_metaphor_report(plan: dict) -> dict:
     words = _ed_metaphor_words(plan)
     rep = {}
     for i, b in enumerate(plan.get("blocks") or []):
-        if b.get("type") == "hero":
+        if b.get("type") == "hero" or b.get("hidden"):
             continue
         n = 0
         def _scan(v, key=""):
@@ -5547,7 +5744,7 @@ def ed_metaphor_report(plan: dict) -> dict:
                 for vv in v:
                     _scan(vv, key)
         for k, v in b.items():
-            if k not in ("type", "layout", "nav"):
+            if k not in ("type", "layout", "nav", "hidden") and not str(k).startswith("_"):
                 _scan(v, k)
         if n:
             rep[i] = n
@@ -5560,7 +5757,7 @@ def ed_naturalize(plan: dict) -> dict:
     # 1) 근거 없는 비율 블록 제거
     keep = []
     for b in blocks:
-        if b.get("type") == "balance":
+        if b.get("type") == "balance" and not b.get("_needs"):
             pcts = [str((b.get(side) or {}).get("pct", "")) for side in ("left", "right")]
             nums = [re.sub(r"\D", "", p) for p in pcts if re.search(r"\d", p)]
             if not nums or not all(n and n in facts for n in nums):
@@ -5621,7 +5818,7 @@ def ed_regen_block(plan: dict, idx: int, request: str) -> dict:
     b = plan["blocks"][idx]
     spec = ED_BLOCK_SPECS.get(b.get("type"), ("", "{}"))[1]
     prompt = (f"{ed_brief()}\n\n[이 페이지의 컨셉 키트]\n{json.dumps(plan.get('kit', {}), ensure_ascii=False)}\n\n"
-              f"[현재 블록]\n{json.dumps(b, ensure_ascii=False)}\n\n[요청] {request or '같은 구조로 다른 표현으로 다시 써주세요'}\n\n"
+              f"[현재 블록]\n{json.dumps({k: v for k, v in b.items() if not str(k).startswith('_') and k != 'hidden'}, ensure_ascii=False)}\n\n[요청] {request or '같은 구조로 다른 표현으로 다시 써주세요'}\n\n"
               f"같은 type의 블록 JSON 하나만 반환. 형식:\n{spec}")
     st.session_state["_last_ctx"] = _ed_inputs_text()
     nb = safe_json(call_ai(prompt, max_tokens=2500, temperature=0.9))
@@ -5631,8 +5828,19 @@ def ed_regen_block(plan: dict, idx: int, request: str) -> dict:
     nb = polish_copy({"b": nb}, ed_brief())["b"]
     nb = proofread_copy(nb, st.session_state.get("ed_label", ""))
     for k, v in nb.items():          # 검사에서 비워진 칸은 이전 문구 유지
-        if v in ("", [], None) and b.get(k):
+        if v in ("", [], None) and b.get(k) and not str(k).startswith("_"):
             nb[k] = b[k]
+    for k in ("_alts", "_needs", "hidden"):
+        nb.pop(k, None)
+    if b.get("layout") and b.get("type") in ED_LAYOUT_BLOCKS:
+        nb.setdefault("layout", b["layout"])
+    _nav = b.get("nav") or (re.search(r'"nav":"([^"]+)"', spec) or [None, None])[1]
+    if _nav:
+        nb.setdefault("nav", _nav)
+    if ED_KEY_FIELDS.get(nb.get("type")):     # [v14] 핵심 문구는 후보 3개 중 고르기
+        tmp = {"kit": plan.get("kit"), "blocks": list(plan["blocks"])}
+        tmp["blocks"][idx] = nb
+        nb = ed_copy_workshop(tmp, only_idx=idx)["blocks"][idx]
     return nb
 
 # ══════════════════════════════════════════════════════════════════════
@@ -5786,7 +5994,7 @@ _ED_DEFAULTS = {"ed_inst": "", "ed_label": "", "ed_subject": "영어", "ed_targe
                 "ed_books": "", "ed_pass_name": "", "ed_pass_inc": "", "ed_pass_orig": "", "ed_pass_price": "", "ed_pass_disc": "",
                 "ed_pass_link": "", "ed_pass_note": "", "ed_benefit": "", "ed_video": "", "ed_concept": "",
                 "ed_notice": "", "ed_plan": None, "ed_photo": "", "ed_books_img": [],
-                "ed_imgs": {}, "ed_img_prompts": {}, "ed_img_provider": "gemini"}
+                "ed_imgs": {}, "ed_img_prompts": {}, "ed_img_provider": "gemini", "ed_full": True}
 
 def _ed_img_b64(f, max_w=1400) -> str:
     from PIL import Image
@@ -5813,10 +6021,22 @@ def _ed_ctx() -> dict:
 def _ed_field_editor(b: dict, i: int):
     """블록 안의 문구를 종류에 맞는 입력칸으로 보여줌 (복잡한 목록은 JSON으로)"""
     changed = False
+    alts = b.get("_alts") or {}
     for k, v in list(b.items()):
-        if k in ("type",):
+        if k in ("type", "hidden") or str(k).startswith("_"):
             continue
         key = f"edf_{i}_{k}"
+        if k in alts and isinstance(v, str):
+            opts = [o for o in alts[k].get("opts", []) if o != v]
+            if opts:
+                KEEP = "(지금 문구 유지)"
+                sel = st.selectbox(f"💡 {k} — 다른 후보로 바꾸기", [KEEP] + opts, key=f"edalt_{i}_{k}",
+                                   help=("디렉터 선택 이유: " + alts[k].get("why", "")) if alts[k].get("why") else None)
+                if sel != KEEP:
+                    b[k] = sel
+                    st.session_state.pop(key, None)
+                    st.session_state.pop(f"edalt_{i}_{k}", None)
+                    st.rerun()
         if k == "layout" and b.get("type") in ED_LAYOUT_BLOCKS:
             labels = ED_LAYOUT_BLOCKS[b["type"]].split(" / ")
             opts = ["a", "b", "c"][:len(labels)]
@@ -5867,10 +6087,11 @@ def ed_copy_md(plan: dict, x: dict) -> str:
                 out += _flat(it, indent + "  ")
             return out
         return []
-    for i, b in enumerate(plan.get("blocks") or []):
+    shown = [b for b in (plan.get("blocks") or []) if not b.get("hidden") and not _ed_is_empty(b)]
+    for i, b in enumerate(shown):
         lines.append(f"## {i + 1:02d}. {ED_BLOCK_SPECS.get(b.get('type'), (b.get('type'),))[0]}")
         for k, v in b.items():
-            if k in ("type", "variant", "layout", "nav"):
+            if k in ("type", "variant", "layout", "nav", "hidden") or str(k).startswith("_"):
                 continue
             body = _flat(v, "  ")
             if body:
@@ -5902,6 +6123,12 @@ def ed_package_zip(plan: dict, x: dict) -> bytes:
                    "   - 강사 사진은 반드시 실제 촬영본 사용 (AI로 인물 생성 금지)\n"
                    "4. 관리자 '강좌 특징' 영역은 빌더의 📝 강좌 특징 HTML 모드로 별도 제작\n")
     return buf.getvalue()
+
+def _ed_clear_widgets(*prefixes):
+    """블록 순서·내용이 바뀌면 입력칸 위젯 상태를 지워 새 값이 보이게"""
+    prefixes = prefixes or ("edf_", "edalt_", "edrq")
+    for k in [k for k in st.session_state.keys() if str(k).startswith(prefixes)]:
+        del st.session_state[k]
 
 def render_editorial_mode():
     for k, v in _ED_DEFAULTS.items():
@@ -5972,6 +6199,9 @@ def render_editorial_mode():
             S.ed_benefit = st.text_area("혜택·이벤트 (기간·대상·내용)", S.ed_benefit, height=70)
             S.ed_notice = st.text_area("유의사항 (한 줄에 하나)", S.ed_notice or DEFAULT_NOTICE, height=90)
 
+        S.ed_full = st.checkbox("모든 섹션을 먼저 펼쳐 놓고, 순서·표시는 내가 고르기", value=S.ed_full, key="ed_full_ck",
+                                help="켜면 블록 라이브러리의 섹션을 전부 작성해 둡니다. 아래 '③ 순서 · 표시'에서 ▲▼로 순서를 바꾸고 👁로 뺄 섹션을 숨기세요. "
+                                     "끄면 AI가 6~9개를 골라 구성합니다.")
         b1, b2 = st.columns(2)
         gen = b1.button("✨ 페이지 만들기" if S.ed_plan is None else "🔀 구성 다시 짜기", type="primary", use_container_width=True)
         restyle = b2.button("🎨 스타일만 바꾸기", use_container_width=True, disabled=S.ed_plan is None)
@@ -5985,18 +6215,16 @@ def render_editorial_mode():
                 if S.ed_plan:
                     avoid = "이전 구성: " + " → ".join(b.get("type", "") for b in S.ed_plan.get("blocks", [])) + \
                             f" / 이전 컨셉: {S.ed_plan.get('kit', {}).get('verb', '')}"
-                with st.spinner("컨셉 키트를 정하고 페이지를 구성하는 중..."):
+                with st.spinner("컨셉을 정하고 섹션을 쓰는 중... 핵심 문구는 후보 3개씩 써서 고릅니다 (1~2분)"):
                     try:
-                        S.ed_plan = ed_generate_plan(avoid)
-                        for k in [k for k in S.keys() if str(k).startswith("edf_")]:
-                            del S[k]
+                        S.ed_plan = ed_generate_full(avoid) if S.ed_full else ed_generate_plan(avoid)
+                        _ed_clear_widgets()
                         st.rerun()
                     except Exception as e:
                         st.error(f"생성 실패: {e}")
         if restyle and S.ed_plan:
             S.ed_plan = ed_restyle(S.ed_plan)
-            for k in [k for k in S.keys() if str(k).startswith("edf_0_")]:
-                del S[k]
+            _ed_clear_widgets("edf_")
             st.rerun()
 
         plan = S.ed_plan
@@ -6069,31 +6297,59 @@ def render_editorial_mode():
                             st.rerun()
                     st.markdown("---")
 
-            st.markdown("**③ 블록 편집** — 순서 바꾸기·삭제·문구 수정·이 블록만 다시 쓰기")
+            # ── [v14] ③ 순서 · 표시 — 한눈에 보고 ▲▼👁 로 고르기 ─────────
+            st.markdown("**③ 순서 · 표시** — ▲▼ 순서 바꾸기 · 👁 페이지에 넣기/빼기 · 🗑 목록에서 삭제")
+            st.caption("숨긴 섹션도 문구는 남아 있어서 언제든 다시 켤 수 있어요. 미리보기에는 켜진 섹션만 나옵니다.")
+            nb_ = len(plan["blocks"])
             for i, b in enumerate(list(plan["blocks"])):
                 label = ED_BLOCK_SPECS.get(b.get("type"), (b.get("type"),))[0]
-                with st.expander(f"{i + 1:02d}. {label}", expanded=False):
-                    m1, m2, m3 = st.columns(3)
-                    if m1.button("▲ 위로", key=f"edup{i}", disabled=i <= 1, use_container_width=True):
-                        plan["blocks"][i - 1], plan["blocks"][i] = plan["blocks"][i], plan["blocks"][i - 1]
-                        for k in [k for k in S.keys() if str(k).startswith("edf_")]: del S[k]
-                        st.rerun()
-                    if m2.button("▼ 아래로", key=f"eddn{i}", disabled=i == 0 or i >= len(plan["blocks"]) - 1, use_container_width=True):
-                        plan["blocks"][i + 1], plan["blocks"][i] = plan["blocks"][i], plan["blocks"][i + 1]
-                        for k in [k for k in S.keys() if str(k).startswith("edf_")]: del S[k]
-                        st.rerun()
-                    if m3.button("🗑 삭제", key=f"eddel{i}", disabled=i == 0, use_container_width=True):
-                        plan["blocks"].pop(i)
-                        for k in [k for k in S.keys() if str(k).startswith("edf_")]: del S[k]
-                        st.rerun()
+                hid = bool(b.get("hidden"))
+                empty = _ed_is_empty(b) and b.get("type") not in ("hero", "pass_box", "video")
+                note = f" · ⚠️ {b['_needs']} 필요" if b.get("_needs") and empty else (" · 문구 없음" if empty else "")
+                r0, r1, r2, r3, r4 = st.columns([5.2, .8, .8, .9, .8])
+                r0.markdown(f"<div style='padding-top:6px;font-size:14px;{'color:#9aa3ad;text-decoration:line-through' if hid else ''}'>"
+                            f"<b>{i + 1:02d}</b>&nbsp; {_ehtml.escape(label.split(' (')[0])}<span style='color:#c27a00;font-size:12px'>{_ehtml.escape(note)}</span></div>",
+                            unsafe_allow_html=True)
+                if r1.button("▲", key=f"edup{i}", disabled=i <= 1, use_container_width=True):
+                    plan["blocks"][i - 1], plan["blocks"][i] = plan["blocks"][i], plan["blocks"][i - 1]
+                    _ed_clear_widgets(); st.rerun()
+                if r2.button("▼", key=f"eddn{i}", disabled=i == 0 or i >= nb_ - 1, use_container_width=True):
+                    plan["blocks"][i + 1], plan["blocks"][i] = plan["blocks"][i], plan["blocks"][i + 1]
+                    _ed_clear_widgets(); st.rerun()
+                if r3.button("🙈" if not hid else "👁", key=f"edhide{i}", disabled=i == 0, use_container_width=True,
+                             help="페이지에서 빼기" if not hid else "페이지에 넣기"):
+                    b["hidden"] = not hid
+                    st.rerun()
+                if r4.button("🗑", key=f"eddel{i}", disabled=i == 0, use_container_width=True, help="목록에서 삭제"):
+                    plan["blocks"].pop(i)
+                    _ed_clear_widgets(); st.rerun()
+            w1, w2 = st.columns(2)
+            if w1.button("💡 핵심 문구 다시 고르기 (후보 3개씩)", use_container_width=True,
+                         help="켜진 섹션의 히어로·제목·선언 문구를 각각 3가지 각도로 다시 써서 가장 좋은 것으로 바꿉니다."):
+                with st.spinner("문구마다 후보 3개를 쓰고 고르는 중..."):
+                    S.ed_plan = ed_copy_workshop(plan)
+                    _ed_clear_widgets(); st.rerun()
+            if w2.button("👁 숨긴 섹션 모두 켜기", use_container_width=True):
+                for b in plan["blocks"]:
+                    if not (_ed_is_empty(b) and b.get("type") not in ("hero", "pass_box", "video")):
+                        b["hidden"] = False
+                st.rerun()
+
+            st.markdown("**④ 문구 편집** — 💡 후보 바꾸기 · 직접 수정 · 이 블록만 다시 쓰기")
+            for i, b in enumerate(list(plan["blocks"])):
+                label = ED_BLOCK_SPECS.get(b.get("type"), (b.get("type"),))[0]
+                with st.expander(f"{i + 1:02d}. {label}{'  (숨김)' if b.get('hidden') else ''}", expanded=False):
+                    if b.get("_needs") and _ed_is_empty(b):
+                        st.info(f"이 섹션은 **{b['_needs']}** 정보가 있어야 지어낸 내용 없이 쓸 수 있어요. "
+                                "① 강좌 정보(또는 ② 구매·혜택, 사이드바)에 입력한 뒤 아래 '✍️ 이 블록만 다시 쓰기'를 누르세요.")
                     if _ed_field_editor(b, i):
                         pass
                     rq = st.text_input("이 블록 다시 쓰기 요청 (선택)", key=f"edrq{i}", placeholder="예: 더 짧게 / 키워드를 '각도'로")
                     if st.button("✍️ 이 블록만 다시 쓰기", key=f"edrg{i}", use_container_width=True):
-                        with st.spinner("다시 쓰는 중..."):
+                        with st.spinner("다시 쓰는 중... (후보 3개 중 고르기 포함)"):
                             try:
-                                plan["blocks"][i] = ed_regen_block(plan, i, rq)
-                                for k in [k for k in S.keys() if str(k).startswith(f"edf_{i}_")]: del S[k]
+                                plan["blocks"][i] = ed_regen_block(plan, i, rq or ("이 블록을 새로 작성" if _ed_is_empty(b) else ""))
+                                _ed_clear_widgets(f"edf_{i}_", f"edalt_{i}_")
                                 st.rerun()
                             except Exception as e:
                                 st.error(f"실패: {e}")
