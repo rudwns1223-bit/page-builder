@@ -1,5 +1,6 @@
 """
-강사 페이지 빌더 Pro v8 — 실무용 정리판
+강사 페이지 빌더 Pro v9 — 실무용 정리판
+[v9] 📝 강좌 특징 HTML 모드 추가: 원고 → 관리자 페이지용 인라인 CSS HTML(.txt) + 미리보기(.html)
 [문구]
 - 날짜는 코드가 계산(기준 수능·시즌). D-day 숫자는 100일 이내 + 사이드바 허용 시에만
 - 실제 대성마이맥 PR 페이지 문법(킥커 → 워드마크 → 설명 / 학생 장면형 헤드라인)으로 프롬프트 재작성
@@ -3960,6 +3961,620 @@ span[data-baseweb="tag"] {
   color:#fff !important; border:none !important;}
 .sec-hdr {font-size:9.5px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:#3A4868; padding:10px 16px 5px;}
 </style>""", unsafe_allow_html=True)
+
+# ══════════════════════════════════════════════════════════════════════
+# [v9] 📝 강좌 특징 HTML 모드 — 관리자 페이지 '강좌 특징' 영역 삽입용
+#
+#  구조:  원고 ──(AI: 구조화·오탈자 교정만)──▶ 편집용 마크업 ──(파이썬: 고정 디자인)──▶ 인라인 CSS HTML
+#   · 디자인은 AI가 아니라 코드가 그리므로, 한 번 승인된 디자인은 매번 똑같이 나옵니다.
+#   · 마크업은 화면에서 직접 고칠 수 있고, 부분 수정 요청 시 해당 챕터만 바뀝니다.
+#   · 원고에 없는 숫자/문장, 빠진 문장을 자동으로 찾아 알려줍니다.
+# ══════════════════════════════════════════════════════════════════════
+import html as _fhtml
+
+FEAT_DEFAULT_COLORS = {
+    "main": "#263A53",   # Deep Navy — 포인트(제목·구분선)
+    "body": "#202B38",   # Charcoal — 본문
+    "sub":  "#657182",   # Slate Gray — 보조
+    "bg":   "#F5F7FA",   # Soft Gray — 배경 박스
+    "hl":   "#E4EAF2",   # 하이라이트
+}
+FEAT_POINT_PRESETS = {
+    "기본 네이비": "#263A53",
+    "딥 그린": "#24493F",
+    "버건디": "#5B2A34",
+    "딥 퍼플": "#3D3460",
+    "다크 틸": "#1F4B57",
+    "웜 브라운": "#4A3B2C",
+}
+FEAT_FONT = "Arial, sans-serif"
+
+FEAT_MARKUP_GUIDE = """\
+@title 강좌명
+@subtitle 서브 타이틀
+@intro 도입 문단 (선택)
+
+# 챕터 제목            → 번호 + 구분선이 붙는 챕터
+## 소제목
+일반 문장은 그대로 쓰면 문단이 됩니다. (빈 줄로 문단 구분)
+> 핵심 메시지          → 라인 박스
+>> 핵심 메시지         → 배경 박스
+- 항목                 → 글머리표 목록
+1. 항목                → 번호 목록
+[카드] 제목 | 설명 | 부가 정보   → 연속된 [카드] 줄이 2~3단 박스로
+| 구분 | 내용 |                  → 표 (첫 줄은 머리글)
+**굵게**   ==하이라이트==  (하이라이트는 전체 2~3곳만)"""
+
+
+# ── 색상 유틸 ──────────────────────────────────────────────
+def _feat_mix(hex_color: str, ratio: float, base: str = "#FFFFFF") -> str:
+    """hex_color를 base와 섞음 (ratio = hex_color 비율)"""
+    def _rgb(h):
+        h = h.lstrip("#")
+        if len(h) == 3:
+            h = "".join(c * 2 for c in h)
+        return [int(h[i:i + 2], 16) for i in (0, 2, 4)]
+    try:
+        a, b = _rgb(hex_color), _rgb(base)
+    except Exception:
+        return base
+    return "#" + "".join(f"{round(x * ratio + y * (1 - ratio)):02X}" for x, y in zip(a, b))
+
+def feat_palette(point: str) -> dict:
+    c = dict(FEAT_DEFAULT_COLORS)
+    point = (point or "").strip()
+    if re.fullmatch(r"#[0-9A-Fa-f]{6}", point) and point.upper() != c["main"].upper():
+        c["main"] = point.upper()
+        c["hl"] = _feat_mix(point, 0.14)          # 포인트 컬러에 맞춘 연한 하이라이트
+    c["line"] = "#DDE2E8"
+    c["card_bd"] = "#D5DBE3"
+    return c
+
+
+# ── 마크업 → 블록 ──────────────────────────────────────────
+def feat_parse(markup: str) -> dict:
+    doc = {"title": "", "subtitle": "", "intro": [], "chapters": []}
+    cur = None            # 현재 챕터
+    blocks = None         # 현재 블록 목록 (챕터 전이면 intro_blocks)
+    intro_blocks = []
+    para = []
+
+    def flush_para():
+        nonlocal para
+        if para:
+            blocks.append({"type": "p", "text": " ".join(para).strip()})
+            para = []
+
+    blocks = intro_blocks
+    lines = (markup or "").replace("\r\n", "\n").split("\n")
+    i = 0
+    while i < len(lines):
+        raw = lines[i]
+        s = raw.strip()
+        if not s:
+            flush_para(); i += 1; continue
+        if s.startswith("@title"):
+            doc["title"] = s[6:].strip(); i += 1; continue
+        if s.startswith("@subtitle"):
+            doc["subtitle"] = s[9:].strip(); i += 1; continue
+        if s.startswith("@intro"):
+            flush_para()
+            intro_blocks.append({"type": "p", "text": s[6:].strip()}); i += 1; continue
+        if s.startswith("## "):
+            flush_para()
+            blocks.append({"type": "h4", "text": s[3:].strip()}); i += 1; continue
+        if s.startswith("# "):
+            flush_para()
+            cur = {"title": s[2:].strip(), "blocks": []}
+            doc["chapters"].append(cur)
+            blocks = cur["blocks"]; i += 1; continue
+        if s.startswith(">>"):
+            flush_para()
+            buf = []
+            while i < len(lines) and lines[i].strip().startswith(">>"):
+                buf.append(lines[i].strip()[2:].strip()); i += 1
+            blocks.append({"type": "bgbox", "text": "<br>".join(buf)}); continue
+        if s.startswith(">"):
+            flush_para()
+            buf = []
+            while i < len(lines) and lines[i].strip().startswith(">") and not lines[i].strip().startswith(">>"):
+                buf.append(lines[i].strip()[1:].strip()); i += 1
+            blocks.append({"type": "linebox", "text": "<br>".join(buf)}); continue
+        if re.match(r"^[-•·]\s+", s):
+            flush_para()
+            items = []
+            while i < len(lines) and re.match(r"^[-•·]\s+", lines[i].strip()):
+                items.append(re.sub(r"^[-•·]\s+", "", lines[i].strip())); i += 1
+            blocks.append({"type": "ul", "items": items}); continue
+        if re.match(r"^\d+[.)]\s+", s):
+            flush_para()
+            items = []
+            while i < len(lines) and re.match(r"^\d+[.)]\s+", lines[i].strip()):
+                items.append(re.sub(r"^\d+[.)]\s+", "", lines[i].strip())); i += 1
+            blocks.append({"type": "ol", "items": items}); continue
+        if s.startswith("[카드]"):
+            flush_para()
+            cards = []
+            while i < len(lines) and lines[i].strip().startswith("[카드]"):
+                parts = [p.strip() for p in lines[i].strip()[4:].split("|")]
+                cards.append((parts + ["", "", ""])[:3]); i += 1
+            blocks.append({"type": "cards", "items": cards}); continue
+        if s.startswith("|"):
+            flush_para()
+            rows = []
+            while i < len(lines) and lines[i].strip().startswith("|"):
+                row = [c.strip() for c in lines[i].strip().strip("|").split("|")]
+                if not all(re.fullmatch(r":?-{2,}:?", c) for c in row if c):   # |---|---| 구분줄 무시
+                    rows.append(row)
+                i += 1
+            if rows:
+                blocks.append({"type": "table", "rows": rows})
+            continue
+        para.append(s); i += 1
+    flush_para()
+    doc["intro"] = intro_blocks
+    return doc
+
+
+# ── 인라인 서식 (**굵게**, ==하이라이트==) ──────────────────
+def _feat_inline(text: str, c: dict, allow_emph: bool = True) -> str:
+    keep_br = text.split("<br>")
+    out = []
+    for t in keep_br:
+        t = _fhtml.escape(t, quote=False)
+        if allow_emph:
+            t = re.sub(r"==(.+?)==", rf'<span style="background-color:{c["hl"]};padding:1px 0;">\1</span>', t)
+            t = re.sub(r"\*\*(.+?)\*\*", rf'<strong style="font-weight:bold;color:{c["body"]};">\1</strong>', t)
+        else:   # 정보 전달 영역(표·카드 본문): 강조 표시는 지우고 글자만 남김
+            t = re.sub(r"==(.+?)==", r"\1", t)
+            t = re.sub(r"\*\*(.+?)\*\*", r"\1", t)
+        out.append(t)
+    return "<br>".join(out)
+
+
+# ── 블록 → 인라인 CSS HTML ─────────────────────────────────
+def feat_render(doc: dict, point: str = "#263A53", max_width: int = 860, mobile_stack: bool = False) -> str:
+    c = feat_palette(point)
+    F = f"font-family:{FEAT_FONT};"
+    P = f"{F}font-size:16px;line-height:1.8;color:{c['body']};margin:0 0 14px 0;word-break:keep-all;"
+
+    def render_block(b):
+        t = b["type"]
+        if t == "p":
+            return f'<p style="{P}">{_feat_inline(b["text"], c)}</p>'
+        if t == "h4":
+            return (f'<h4 style="{F}font-size:18px;font-weight:bold;color:{c["main"]};line-height:1.5;'
+                    f'margin:28px 0 10px 0;">{_feat_inline(b["text"], c, False)}</h4>')
+        if t == "linebox":
+            return (f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+                    f'style="width:100%;border-collapse:collapse;margin:20px 0;"><tr>'
+                    f'<td style="{F}border:1px solid {c["main"]};border-left:4px solid {c["main"]};padding:18px 22px;'
+                    f'font-size:17px;line-height:1.7;color:{c["body"]};font-weight:bold;word-break:keep-all;">'
+                    f'{_feat_inline(b["text"], c)}</td></tr></table>')
+        if t == "bgbox":
+            return (f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+                    f'style="width:100%;border-collapse:collapse;margin:20px 0;"><tr>'
+                    f'<td style="{F}background-color:{c["bg"]};padding:22px 26px;font-size:16px;line-height:1.8;'
+                    f'color:{c["body"]};word-break:keep-all;">{_feat_inline(b["text"], c)}</td></tr></table>')
+        if t in ("ul", "ol"):
+            tag = t
+            lis = "".join(f'<li style="{F}font-size:16px;line-height:1.8;color:{c["body"]};margin:0 0 6px 0;">'
+                          f'{_feat_inline(x, c)}</li>' for x in b["items"])
+            return f'<{tag} style="{F}margin:0 0 16px 0;padding-left:22px;">{lis}</{tag}>'
+        if t == "cards":
+            items = b["items"]
+            n = len(items)
+            cols = 2 if n in (2, 4) else 3 if n >= 3 else 1
+            def card(ci):
+                title, desc, meta = ci
+                return (f'<div style="{F}font-size:17px;font-weight:bold;color:{c["main"]};line-height:1.45;margin:0 0 10px 0;">{_feat_inline(title, c, False)}</div>'
+                        + (f'<div style="{F}font-size:15px;line-height:1.75;color:{c["body"]};">{_feat_inline(desc, c, False)}</div>' if desc else "")
+                        + (f'<div style="{F}font-size:13px;line-height:1.6;color:{c["sub"]};margin-top:12px;padding-top:10px;border-top:1px solid {c["line"]};">{_feat_inline(meta, c, False)}</div>' if meta else ""))
+            if mobile_stack:   # 좁은 화면에서 자동으로 세로 정렬 (flex-wrap)
+                basis = {1: "100%", 2: "300px", 3: "220px"}[cols]
+                cells = "".join(
+                    f'<div style="flex:1 1 {basis};box-sizing:border-box;border:1px solid {c["card_bd"]};'
+                    f'border-top:3px solid {c["main"]};padding:22px 20px;background-color:#FFFFFF;">{card(ci)}</div>'
+                    for ci in items)
+                return f'<div style="display:flex;flex-wrap:wrap;gap:12px;margin:20px 0;">{cells}</div>'
+            # 기본: 표 구조 (관리자 에디터 호환성 최우선) — 카드 사이는 빈 칸(td)으로 간격
+            gap_td = '<td width="12" style="width:12px;border:0;padding:0;font-size:0;">&nbsp;</td>'
+            colw = f"{(100 - 2 * (cols - 1)) // cols}%"
+            rows_html = ""
+            for r in range(0, n, cols):
+                row = items[r:r + cols]
+                tds = []
+                for k in range(cols):
+                    if k < len(row):
+                        tds.append(f'<td valign="top" width="{colw}" style="width:{colw};vertical-align:top;'
+                                   f'border:1px solid {c["card_bd"]};border-top:3px solid {c["main"]};padding:22px 20px;background-color:#FFFFFF;">'
+                                   f'{card(row[k])}</td>')
+                    else:
+                        tds.append(f'<td width="{colw}" style="width:{colw};border:0;"></td>')
+                rows_html += "<tr>" + gap_td.join(tds) + "</tr>"
+                if r + cols < n:
+                    rows_html += f'<tr><td colspan="{2 * cols - 1}" style="height:12px;border:0;padding:0;font-size:0;">&nbsp;</td></tr>'
+            return (f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+                    f'style="width:100%;border-collapse:collapse;margin:20px 0;table-layout:fixed;">'
+                    f'{rows_html}</table>')
+        if t == "table":
+            rows = b["rows"]
+            ncol = max(len(r) for r in rows)
+            head = rows[0] + [""] * (ncol - len(rows[0]))
+            ths = "".join(f'<th style="{F}background-color:{c["main"]};color:#FFFFFF;font-size:15px;font-weight:bold;'
+                          f'padding:12px 14px;border:1px solid {c["main"]};text-align:center;">{_feat_inline(h, c, False)}</th>' for h in head)
+            trs = ""
+            for r in rows[1:]:
+                r = r + [""] * (ncol - len(r))
+                trs += "<tr>" + "".join(
+                    f'<td style="{F}font-size:15px;line-height:1.7;color:{c["body"]};padding:12px 14px;border:1px solid {c["card_bd"]};'
+                    f'{"background-color:" + c["bg"] + ";font-weight:bold;text-align:center;" if j == 0 else ""}vertical-align:top;">'
+                    f'{_feat_inline(x, c, False)}</td>' for j, x in enumerate(r)) + "</tr>"
+            return (f'<table width="100%" cellpadding="0" cellspacing="0" border="0" '
+                    f'style="width:100%;border-collapse:collapse;margin:18px 0;"><thead><tr>{ths}</tr></thead><tbody>{trs}</tbody></table>')
+        return ""
+
+    parts = [f'<div style="{F}max-width:{max_width}px;margin:0 auto;padding:48px 20px 56px 20px;background-color:#FFFFFF;color:{c["body"]};">']
+    # 헤더
+    if doc.get("subtitle"):
+        parts.append(f'<p style="{F}font-size:16px;line-height:1.6;color:{c["sub"]};margin:0 0 8px 0;">{_feat_inline(doc["subtitle"], c, False)}</p>')
+    if doc.get("title"):
+        parts.append(f'<h2 style="{F}font-size:30px;font-weight:bold;line-height:1.35;color:{c["main"]};margin:0 0 24px 0;">{_feat_inline(doc["title"], c, False)}</h2>')
+    parts.append(f'<hr style="border:0;border-top:3px solid {c["main"]};margin:0 0 28px 0;height:0;">')
+    for b in doc.get("intro", []):
+        parts.append(render_block(b))
+    # 챕터
+    for idx, ch in enumerate(doc.get("chapters", []), 1):
+        parts.append(f'<hr style="border:0;border-top:1px solid {c["line"]};margin:44px 0 32px 0;height:0;">')
+        parts.append(f'<p style="{F}font-size:14px;font-weight:bold;color:{c["main"]};margin:0 0 6px 0;">{idx:02d}</p>')
+        parts.append(f'<h3 style="{F}font-size:23px;font-weight:bold;line-height:1.4;color:{c["main"]};margin:0 0 18px 0;">{_feat_inline(ch["title"], c, False)}</h3>')
+        for b in ch["blocks"]:
+            parts.append(render_block(b))
+    parts.append("</div>")
+    return "\n".join(parts)
+
+
+def feat_preview_html(fragment: str, title: str) -> str:
+    """② 디자인 미리보기 — 관리자 '강좌 특징' 영역과 비슷한 환경(흰 배경, 외부 CSS 없음)"""
+    return ('<!DOCTYPE html>\n<html lang="ko">\n<head>\n<meta charset="UTF-8">\n'
+            '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n'
+            f'<title>{_fhtml.escape(title or "강좌 특징")} - 디자인 미리보기</title>\n</head>\n'
+            '<body style="margin:0;padding:0;background-color:#FFFFFF;">\n'
+            '<!-- ▼▼ 관리자 페이지 HTML 탭에 들어가는 부분 (강좌_특징_관리자코드.txt와 동일) ▼▼ -->\n'
+            f'{fragment}\n'
+            '<!-- ▲▲ 여기까지 ▲▲ -->\n</body>\n</html>\n')
+
+
+# ── 원고 대비 검사 ────────────────────────────────────────
+def _feat_plain(s: str) -> str:
+    s = re.sub(r"\*\*|==|\[카드\]|^[#>@\-\d.)\s]+", "", s)
+    return re.sub(r"[^\w가-힣]", "", s)
+
+def _feat_bigrams(s: str, n: int = 4) -> set:
+    """글자 n-gram 집합 (4글자 단위 — 조사·어미 교정 정도는 통과, 문장 추가·삭제는 잡힘)"""
+    s = _feat_plain(s)
+    return {s[k:k + n] for k in range(len(s) - n + 1)}
+
+def feat_check(manuscript: str, markup: str) -> dict:
+    src_plain = _feat_plain(manuscript)
+    src_bi = _feat_bigrams(manuscript)
+    res = {"new_numbers": [], "new_lines": [], "missing": [], "hl_count": 0, "bold_count": 0}
+    # 원고에 없는 숫자
+    src_nums = set(re.findall(r"\d+(?:[.,]\d+)?", manuscript))
+    for n in sorted(set(re.findall(r"\d+(?:[.,]\d+)?", markup)) - src_nums):
+        # 챕터 자동번호(01, 02)·목록 번호는 제외
+        if not re.search(rf"(^|\n)\s*{re.escape(n)}[.)]\s", markup):
+            res["new_numbers"].append(n)
+    # 원고에서 온 게 아닐 수 있는 문장
+    for line in markup.splitlines():
+        s = line.strip()
+        if not s or s.startswith(("@title", "@subtitle", "#")) or re.fullmatch(r"\|[\s\-:|]+\|", s):
+            continue   # 제목·소제목은 원고 단어로 새로 붙이는 게 허용되므로 검사 제외
+        txt = re.sub(r"^(#+|>>|>|[-•·]|\d+[.)]|\[카드\]|@intro)\s*", "", s)
+        bi = _feat_bigrams(txt)
+        if len(bi) >= 6:
+            overlap = len(bi & src_bi) / len(bi)
+            if overlap < 0.5:
+                res["new_lines"].append((txt[:80], round(overlap * 100)))
+    # 원고 문장 중 결과에 거의 안 보이는 것 (누락 의심)
+    out_bi = _feat_bigrams(markup, 3)
+    for sent in re.split(r"(?<=[.!?。,])\s+|\n+", manuscript):
+        sent = sent.strip()
+        bi = _feat_bigrams(sent, 3)
+        if len(bi) >= 6 and len(bi & out_bi) / len(bi) < 0.4:
+            res["missing"].append(sent[:90])
+    res["hl_count"] = len(re.findall(r"==(.+?)==", markup))
+    res["bold_count"] = len(re.findall(r"\*\*(.+?)\*\*", markup))
+    return res
+
+
+# ── AI: 원고 → 마크업 ─────────────────────────────────────
+FEAT_SYSTEM_RULES = """당신은 대성마이맥 강좌 상세 페이지의 웹 콘텐츠 에디터입니다.
+강좌 소개 원고를 '강좌 특징' 영역용 편집 마크업으로 정리합니다. 디자인은 코드가 하므로 당신은 '구조'와 '최소 교정'만 합니다.
+
+[절대 원칙]
+1. 원고의 기획 의도와 핵심 메시지를 유지합니다.
+2. 문장 수정은 오탈자, 중복 표현, 문맥 개선으로만 최소화합니다. 문장을 새로 쓰거나 요약해서 없애지 않습니다.
+3. 원고에 없는 강좌 구성, 학습 효과, 교재 정보, 숫자, 수식어를 추가하지 않습니다.
+4. 원고의 모든 내용이 결과에 들어가야 합니다. 순서는 정보 위계에 맞게 묶는 정도만 조정합니다.
+5. 제목·소제목은 원고에 있으면 그대로, 없으면 원고 문장에서 단어를 가져와 짧게 붙입니다(새 주장 금지).
+
+[마크업 문법]
+@title 강좌명
+@subtitle 서브 타이틀
+@intro 도입 문단 (선택, 여러 줄 가능)
+# 챕터 제목                 (원고의 큰 덩어리마다 하나. 보통 3~6개)
+## 소제목
+일반 문단은 그대로 (빈 줄로 구분)
+> 핵심 메시지 (라인 박스)   — 챕터의 결론·핵심 문장. 페이지 전체 2~4곳
+>> 핵심 메시지 (배경 박스) — 인용·요약·강조할 묶음
+- 목록 / 1. 번호 목록
+[카드] 제목 | 설명 | 부가정보   — 교재 라인업·단계·구성처럼 나란히 비교할 2~6개 항목
+| 머리글 | 머리글 |  다음 줄부터 | 값 | 값 |   — 일정·구성표
+**굵게**: 본문의 중요한 문장·핵심 키워드에만 제한적으로 (챕터당 0~2개)
+==하이라이트==: 페이지 전체에서 2~3곳만
+교재 구성·표·카드 같은 정보 영역에는 굵게·하이라이트를 쓰지 않습니다.
+"""
+
+def feat_ai_convert(title: str, subtitle: str, manuscript: str, direction: str, extra: str) -> dict:
+    prompt = (
+        f"{FEAT_SYSTEM_RULES}\n"
+        f"[강좌명] {title}\n[서브 타이틀] {subtitle}\n"
+        f"[디자인 방향] {direction or '기본 네이비'}\n"
+        f"[추가 요청사항] {extra or '없음'}\n\n"
+        f"[강좌 소개 원고]\n<<<\n{manuscript}\n>>>\n\n"
+        "아래 JSON 하나만 반환하세요:\n"
+        '{"markup": "@title ...\\n@subtitle ...\\n\\n# ...", '
+        '"changes": [{"before": "원고 표현", "after": "고친 표현", "reason": "오탈자/중복/문맥"}]}'
+    )
+    raw = call_ai(prompt, max_tokens=6000, temperature=0.3)
+    data = safe_json(raw)
+    markup = str(data.get("markup", "")).strip()
+    if not markup:
+        raise ValueError("AI 응답에 마크업이 비어 있습니다. 다시 시도해주세요.")
+    if not re.search(r"^@title", markup, re.M) and title:
+        markup = f"@title {title}\n" + (f"@subtitle {subtitle}\n" if subtitle else "") + "\n" + markup
+    return {"markup": markup, "changes": data.get("changes") or []}
+
+def feat_split_chapters(markup: str):
+    """마크업 → (머리 부분, [챕터 텍스트...])"""
+    parts = re.split(r"(?m)^(?=# )", markup)
+    head = parts[0] if parts and not parts[0].startswith("# ") else ""
+    chapters = [p for p in parts if p.startswith("# ")]
+    return head, chapters
+
+def feat_ai_partial(markup: str, target_idx: int, request: str, manuscript: str) -> str:
+    """지정한 챕터(또는 머리 부분)만 고치고 나머지는 글자 하나 안 바뀌게 다시 이어 붙임"""
+    head, chs = feat_split_chapters(markup)
+    target = head if target_idx < 0 else chs[target_idx]
+    prompt = (
+        f"{FEAT_SYSTEM_RULES}\n"
+        "아래 [수정 대상] 마크업 조각만 [수정 요청]대로 고치세요. 요청과 무관한 문장·구조는 그대로 둡니다.\n"
+        f"[수정 요청] {request}\n\n[원고 — 사실 확인용]\n<<<\n{manuscript}\n>>>\n\n"
+        f"[수정 대상]\n<<<\n{target}\n>>>\n\n"
+        'JSON 하나만 반환: {"markup": "고친 조각 전체"}'
+    )
+    new = str(safe_json(call_ai(prompt, max_tokens=3000, temperature=0.3)).get("markup", "")).strip()
+    if not new:
+        raise ValueError("수정 결과가 비어 있습니다.")
+    if target_idx >= 0 and not new.startswith("# "):
+        new = chs[target_idx].splitlines()[0] + "\n" + new
+    new = new.rstrip() + "\n\n"
+    if target_idx < 0:
+        head = new
+    else:
+        chs[target_idx] = new
+    return head + "".join(chs)
+
+def feat_plain_markup(title: str, subtitle: str, manuscript: str) -> str:
+    """AI 없이: 원고를 그대로 문단으로 옮긴 기본 마크업 (직접 # > [카드] 등을 붙여 다듬는 용도)"""
+    body = "\n\n".join(p.strip() for p in re.split(r"\n\s*\n", manuscript.strip()) if p.strip())
+    return f"@title {title}\n@subtitle {subtitle}\n\n{body}\n"
+
+
+# ── 화면 ──────────────────────────────────────────────────
+_FEAT_DEFAULTS = {
+    "f_title": "", "f_subtitle": "", "f_manuscript": "", "f_extra": "",
+    "f_point": "#263A53", "f_direction": "", "f_markup": "", "f_changes": [],
+    "f_maxw": 860, "f_stack": False, "f_approved": False,
+}
+
+def render_feature_mode():
+    for k, v in _FEAT_DEFAULTS.items():
+        if k not in st.session_state:
+            st.session_state[k] = v
+
+    with st.sidebar:
+        st.markdown('<div class="sec-hdr">🔑 Groq API</div>', unsafe_allow_html=True)
+        if not st.session_state.api_key:
+            _k = st.text_input("API Key", type="password", placeholder="gsk_...", key="f_api_in")
+            if _k:
+                st.session_state.api_key = _k
+        else:
+            st.caption("✓ API 키 연결됨")
+
+        st.markdown('<div class="sec-hdr">🎨 포인트 컬러</div>', unsafe_allow_html=True)
+        preset = st.selectbox("프리셋", ["직접 지정"] + list(FEAT_POINT_PRESETS.keys()),
+                              index=1, key="f_preset", disabled=st.session_state.f_approved)
+        if preset != "직접 지정":
+            st.session_state.f_point = FEAT_POINT_PRESETS[preset]
+        st.session_state.f_point = st.color_picker("포인트 컬러", st.session_state.f_point,
+                                                   disabled=st.session_state.f_approved or preset != "직접 지정")
+        st.caption("본문·배경·보조 컬러는 가이드 고정값(Charcoal #202B38 / Soft Gray #F5F7FA / Slate Gray #657182)")
+
+        st.markdown('<div class="sec-hdr">📐 레이아웃</div>', unsafe_allow_html=True)
+        st.session_state.f_maxw = st.slider("최대 너비(px)", 720, 1000, st.session_state.f_maxw, 20,
+                                            disabled=st.session_state.f_approved)
+        st.session_state.f_stack = st.checkbox("모바일에서 카드 세로 정렬", st.session_state.f_stack,
+                                               disabled=st.session_state.f_approved,
+                                               help="끄면 표(table) 구조로, 관리자 에디터 호환성이 가장 높습니다. "
+                                                    "켜면 좁은 화면에서 카드가 자동으로 아래로 떨어집니다.")
+        st.session_state.f_approved = st.checkbox("🔒 디자인 승인됨 (컬러·레이아웃 잠금)", st.session_state.f_approved,
+                                                  help="승인된 디자인은 바뀌지 않도록 설정을 잠급니다. 문구 수정은 계속 가능합니다.")
+
+        st.markdown('<div class="sec-hdr">💾 작업 저장 / 불러오기</div>', unsafe_allow_html=True)
+        proj = {k: st.session_state[k] for k in ("f_title", "f_subtitle", "f_manuscript", "f_extra", "f_point",
+                                                 "f_direction", "f_markup", "f_maxw", "f_stack", "f_approved")}
+        st.download_button("작업 파일 저장 (.json)", json.dumps(proj, ensure_ascii=False, indent=1).encode("utf-8"),
+                           file_name=f"강좌특징_{st.session_state.f_title or '작업'}.json", mime="application/json",
+                           use_container_width=True)
+        up = st.file_uploader("작업 파일 불러오기", type=["json"], key="f_proj_up", label_visibility="collapsed")
+        if up is not None and st.session_state.get("_f_loaded") != up.name + str(up.size):
+            try:
+                data = json.loads(up.getvalue().decode("utf-8"))
+                for k, v in data.items():
+                    if k in _FEAT_DEFAULTS:
+                        st.session_state[k] = v
+                st.session_state["_f_loaded"] = up.name + str(up.size)
+                st.session_state.pop("f_markup_area", None)
+                st.rerun()
+            except Exception as e:
+                st.error(f"불러오기 실패: {e}")
+
+    st.markdown("### 📝 강좌 특징 HTML 만들기")
+    st.caption("원고를 넣으면 관리자 페이지 '강좌 특징' 영역에 바로 붙여넣을 HTML(.txt)과 디자인 미리보기(.html)를 만듭니다.")
+
+    L, R = st.columns([1, 1.25], gap="large")
+    with L:
+        st.markdown("**① 원고 입력**")
+        st.session_state.f_title = st.text_input("강좌명", st.session_state.f_title, placeholder="예: 2028 KISS LOGIC")
+        st.session_state.f_subtitle = st.text_input("서브 타이틀", st.session_state.f_subtitle,
+                                                    placeholder="예: 복잡한 구문을 걷어내는 수능 영어 독해 기본서")
+        st.session_state.f_manuscript = st.text_area("강좌 소개 원고", st.session_state.f_manuscript, height=260,
+                                                     placeholder="기존 이미지형 강좌 소개에 들어간 원고를 그대로 붙여넣으세요.")
+        st.session_state.f_direction = st.text_input("디자인 방향 (선택)", st.session_state.f_direction,
+                                                     placeholder="별도 요청 없으면 기본 네이비")
+        st.session_state.f_extra = st.text_area("추가 요청사항 (선택)", st.session_state.f_extra, height=70,
+                                                placeholder="예: 교재 라인업은 3단 박스로, 마지막에 수강 대상 정리")
+
+        b1, b2 = st.columns(2)
+        with b1:
+            go_ai = st.button("✨ AI로 구조화", type="primary", use_container_width=True)
+        with b2:
+            go_plain = st.button("AI 없이 원고 그대로", use_container_width=True)
+        if go_ai or go_plain:
+            if not st.session_state.f_manuscript.strip():
+                st.warning("원고를 먼저 입력해주세요.")
+            elif go_plain:
+                st.session_state.f_markup = feat_plain_markup(st.session_state.f_title, st.session_state.f_subtitle,
+                                                              st.session_state.f_manuscript)
+                st.session_state.f_changes = []
+                st.session_state.pop("f_markup_area", None)   # 편집창 내용도 새 값으로 교체
+                st.rerun()
+            elif not st.session_state.api_key:
+                st.warning("사이드바에 API 키를 입력해주세요.")
+            else:
+                with st.spinner("원고를 챕터·박스 구조로 정리하는 중..."):
+                    try:
+                        r = feat_ai_convert(st.session_state.f_title, st.session_state.f_subtitle,
+                                            st.session_state.f_manuscript, st.session_state.f_direction,
+                                            st.session_state.f_extra)
+                        st.session_state.f_markup = r["markup"]
+                        st.session_state.f_changes = r["changes"]
+                        st.session_state.pop("f_markup_area", None)
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"구조화 실패: {e}")
+
+        if st.session_state.f_markup:
+            st.markdown("**② 편집 마크업** — 여기서 직접 고치면 오른쪽 미리보기에 바로 반영됩니다")
+            with st.expander("마크업 문법 보기", expanded=False):
+                st.code(FEAT_MARKUP_GUIDE, language=None)
+            st.session_state.f_markup = st.text_area("마크업", st.session_state.f_markup, height=420,
+                                                     label_visibility="collapsed", key="f_markup_area")
+
+            # 부분 수정
+            st.markdown("**③ 부분 수정 요청** — 고른 부분만 바뀌고 나머지는 그대로 유지됩니다")
+            head, chs = feat_split_chapters(st.session_state.f_markup)
+            opts = ["머리 부분 (강좌명·서브타이틀·도입)"] + [f"{i + 1:02d}. {c.splitlines()[0][2:].strip()}" for i, c in enumerate(chs)]
+            tgt = st.selectbox("수정할 부분", range(len(opts)), format_func=lambda i: opts[i], key="f_tgt")
+            req = st.text_input("수정 요청", placeholder="예: 교재 3권을 3단 카드로 바꿔줘 / 두 번째 문단 오탈자만 확인",
+                                key="f_req")
+            if st.button("이 부분만 수정", use_container_width=True):
+                if not req.strip():
+                    st.warning("수정 요청을 입력해주세요.")
+                elif not st.session_state.api_key:
+                    st.warning("API 키가 필요합니다.")
+                else:
+                    with st.spinner("선택한 부분만 수정하는 중..."):
+                        try:
+                            st.session_state.f_markup = feat_ai_partial(st.session_state.f_markup, tgt - 1, req,
+                                                                        st.session_state.f_manuscript)
+                            st.session_state.pop("f_markup_area", None)
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"수정 실패: {e}")
+
+    with R:
+        if not st.session_state.f_markup:
+            st.info("왼쪽에 원고를 넣고 'AI로 구조화'를 누르면 여기에 미리보기가 나타납니다.")
+            return
+        doc = feat_parse(st.session_state.f_markup)
+        fragment = feat_render(doc, st.session_state.f_point, st.session_state.f_maxw, st.session_state.f_stack)
+        preview = feat_preview_html(fragment, doc.get("title") or st.session_state.f_title)
+        name = re.sub(r'[\\/:*?"<>|\s]+', "_", doc.get("title") or st.session_state.f_title or "강좌")
+
+        d1, d2 = st.columns(2)
+        with d1:
+            st.download_button("① 관리자 HTML 코드 (.txt)", fragment.encode("utf-8"),
+                               file_name=f"{name}_강좌특징_관리자코드.txt", mime="text/plain; charset=utf-8",
+                               type="primary", use_container_width=True)
+        with d2:
+            st.download_button("② 디자인 미리보기 (.html)", preview.encode("utf-8"),
+                               file_name=f"{name}_강좌특징_미리보기.html", mime="text/html; charset=utf-8",
+                               use_container_width=True)
+
+        # 원고 대비 검사
+        chk = feat_check("\n".join([st.session_state.f_manuscript, st.session_state.f_title,
+                                     st.session_state.f_subtitle, st.session_state.f_extra]), st.session_state.f_markup)
+        warns = []
+        if chk["new_numbers"]:
+            warns.append(f"원고에 없는 숫자: {', '.join(chk['new_numbers'][:8])}")
+        if chk["hl_count"] > 3:
+            warns.append(f"하이라이트 {chk['hl_count']}곳 (가이드: 2~3곳)")
+        if chk["new_lines"]:
+            warns.append(f"원고와 많이 다른 문장 {len(chk['new_lines'])}개")
+        if chk["missing"]:
+            warns.append(f"빠졌을 수 있는 원고 문장 {len(chk['missing'])}개")
+        if warns:
+            st.warning("검토 필요 · " + " / ".join(warns))
+        else:
+            st.success(f"원고 대비 검사 통과 · 하이라이트 {chk['hl_count']}곳 · 굵게 {chk['bold_count']}곳")
+        with st.expander("검사 상세 · 교정 내역", expanded=bool(chk["new_lines"] or chk["missing"])):
+            if chk["new_lines"]:
+                st.markdown("**원고와 많이 다른 문장** (원고 일치율)")
+                for t, p in chk["new_lines"]:
+                    st.caption(f"· {t}  —  {p}%")
+            if chk["missing"]:
+                st.markdown("**결과에 잘 안 보이는 원고 문장**")
+                for t in chk["missing"]:
+                    st.caption(f"· {t}")
+            if st.session_state.f_changes:
+                st.markdown("**AI 교정 내역**")
+                for ch in st.session_state.f_changes:
+                    if isinstance(ch, dict):
+                        st.caption(f"· {ch.get('before', '')} → {ch.get('after', '')}  ({ch.get('reason', '')})")
+            if not (chk["new_lines"] or chk["missing"] or st.session_state.f_changes):
+                st.caption("특이사항 없음")
+
+        tab1, tab2 = st.tabs(["미리보기", "HTML 코드"])
+        with tab1:
+            vw = st.radio("화면", ["PC", "모바일"], horizontal=True, label_visibility="collapsed", key="f_vw")
+            if hasattr(st, "iframe"):
+                st.iframe(preview, height=900, width=390 if vw == "모바일" else "stretch")
+            else:
+                import streamlit.components.v1 as components
+                components.html(preview, height=900, width=390 if vw == "모바일" else None, scrolling=True)
+        with tab2:
+            st.caption("오른쪽 위 복사 버튼으로 전체 복사 → 관리자 페이지 HTML 탭에 붙여넣기")
+            st.code(fragment, language="html")
+
+
+# ── [v9] 작업 모드 선택 ────────────────────────────────────
+APP_MODE = st.sidebar.radio("작업 모드", ["🖼 PR 페이지 빌더", "📝 강좌 특징 HTML (관리자용)"], key="app_mode")
+if APP_MODE.startswith("📝"):
+    render_feature_mode()
+    st.stop()
 
 # ══════════════════════════════════════════════════════
 # SIDEBAR
