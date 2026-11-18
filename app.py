@@ -4684,7 +4684,11 @@ ED_HERO_VARIANTS = {
     "bottom_wordmark": "하단 대형 워드마크 + 풀사진 (GUIDANCE형)",
     "split_motif": "좌 모티프 / 우 워드마크 (CONTACT형)",
     "framed_spaced": "자간 넓은 타이틀 + 액자 사진 (REAL CLOSING형)",
+    "fullbleed": "풀배경 이미지 + 중앙 워드마크",
+    "light_editorial": "밝은 배경 + 좌 타이포 / 우 키비주얼",
 }
+ED_LAYOUT_BLOCKS = {"prologue": "가운데 정렬 / 이미지+텍스트 2단", "points": "지그재그 / 3열 키워드 카드",
+                    "quote": "밝은 배경 / 어두운 배경", "three_col": "이미지 띠 / 카드형"}
 
 ED_STYLE_GUIDE = """
 [대성마이맥 PR 시안 문법 — 이 문법으로 쓴다. 예시는 구조 참고용이며 그대로 베끼지 않는다]
@@ -4703,12 +4707,12 @@ G. 쓰지 않는 표현: 체계적인, 최고의, 함께라면, 비법, 여정, 
 
 ED_BLOCK_SPECS = {
     "hero": ('히어로(항상 첫 블록)',
-             '{"type":"hero","variant":"wordmark_photo|bottom_wordmark|split_motif|framed_spaced","kicker":"워드마크 위/아래 한 줄 — 컨셉 동사 문장 (예: 통합의 시대를 설계하다)",'
+             '{"type":"hero","variant":"wordmark_photo|bottom_wordmark|split_motif|framed_spaced|fullbleed|light_editorial","kicker":"워드마크 위/아래 한 줄 — 컨셉 동사 문장 (예: 통합의 시대를 설계하다)",'
              '"script":"워드마크 앞 필기체 영단어(선택, 예: The)","wordmark":"강좌명 영문 그대로","sub":"한 줄 정의 (20~34자)",'
              '"band":"사진 위 띠 문구 — 대구 (framed_spaced용, 예: 허점은 닫고, 감각은 열고)","notes":["사진 주변 짧은 문구 2~4개 (12~22자)"],'
              '"body":["히어로 하단 문장 2~3줄 (framed_spaced용)"]}'),
     "prologue": ('프롤로그 — 왜 이 강좌인가',
-                 '{"type":"prologue","nav":"프롤로그","script":"Prologue","title":"컨셉 명사구 (예: 통합의 시대)","sub":"한 줄 (예: 새로운 수능, 새로운 설계의 필요성)",'
+                 '{"type":"prologue","layout":"a|b","nav":"프롤로그","script":"Prologue","title":"컨셉 명사구 (예: 통합의 시대)","sub":"한 줄 (예: 새로운 수능, 새로운 설계의 필요성)",'
                  '"body":["문단 1 (40~80자)","문단 2 (40~80자)"],"closing":"마무리 선언 한 줄 — 컨셉 동사 포함"}'),
     "index_tiles": ('강좌 라인업 목차 타일 (강좌가 3개 이상일 때)',
                     '{"type":"index_tiles","nav":"라인업","eyebrow":"영문 (예: DEVISING The METHOD)","title":"컨셉 동사 제목, 핵심어 [[ ]]","sub":"한 줄",'
@@ -4716,12 +4720,12 @@ ED_BLOCK_SPECS = {
     "course_stages": ('단계별 강좌 소개 (이론/훈련/실전 등)',
                       '{"type":"course_stages","nav":"커리큘럼","stages":[{"no":"01","label":"단계명 (예: 이론)","items":[{"badge":"1st Signature 등 (선택)","name":"강좌명(입력값)","title":"강좌 한 줄 정의","desc":"30~70자"}]}]}'),
     "points": ('기획 의도 포인트 3개 + 「키워드」 (지그재그)',
-               '{"type":"points","nav":"기획 의도","title_en":"강좌명 영문","title_ko":"기획 의도","points":[{"label":"영문 라벨 (예: Contact Point 01)","desc":"설명 1~2문장 (30~60자)","keyword":"컨셉 「키워드」 단어 하나","line":"키워드가 들어가는 한 줄 (예: 추론형 실력 향상으로 향하는)"}]}'),
+               '{"type":"points","layout":"a|b","nav":"기획 의도","title_en":"강좌명 영문","title_ko":"기획 의도","points":[{"label":"영문 라벨 (예: Contact Point 01)","desc":"설명 1~2문장 (30~60자)","keyword":"컨셉 「키워드」 단어 하나","line":"키워드가 들어가는 한 줄 (예: 추론형 실력 향상으로 향하는)"}]}'),
     "quote": ('기획 의도 인용형 (큰 따옴표 + 질문형 제목)',
-              '{"type":"quote","nav":"기획 의도","chapter":"Chapter 01. 기획 의도","title":"질문형 대구 제목 (예: 무엇을 알고, 어디까지 이해하고, 어떻게 적용할 것인가)",'
+              '{"type":"quote","layout":"a|b","nav":"기획 의도","chapter":"Chapter 01. 기획 의도","title":"질문형 대구 제목 (예: 무엇을 알고, 어디까지 이해하고, 어떻게 적용할 것인가)",'
               '"lead":"첫 줄 (첫 글자를 크게)","body":["문장 1","문장 2"],"closing":"굵게 마무리 1~2문장"}'),
     "three_col": ('영문 타이틀 + 3열 특징',
-                  '{"type":"three_col","nav":"특징","chapter":"Chapter 02. 설계의 기준","title_en":"영문 (예: A distinct INSIGHT)","title_ko":"서술 한 줄 (예: 과목의 본질을 꿰뚫다)",'
+                  '{"type":"three_col","layout":"a|b","nav":"특징","chapter":"Chapter 02. 설계의 기준","title_en":"영문 (예: A distinct INSIGHT)","title_ko":"서술 한 줄 (예: 과목의 본질을 꿰뚫다)",'
                   '"items":[{"no":"01","small":"작은 설명 한 줄","title":"특징명 4~8자","desc":"20~50자"}]}'),
     "balance": ('A vs B 비율 바 (입력 정보에 비율이 있을 때만)',
                 '{"type":"balance","nav":"밸런스","pill":"영문 라벨","title":"단언형 제목 (예: 파이널은 밸런스 싸움이다)","sub":"한 줄",'
@@ -4779,16 +4783,50 @@ def _ed_motif_svg(color: str, motif: str = "") -> str:
                    f'stroke-dasharray="{560 + i * 30} 2000" transform="rotate({40 + i * 3} 230 230)"/>' for i in range(16))
     return f'<svg viewBox="0 0 460 460" width="100%" style="max-width:420px">{arcs}</svg>'
 
+def _ed_img(x, slot):
+    return (x.get("imgs") or {}).get(slot) or ""
+
 def ed_r_hero(b, x):
     v = b.get("variant") or "wordmark_photo"
     wm, kicker, sub, script = b.get("wordmark") or x["label"], b.get("kicker", ""), b.get("sub", ""), b.get("script", "")
     photo, book = x.get("photo"), (x.get("books") or [None])[0]
+    hero_bg, kv = _ed_img(x, "hero_bg"), _ed_img(x, "key_visual")
     notes = [n for n in (b.get("notes") or []) if str(n).strip()][:4]
     n = len(strip_hanja(wm))
     wm_size = "clamp(64px,11vw,150px)" if n <= 9 else "clamp(52px,8vw,112px)" if n <= 16 else "clamp(40px,6vw,80px)"
+    bg_layer = (f"linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,.15) 40%,rgba(0,0,0,.75)),url('{hero_bg}') center/cover no-repeat," if hero_bg else "")
+
+    if v == "fullbleed":
+        bg = f"background:{bg_layer}radial-gradient(60% 60% at 50% 40%,color-mix(in srgb,var(--accent) 30%,transparent),transparent 70%),var(--dark);"
+        nts = "".join(f"<span>{_ed_esc(t)}</span>" for t in notes[:3])
+        return (f'<section class="ed-hero ed-dark" style="{bg}min-height:min(92vh,880px);display:flex;align-items:center;text-align:center">'
+                f'<div class="ed-in" style="width:100%">'
+                f'<p class="ed-spaced" style="margin-bottom:26px">{_ed_esc(_ed_spaced(kicker))}</p>'
+                + (f'<div class="ed-script" style="font-size:clamp(48px,6vw,84px);color:#fff;line-height:1;margin-bottom:-.2em">{_ed_esc(script)}</div>' if script else "")
+                + f'<h1 class="ed-wm ed-wm-silver" style="font-size:{wm_size}">{_ed_esc(wm)}</h1>'
+                + (f'<p class="ed-sub-l" style="font-size:clamp(16px,1.6vw,20px);margin-top:22px">{_ed_esc(sub)}</p>' if sub else "")
+                + (f'<div class="ed-hero-notes">{nts}</div>' if nts else "")
+                + '</div></section>')
+
+    if v == "light_editorial":
+        right = (f'<img src="{book or kv}" alt="" style="max-width:100%;max-height:460px;filter:drop-shadow(0 30px 40px rgba(0,0,0,.25))">'
+                 if (book or kv) else _ed_motif_svg("var(--accent)", x.get("motif", "")))
+        return (f'<section class="ed-hero" style="background:var(--alt);min-height:min(82vh,760px);display:flex;align-items:center">'
+                f'<div class="ed-in ed-split" style="width:100%;grid-template-columns:1.2fr 1fr"><div>'
+                + (f'<p class="ed-serif" style="font-size:clamp(17px,1.7vw,22px);color:var(--muted);margin:0 0 10px">{_ed_esc(kicker)}</p>' if kicker else "")
+                + (f'<div class="ed-script" style="font-size:clamp(40px,5vw,70px);color:var(--accent);line-height:1;margin-bottom:-.15em">{_ed_esc(script)}</div>' if script else "")
+                + f'<h1 class="ed-wm" style="font-size:{wm_size};color:var(--accent2)">{_ed_esc(wm)}</h1>'
+                + (f'<p class="ed-serif" style="font-size:clamp(18px,1.9vw,24px);color:var(--ink);margin:24px 0 0;line-height:1.5">{_ed_esc(sub)}</p>' if sub else "")
+                + '<div style="width:64px;height:2px;background:var(--accent);margin-top:28px"></div>'
+                + f'</div><div style="text-align:center">{right}</div></div></section>')
+
     if v == "bottom_wordmark":
-        bg = (f"background:linear-gradient(90deg,var(--dark) 18%,rgba(0,0,0,.25) 60%,rgba(0,0,0,.55)),url('{photo}') right center/auto 100% no-repeat,var(--dark);"
-              if photo else "background:radial-gradient(60% 70% at 70% 30%,rgba(255,255,255,.10),transparent 70%),var(--dark);")
+        if photo:
+            bg = f"background:linear-gradient(90deg,var(--dark) 18%,rgba(0,0,0,.25) 60%,rgba(0,0,0,.55)),url('{photo}') right center/auto 100% no-repeat,var(--dark);"
+        elif hero_bg:
+            bg = f"background:linear-gradient(180deg,rgba(0,0,0,.25),rgba(0,0,0,.55)),url('{hero_bg}') center/cover no-repeat,var(--dark);"
+        else:
+            bg = "background:radial-gradient(60% 70% at 70% 30%,rgba(255,255,255,.10),transparent 70%),var(--dark);"
         corners = (notes + ["", "", "", ""])[:4]
         return (f'<section class="ed-hero ed-dark" style="{bg}min-height:min(88vh,820px);padding:0">'
                 f'<div class="ed-corner tl">{_ed_esc(corners[0])}</div><div class="ed-corner tr">{_ed_esc(corners[1])}</div>'
@@ -4797,19 +4835,24 @@ def ed_r_hero(b, x):
                 f'<div style="position:absolute;left:0;right:0;bottom:-0.12em;text-align:center">'
                 + (f'<div class="ed-script" style="font-size:clamp(56px,8vw,110px);color:#fff;line-height:1;margin-bottom:-.25em">{_ed_esc(script)}</div>' if script else "")
                 + f'<h1 class="ed-wm ed-wm-fade" style="font-size:clamp(80px,15vw,210px);line-height:.9">{_ed_esc(wm)}</h1></div></section>')
+
     if v == "split_motif":
-        left = (f'<img src="{book}" alt="" style="max-width:100%;max-height:440px;filter:drop-shadow(0 30px 40px rgba(0,0,0,.5))">' if book
+        vis = book or kv
+        left = (f'<img src="{vis}" alt="" style="max-width:100%;max-height:440px;filter:drop-shadow(0 30px 40px rgba(0,0,0,.5))">' if vis
                 else _ed_motif_svg("#ffffff", x.get("motif", "")))
-        return (f'<section class="ed-hero ed-dark" style="min-height:min(80vh,720px)"><div class="ed-in ed-split">'
+        bg = f"background:{bg_layer}var(--dark);" if hero_bg else ""
+        return (f'<section class="ed-hero ed-dark" style="{bg}min-height:min(80vh,720px)"><div class="ed-in ed-split">'
                 f'<div style="text-align:center">{left}</div><div style="text-align:right">'
                 + (f'<p class="ed-serif" style="font-size:clamp(18px,1.8vw,24px);color:var(--muted);margin:0 0 6px">{_ed_esc(kicker)}</p>' if kicker else "")
                 + (f'<p class="ed-serif" style="font-size:clamp(26px,3vw,40px);color:var(--accent-light);margin:0 0 4px">{_ed_esc(sub)}</p>' if sub else "")
                 + f'<h1 class="ed-wm ed-wm-white" style="font-size:{wm_size}">{_ed_esc(wm)}</h1></div></div></section>')
+
     if v == "framed_spaced":
         words = strip_hanja(wm).split()
         first = _ed_spaced(words[0]) if len(words) > 1 else ""
         rest = " ".join(words[1:]) if len(words) > 1 else wm
-        frame = (f'<div class="ed-frame" style="background:url(\'{photo}\') center 25%/cover no-repeat">' if photo
+        fimg = photo or hero_bg or kv
+        frame = (f'<div class="ed-frame" style="background:url(\'{fimg}\') center 30%/cover no-repeat">' if fimg
                  else '<div class="ed-frame" style="background:linear-gradient(135deg,#3a3f4f,#151824)">')
         body = "".join(f"<p>{_ed_esc(t)}</p>" for t in (b.get("body") or []))
         return (f'<section class="ed-hero ed-dark" style="text-align:center;padding-top:80px"><div class="ed-in" style="max-width:880px">'
@@ -4821,13 +4864,19 @@ def ed_r_hero(b, x):
                 + (f'<p class="ed-sub-l" style="margin-top:30px">{_ed_esc(sub)}</p>' if sub else "")
                 + (f'<div class="ed-herobody">{body}</div>' if body else "")
                 + '</div></section>')
+
     # wordmark_photo (기본)
-    ph = (f'<img src="{photo}" alt="" style="width:min(520px,80%);display:block;margin:-30px auto 0;filter:grayscale(1) contrast(1.05);'
-          f'-webkit-mask-image:linear-gradient(180deg,#000 70%,transparent);mask-image:linear-gradient(180deg,#000 70%,transparent)">' if photo
-          else '<div style="height:260px"></div>')
+    if photo:
+        ph = (f'<img src="{photo}" alt="" style="width:min(520px,80%);display:block;margin:-30px auto 0;filter:grayscale(1) contrast(1.05);'
+              f'-webkit-mask-image:linear-gradient(180deg,#000 70%,transparent);mask-image:linear-gradient(180deg,#000 70%,transparent)">')
+    elif kv and not hero_bg:
+        ph = f'<img src="{kv}" alt="" style="width:min(420px,70%);display:block;margin:10px auto 0">'
+    else:
+        ph = '<div style="height:240px"></div>'
     ln = "".join(f'<p class="ed-note" style="top:{38 + i * 22}%">{_ed_esc(t)}</p>' for i, t in enumerate(notes[0::2]))
     rn = "".join(f'<p class="ed-note r" style="top:{44 + i * 22}%">{_ed_esc(t)}</p>' for i, t in enumerate(notes[1::2]))
-    return (f'<section class="ed-hero ed-dark" style="text-align:center;padding:90px 24px 0;overflow:hidden">'
+    bg = f"background:{bg_layer}var(--dark);" if hero_bg else ""
+    return (f'<section class="ed-hero ed-dark" style="{bg}text-align:center;padding:90px 24px 0;overflow:hidden">'
             f'<div class="ed-in" style="position:relative">'
             f'<h1 class="ed-wm ed-wm-silver" style="font-size:{wm_size};position:relative;z-index:2">{_ed_esc(wm)}</h1>'
             f'<p class="ed-spaced" style="position:relative;z-index:2;margin-top:6px">{_ed_esc(_ed_spaced(kicker))}</p>'
@@ -4842,16 +4891,26 @@ def ed_r_anchor_bar(navs):
 
 def ed_r_prologue(b, x):
     body = "".join(f"<p>{_ed_esc(t)}</p>" for t in (b.get("body") or []))
-    return (f'<section class="ed-sec ed-alt" style="text-align:center"><div class="ed-in" style="max-width:760px">'
-            f'<div class="ed-script" style="font-size:34px;color:var(--accent);margin-bottom:-6px">{_ed_esc(b.get("script") or "Prologue")}</div>'
+    img = _ed_img(x, "key_visual") or _ed_img(x, "texture")
+    head = (f'<div class="ed-script" style="font-size:34px;color:var(--accent);margin-bottom:-6px">{_ed_esc(b.get("script") or "Prologue")}</div>'
             f'<h2 class="ed-h" style="font-size:clamp(34px,4.4vw,56px);color:var(--accent2)">{_ed_esc(b.get("title",""))}</h2>'
-            f'<p class="ed-hsub">{_ed_esc(b.get("sub",""))}</p><div class="ed-body" style="margin-top:44px">{body}</div>'
-            + (f'<p class="ed-closing">{_ed_esc(b.get("closing"))}</p>' if b.get("closing") else "")
-            + '</div></section>')
+            f'<p class="ed-hsub">{_ed_esc(b.get("sub",""))}</p>')
+    closing = f'<p class="ed-closing">{_ed_esc(b.get("closing"))}</p>' if b.get("closing") else ""
+    if b.get("layout") == "b":
+        vis = (f'<div class="ed-prolog-img" style="background:url(\'{img}\') center/cover no-repeat"></div>' if img
+               else f'<div class="ed-prolog-img" style="background:var(--dark);display:flex;align-items:center;justify-content:center">{_ed_motif_svg("#ffffff", x.get("motif",""))}</div>')
+        return (f'<section class="ed-sec ed-alt"><div class="ed-in ed-split" style="grid-template-columns:1fr 1.15fr;align-items:center">'
+                f'{vis}<div style="text-align:left">{head}<div class="ed-body" style="margin-top:34px;text-align:left">{body}</div>'
+                f'<div style="text-align:left">{closing}</div></div></div></section>')
+    return (f'<section class="ed-sec ed-alt" style="text-align:center"><div class="ed-in" style="max-width:760px">'
+            f'{head}<div class="ed-body" style="margin-top:44px">{body}</div>{closing}</div></section>')
 
 def ed_r_index_tiles(b, x):
     tiles = [t for t in (b.get("tiles") or []) if str(t).strip()]
-    cells = "".join(f'<div class="ed-tile"><span>{i + 1:02d}</span><b>{_ed_esc(t)}</b></div>' for i, t in enumerate(tiles))
+    tex = _ed_img(x, "texture")
+    cells = "".join(
+        f'<div class="ed-tile"' + (f' style="background:linear-gradient(180deg,rgba(0,0,0,.25),rgba(0,0,0,.75)),url(\'{tex}\') {int(i * 100 / max(len(tiles) - 1, 1))}% center/auto 100% no-repeat"' if tex else "")
+        + f'><span>{i + 1:02d}</span><b>{_ed_esc(t)}</b></div>' for i, t in enumerate(tiles))
     return (f'<section class="ed-sec ed-dark"><div class="ed-in" style="text-align:center">'
             f'<p class="ed-eyebrow">{_ed_esc(b.get("eyebrow",""))}</p>'
             f'<h2 class="ed-h" style="color:#fff">{_ed_esc(b.get("title",""))}</h2><p class="ed-hsub">{_ed_esc(b.get("sub",""))}</p>'
@@ -4872,6 +4931,16 @@ def ed_r_course_stages(b, x):
 
 def ed_r_points(b, x):
     pts = b.get("points") or []
+    title = (f'<h2 class="ed-h" style="text-align:center;font-size:clamp(34px,4.6vw,58px)"><span class="ed-serif-en ed-acc2">'
+             f'{_ed_esc(b.get("title_en",""))}</span> {_ed_esc(b.get("title_ko",""))}</h2>')
+    if b.get("layout") == "b":
+        cards = "".join(
+            f'<div class="ed-pcard"><span class="ed-serif-en ed-plabel">{_ed_esc(p.get("label",""))}</span>'
+            f'<div class="ed-pkw">「{_ed_esc(p.get("keyword",""))}」</div>'
+            f'<p class="ed-pline" style="font-size:17px">{_ed_esc(p.get("line",""))}</p>'
+            f'<p class="ed-pdesc" style="margin-top:10px">{_ed_esc(p.get("desc",""))}</p></div>' for p in pts)
+        return (f'<section class="ed-sec ed-alt"><div class="ed-in">{title}'
+                f'<div class="ed-pcards" style="grid-template-columns:repeat({max(min(len(pts),3),1)},1fr)">{cards}</div></div></section>')
     rows = ""
     for i, p in enumerate(pts):
         side = "l" if i % 2 == 0 else "r"
@@ -4881,15 +4950,17 @@ def ed_r_points(b, x):
                  f'<p class="ed-pdesc">{_ed_esc(p.get("desc",""))}</p>'
                  f'<p class="ed-pline">{_ed_esc(p.get("line",""))}' + (f' <span class="ed-acc">「{_ed_esc(kw)}」</span>' if kw else "") + '</p>'
                  '</div></div>')
-    return (f'<section class="ed-sec ed-alt ed-diag"><div class="ed-in">'
-            f'<h2 class="ed-h" style="text-align:center;font-size:clamp(34px,4.6vw,58px)"><span class="ed-serif-en ed-acc2">{_ed_esc(b.get("title_en",""))}</span> {_ed_esc(b.get("title_ko",""))}</h2>'
-            f'<div class="ed-points">{rows}</div></div></section>')
+    return f'<section class="ed-sec ed-alt ed-diag"><div class="ed-in">{title}<div class="ed-points">{rows}</div></div></section>'
 
 def ed_r_quote(b, x):
     lead = strip_hanja(str(b.get("lead", "")))
     lead_html = (f'<span style="font-size:1.6em;font-weight:700">{_ed_esc(lead[:1])}</span>{_ed_esc(lead[1:])}' if lead else "")
     body = "".join(f"<p>{_ed_esc(t)}</p>" for t in (b.get("body") or []))
-    return (f'<section class="ed-sec" style="text-align:center"><div class="ed-in" style="max-width:820px">'
+    dark = b.get("layout") == "b"
+    tex = _ed_img(x, "texture") if dark else ""
+    sec_style = (f"text-align:center;background:linear-gradient(180deg,rgba(0,0,0,.72),rgba(0,0,0,.86)),url('{tex}') center/cover no-repeat,var(--dark)" if tex
+                 else "text-align:center")
+    return (f'<section class="ed-sec{" ed-dark" if dark else ""}" style="{sec_style}"><div class="ed-in" style="max-width:820px">'
             + _ed_head(b.get("chapter", ""), b.get("title", ""))
             + f'<div class="ed-quote"><span class="q l">&ldquo;</span><span class="q r">&rdquo;</span>'
             f'<p class="ed-serif" style="font-size:20px;margin:0 0 16px">{lead_html}</p><div class="ed-body">{body}</div>'
@@ -4897,15 +4968,28 @@ def ed_r_quote(b, x):
             + '</div></div></section>')
 
 def ed_r_three_col(b, x):
-    items = "".join(f'<div class="ed-col"><span class="ed-num">{_ed_esc(it.get("no", f"{i+1:02d}"))}</span>'
+    items_ = b.get("items") or []
+    tex = _ed_img(x, "texture")
+    cards = b.get("layout") == "b"
+    out = ""
+    for i, it in enumerate(items_):
+        pos = int(i * 100 / max(len(items_) - 1, 1))
+        bar = (f'<div class="ed-colbar ed-colimg" style="background:url(\'{tex}\') {pos}% center/auto 100% no-repeat"></div>' if tex
+               else '<div class="ed-colbar"></div>')
+        num = _ed_esc(it.get("no") or f"{i+1:02d}")
+        if cards:
+            out += (f'<div class="ed-col ed-colcard"><span class="ed-bignum2">{num}</span>'
                     f'<small>{_ed_esc(it.get("small",""))}</small><h4>{_ed_esc(it.get("title",""))}</h4>'
-                    f'<div class="ed-colbar"></div><p>{_ed_esc(it.get("desc",""))}</p></div>'
-                    for i, it in enumerate(b.get("items") or []))
-    return (f'<section class="ed-sec" style="text-align:center"><div class="ed-in">'
+                    f'<p>{_ed_esc(it.get("desc",""))}</p></div>')
+        else:
+            out += (f'<div class="ed-col"><span class="ed-num">{num}</span>'
+                    f'<small>{_ed_esc(it.get("small",""))}</small><h4>{_ed_esc(it.get("title",""))}</h4>'
+                    f'{bar}<p>{_ed_esc(it.get("desc",""))}</p></div>')
+    return (f'<section class="ed-sec{" ed-alt" if cards else ""}" style="text-align:center"><div class="ed-in">'
             f'<span class="ed-pill">{_ed_esc(b.get("chapter",""))}</span>'
             f'<h2 class="ed-h ed-en" style="font-size:clamp(32px,4vw,50px)">{_ed_esc(b.get("title_en",""))}</h2>'
             f'<p class="ed-hsub ed-serif" style="font-size:20px">{_ed_esc(b.get("title_ko",""))}</p><div class="ed-rule"></div>'
-            f'<div class="ed-cols">{items}</div></div></section>')
+            f'<div class="ed-cols">{out}</div></div></section>')
 
 def ed_r_balance(b, x):
     L, R = b.get("left") or {}, b.get("right") or {}
@@ -4979,7 +5063,7 @@ def ed_r_video(b, x):
             + f'<div class="ed-video">{inner}</div></div></section>')
 
 def ed_r_lineup(b, x):
-    imgs = x.get("books") or []
+    imgs = x.get("books") or ([_ed_img(x, "key_visual")] if _ed_img(x, "key_visual") else [])
     books = b.get("books") or []
     img_html = ("".join(f'<img src="{s}" alt="">' for s in imgs[:3]) if imgs else "")
     labels = "".join(f'<div class="ed-bk"><span class="ed-tagfill">{_ed_esc(bk.get("name",""))}</span>'
@@ -5115,6 +5199,15 @@ body{{margin:0;font-family:var(--sans);color:var(--ink);background:#fff;-webkit-
 .ed-col h4{{font-family:var(--ko);font-size:22px;font-weight:500;margin:0 0 14px}}
 .ed-colbar{{height:2px;background:linear-gradient(90deg,var(--accent),transparent);margin-bottom:14px}}
 .ed-col p{{color:var(--muted);font-size:14px;line-height:1.7;margin:0}}
+.ed-colimg{{height:110px!important;opacity:1}}
+.ed-colcard{{background:#fff;border:1px solid var(--line);border-top:3px solid var(--accent);padding:30px 26px}}
+.ed-bignum2{{display:block;font-family:var(--en);font-size:46px;color:var(--accent);line-height:1;margin-bottom:10px}}
+.ed-hero-notes{{display:flex;justify-content:center;gap:34px;flex-wrap:wrap;margin-top:56px}}
+.ed-hero-notes span{{font-family:var(--ko);font-size:14px;color:rgba(255,255,255,.7);padding-top:12px;border-top:1px solid rgba(255,255,255,.3);max-width:220px}}
+.ed-prolog-img{{min-height:440px;border-radius:4px;overflow:hidden}}
+.ed-pcards{{display:grid;gap:18px;margin-top:56px}}
+.ed-pcard{{background:#fff;padding:34px 28px;border-bottom:3px solid var(--accent);text-align:left}}
+.ed-pkw{{font-family:var(--ko);font-size:clamp(28px,3vw,38px);font-weight:600;color:var(--accent2);margin:10px 0 14px}}
 /* balance */
 .ed-barlabels{{display:flex;justify-content:space-between;margin:44px 0 10px;text-align:left}}
 .ed-barlabels b{{display:block;font-size:17px}}.ed-barlabels small{{color:var(--muted);font-size:12px}}
@@ -5178,6 +5271,7 @@ body{{margin:0;font-family:var(--sans);color:var(--ink);background:#fff;-webkit-
  .ed-sec{{padding:80px 20px}}.ed-split,.ed-course,.ed-halves,.ed-cols,.ed-feats{{grid-template-columns:1fr!important}}
  .ed-split div{{text-align:center!important}}.ed-point{{width:100%}}.ed-tiles{{grid-template-columns:repeat(2,1fr)!important}}
  .ed-split img{{max-height:260px!important}}
+ .ed-pcards{{grid-template-columns:1fr!important}}.ed-prolog-img{{min-height:260px}}
  .ed-note,.ed-corner.ml,.ed-corner.mr,.ed-side,.ed-mani-ph{{display:none}}.ed-boxline{{padding:28px 20px}}
  .ed-combo{{flex-direction:column;align-items:center}}.ed-plus{{margin:0}}.ed-structs{{padding-left:0}}
  .ed-pass-top,.ed-pass-bot,.ed-benefit{{flex-direction:column}}.ed-buy{{padding:18px;clip-path:none}}.ed-anchor{{flex-wrap:wrap}}
@@ -5255,7 +5349,7 @@ def ed_generate_plan(avoid: str = "") -> dict:
         "1. 첫 블록은 hero. 이후 6~9개 블록을 이 강좌의 정보량과 컨셉에 맞게 골라 순서를 정한다.\n"
         "2. 정보가 없는 블록(lineup, balance, feature_stat, benefit, index_tiles 등)은 쓰지 않는다.\n"
         "3. 구매 상품 정보가 있으면 pass_box를, 혜택 정보가 있으면 benefit을 뒤쪽에 둔다.\n"
-        "4. 같은 type은 한 번만(combo·feature_stat만 예외).\n"
+        "4. 같은 type은 한 번만(combo·feature_stat만 예외). layout은 a/b를 섞어 밝은 섹션과 어두운 섹션이 번갈아 나오게.\n"
         "5. 모든 섹션 제목은 컨셉 키트의 동사·키워드로 이어지게 쓴다.\n"
         f"6. pack은 다음 중 컨셉에 어울리는 하나: {packs}\n"
         + (f"7. 이전 구성과 다르게: {avoid}\n" if avoid else "")
@@ -5277,6 +5371,9 @@ def ed_polish(plan: dict) -> dict:
         plan["blocks"] = [{"type": "hero", "variant": "wordmark_photo", "wordmark": st.session_state.get("ed_label", "")}] + plan.get("blocks", [])
     if plan["blocks"][0].get("variant") not in ED_HERO_VARIANTS:
         plan["blocks"][0]["variant"] = "wordmark_photo"
+    for b in plan["blocks"]:
+        if b.get("type") in ED_LAYOUT_BLOCKS and b.get("layout") not in ("a", "b"):
+            b["layout"] = "a"
     if plan.get("pack") not in ED_PACKS:
         plan["pack"] = "noir_navy"
     return plan
@@ -5299,13 +5396,148 @@ def ed_regen_block(plan: dict, idx: int, request: str) -> dict:
             nb[k] = b[k]
     return nb
 
+# ══════════════════════════════════════════════════════════════════════
+# [v12] 🎨 AI 이미지 생성 — 히어로 배경 · 키 비주얼 · 섹션 텍스처
+#   · Gemini(Nano Banana) 또는 OpenAI(GPT Image) API 키가 있으면 빌더 안에서 바로 생성
+#   · 키가 없으면 '프롬프트 복사 → Gemini/ChatGPT 앱에서 생성 → 업로드'
+#   · 사람 얼굴·글자·로고는 넣지 않음 (강사 사진은 반드시 실제 사진 사용)
+# ══════════════════════════════════════════════════════════════════════
+IMG_SLOTS = {
+    "hero_bg":    {"label": "히어로 배경",        "ar": "16:9", "size": "1536x1024",
+                   "help": "히어로 전체 배경. 가운데를 비워 워드마크가 잘 보이게"},
+    "key_visual": {"label": "키 비주얼 (오브제)", "ar": "1:1",  "size": "1024x1024",
+                   "help": "컨셉을 상징하는 오브제 하나. 히어로·프롤로그·메시지 섹션에 사용"},
+    "texture":    {"label": "섹션 텍스처",        "ar": "16:9", "size": "1536x1024",
+                   "help": "추상 텍스처. 특징 섹션의 이미지 띠, 배경 등에 사용"},
+}
+GEMINI_IMG_MODELS = ["gemini-3.1-flash-image", "gemini-3.1-flash-image-preview"]
+OPENAI_IMG_MODELS = ["gpt-image-2", "gpt-image-1.5"]
+IMG_RULES = ("Absolutely no text, letters, numbers, logos or watermarks. No people, no faces, no hands. "
+             "Premium editorial art direction for a Korean education brand landing page, cinematic lighting, high detail.")
+
+def _secret(name: str) -> str:
+    try:
+        return st.secrets.get(name, "") or ""
+    except Exception:
+        return ""
+
+def _img_to_datauri(raw: bytes, max_w: int = 1600, keep_png: bool = False) -> str:
+    from PIL import Image
+    import io
+    im = Image.open(io.BytesIO(raw))
+    has_alpha = im.mode in ("RGBA", "LA", "P")
+    im = im.convert("RGBA" if (keep_png and has_alpha) else "RGB")
+    if im.width > max_w:
+        im = im.resize((max_w, int(im.height * max_w / im.width)), Image.LANCZOS)
+    buf = io.BytesIO()
+    if im.mode == "RGBA":
+        im.save(buf, format="PNG", optimize=True); mime = "png"
+    else:
+        im.save(buf, format="JPEG", quality=86); mime = "jpeg"
+    return f"data:image/{mime};base64,{base64.b64encode(buf.getvalue()).decode()}"
+
+def img_generate(provider: str, prompt: str, slot: str) -> str:
+    """이미지 1장 생성 → data URI. 실패 시 이유가 담긴 예외."""
+    meta = IMG_SLOTS[slot]
+    errors = []
+    if provider == "gemini":
+        key = (st.session_state.get("gemini_key") or _secret("GEMINI_API_KEY")).strip()
+        if not key:
+            raise ValueError("Gemini API 키가 없습니다. (Google AI Studio → Get API key)")
+        for model in GEMINI_IMG_MODELS:
+            body = {"contents": [{"parts": [{"text": prompt}]}],
+                    "generationConfig": {"responseModalities": ["IMAGE"], "imageConfig": {"aspectRatio": meta["ar"]}}}
+            for attempt in range(2):
+                r = requests.post(f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
+                                  headers={"x-goog-api-key": key, "Content-Type": "application/json"},
+                                  json=body, timeout=180)
+                if r.status_code == 400 and attempt == 0 and "imageConfig" in body["generationConfig"]:
+                    body["generationConfig"].pop("imageConfig")      # 비율 옵션 미지원 모델 → 비율 없이 재시도
+                    continue
+                if not r.ok:
+                    try: msg = r.json().get("error", {}).get("message", r.text[:160])
+                    except Exception: msg = r.text[:160]
+                    errors.append(f"{model}: HTTP {r.status_code} {msg}")
+                    break
+                for cand in r.json().get("candidates", []):
+                    for part in (cand.get("content") or {}).get("parts", []):
+                        inline = part.get("inlineData") or part.get("inline_data")
+                        if inline and inline.get("data"):
+                            return _img_to_datauri(base64.b64decode(inline["data"]), keep_png=(slot == "key_visual"))
+                errors.append(f"{model}: 이미지가 응답에 없음 (안전 필터에 걸렸을 수 있어요)")
+                break
+    elif provider == "openai":
+        key = (st.session_state.get("openai_key") or _secret("OPENAI_API_KEY")).strip()
+        if not key:
+            raise ValueError("OpenAI API 키가 없습니다. (platform.openai.com → API keys)")
+        for model in OPENAI_IMG_MODELS:
+            r = requests.post("https://api.openai.com/v1/images/generations",
+                              headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                              json={"model": model, "prompt": prompt, "size": meta["size"], "quality": "medium", "n": 1},
+                              timeout=240)
+            if not r.ok:
+                try: msg = r.json().get("error", {}).get("message", r.text[:160])
+                except Exception: msg = r.text[:160]
+                errors.append(f"{model}: HTTP {r.status_code} {msg}")
+                continue
+            d = (r.json().get("data") or [{}])[0]
+            if d.get("b64_json"):
+                return _img_to_datauri(base64.b64decode(d["b64_json"]), keep_png=(slot == "key_visual"))
+            if d.get("url"):
+                return _img_to_datauri(requests.get(d["url"], timeout=60).content)
+            errors.append(f"{model}: 이미지가 응답에 없음")
+    else:
+        raise ValueError("이미지 생성 방식을 선택해주세요.")
+    raise Exception(" / ".join(errors[-3:]) or "이미지 생성 실패")
+
+def img_prompts_template(plan: dict) -> dict:
+    kit = plan.get("kit") or {}
+    pk = ED_PACKS.get(plan.get("pack"), ED_PACKS["noir_navy"])
+    motif = kit.get("motif") or kit.get("concept_en") or "precision"
+    concept = kit.get("concept_en", "")
+    tone = f"color palette of deep {pk['dark']} shadows with restrained {pk['accent']} accent light"
+    return {
+        "hero_bg": (f"Wide cinematic hero background. Abstract visual metaphor of '{motif}' (concept: {concept}). "
+                    f"{tone}. Strong depth, subtle haze, the center third kept dark and empty for a large title. {IMG_RULES}"),
+        "key_visual": (f"One sculptural object that symbolizes '{motif}', centered, floating, studio product lighting, "
+                       f"seamless dark background, {tone}, soft rim light, minimal composition, photoreal 3D render. {IMG_RULES}"),
+        "texture": (f"Wide abstract texture inspired by '{motif}': fine lines, soft gradients and light grain, {tone}, "
+                    f"no focal subject, even detail across the frame so it can be cropped into strips. {IMG_RULES}"),
+    }
+
+def img_prompts_auto(plan: dict) -> dict:
+    """컨셉 키트로 영문 이미지 프롬프트 작성 (Groq). 실패하면 템플릿."""
+    base = img_prompts_template(plan)
+    if not st.session_state.get("api_key"):
+        return base
+    kit = plan.get("kit") or {}
+    pk = ED_PACKS.get(plan.get("pack"), ED_PACKS["noir_navy"])
+    prompt = (
+        "You are an art director for premium Korean education landing pages (editorial, serif, cinematic).\n"
+        f"Course: {st.session_state.get('ed_label','')} / subject: {st.session_state.get('ed_subject','')}\n"
+        f"Concept kit: {json.dumps(kit, ensure_ascii=False)}\n"
+        f"Palette: dark {pk['dark']}, accent {pk['accent']}, light {pk['alt']}\n"
+        "Write three English image-generation prompts (60-90 words each) that express the concept metaphor visually:\n"
+        "hero_bg = wide 16:9 cinematic background, center kept empty for a big title;\n"
+        "key_visual = one symbolic object, centered, seamless dark background;\n"
+        "texture = abstract wide texture that can be cropped into strips.\n"
+        f"Every prompt must end with: {IMG_RULES}\n"
+        'Return JSON only: {"hero_bg":"...","key_visual":"...","texture":"..."}'
+    )
+    try:
+        d = safe_json(call_ai(prompt, max_tokens=1500, temperature=0.7))
+        return {k: (str(d.get(k)).strip() if d.get(k) else base[k]) for k in IMG_SLOTS}
+    except Exception:
+        return base
+
 def ed_restyle(plan: dict) -> dict:
-    """AI 호출 없이 스타일 팩·히어로 변형만 바꿔보기"""
-    keys = [k for k in ED_PACKS if k != plan.get("pack")]
-    plan["pack"] = _erandom.choice(keys)
-    hero = plan["blocks"][0] if plan.get("blocks") else None
-    if hero and hero.get("type") == "hero":
-        hero["variant"] = _erandom.choice([v for v in ED_HERO_VARIANTS if v != hero.get("variant")])
+    """AI 호출 없이 스타일 팩 · 히어로 형태 · 블록 레이아웃(a/b)을 바꿔보기"""
+    plan["pack"] = _erandom.choice([k for k in ED_PACKS if k != plan.get("pack")])
+    for b in plan.get("blocks") or []:
+        if b.get("type") == "hero":
+            b["variant"] = _erandom.choice([v for v in ED_HERO_VARIANTS if v != b.get("variant")])
+        elif b.get("type") in ED_LAYOUT_BLOCKS:
+            b["layout"] = _erandom.choice(["a", "b"])
     return plan
 
 
@@ -5313,7 +5545,8 @@ def ed_restyle(plan: dict) -> dict:
 _ED_DEFAULTS = {"ed_inst": "", "ed_label": "", "ed_subject": "영어", "ed_target": "고3·N수", "ed_memo": "", "ed_courses": "",
                 "ed_books": "", "ed_pass_name": "", "ed_pass_inc": "", "ed_pass_orig": "", "ed_pass_price": "", "ed_pass_disc": "",
                 "ed_pass_link": "", "ed_pass_note": "", "ed_benefit": "", "ed_video": "", "ed_concept": "",
-                "ed_notice": "", "ed_plan": None, "ed_photo": "", "ed_books_img": []}
+                "ed_notice": "", "ed_plan": None, "ed_photo": "", "ed_books_img": [],
+                "ed_imgs": {}, "ed_img_prompts": {}, "ed_img_provider": "gemini"}
 
 def _ed_img_b64(f, max_w=1400) -> str:
     from PIL import Image
@@ -5332,6 +5565,7 @@ def _ed_img_b64(f, max_w=1400) -> str:
 def _ed_ctx() -> dict:
     g = st.session_state.get
     return {"label": g("ed_label") or "", "photo": g("ed_photo") or "", "books": g("ed_books_img") or [],
+            "imgs": dict(g("ed_imgs") or {}),
             "video": g("ed_video") or "", "notice": g("ed_notice") or DEFAULT_NOTICE,
             "pass": {"name": g("ed_pass_name"), "includes": g("ed_pass_inc"), "orig": g("ed_pass_orig"),
                      "price": g("ed_pass_price"), "disc": g("ed_pass_disc"), "link": g("ed_pass_link"), "note": g("ed_pass_note")}}
@@ -5343,7 +5577,11 @@ def _ed_field_editor(b: dict, i: int):
         if k in ("type",):
             continue
         key = f"edf_{i}_{k}"
-        if k == "variant" and b.get("type") == "hero":
+        if k == "layout" and b.get("type") in ED_LAYOUT_BLOCKS:
+            labels = ED_LAYOUT_BLOCKS[b["type"]].split(" / ")
+            nv = st.radio("레이아웃", ["a", "b"], index=1 if v == "b" else 0, horizontal=True,
+                          format_func=lambda o: labels[0] if o == "a" else labels[1], key=key)
+        elif k == "variant" and b.get("type") == "hero":
             opts = list(ED_HERO_VARIANTS)
             nv = st.selectbox("히어로 레이아웃", opts, index=opts.index(v) if v in opts else 0,
                               format_func=lambda o: ED_HERO_VARIANTS[o], key=key)
@@ -5362,6 +5600,67 @@ def _ed_field_editor(b: dict, i: int):
             b[k] = nv
             changed = True
     return changed
+
+
+def ed_copy_md(plan: dict, x: dict) -> str:
+    """섹션별 문구 원고 (디자이너·검수용)"""
+    kit = plan.get("kit") or {}
+    lines = [f"# {x.get('label','')} — PR 페이지 문구 원고", "",
+             f"- 컨셉: {kit.get('concept_en','')} / {kit.get('verb','')} / 모티프: {kit.get('motif','')}",
+             f"- 키워드: {' '.join(str(k) for k in (kit.get('keywords') or []))}",
+             f"- 대구: {kit.get('antithesis','')}",
+             f"- 스타일 팩: {ED_PACKS.get(plan.get('pack'), {}).get('name','')}", ""]
+    def _flat(v, indent=""):
+        if isinstance(v, str):
+            return [f"{indent}{v}"] if v.strip() else []
+        if isinstance(v, dict):
+            out = []
+            for k2, v2 in v.items():
+                sub = _flat(v2, indent + "  ")
+                if sub:
+                    out.append(f"{indent}- {k2}:"); out += sub
+            return out
+        if isinstance(v, list):
+            out = []
+            for it in v:
+                out += _flat(it, indent + "  ")
+            return out
+        return []
+    for i, b in enumerate(plan.get("blocks") or []):
+        lines.append(f"## {i + 1:02d}. {ED_BLOCK_SPECS.get(b.get('type'), (b.get('type'),))[0]}")
+        for k, v in b.items():
+            if k in ("type", "variant", "layout", "nav"):
+                continue
+            body = _flat(v, "  ")
+            if body:
+                lines.append(f"- **{k}**"); lines += body
+        lines.append("")
+    p = x.get("pass") or {}
+    if p.get("name"):
+        lines += ["## 구매 정보 (MD 입력값)", f"- 상품명: {p.get('name')}", f"- 구성: {(p.get('includes') or '').replace(chr(10), ', ')}",
+                  f"- 정가/판매가/할인: {p.get('orig','')} / {p.get('price','')} / {p.get('disc','')}", ""]
+    lines += ["## 유의사항"] + [f"- {t}" for t in (x.get("notice") or "").splitlines() if t.strip()]
+    return "\n".join(lines)
+
+def ed_package_zip(plan: dict, x: dict) -> bytes:
+    import io, zipfile
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("01_시안_미리보기.html", ed_build_html(plan, x, export=True))
+        z.writestr("02_문구_원고.md", ed_copy_md(plan, x))
+        for slot, uri in (x.get("imgs") or {}).items():
+            m = re.match(r"data:image/(\w+);base64,(.+)", uri or "", re.S)
+            if m:
+                z.writestr(f"03_이미지/{slot}.{ 'jpg' if m.group(1) == 'jpeg' else m.group(1)}", base64.b64decode(m.group(2)))
+        z.writestr("00_읽어주세요.txt",
+                   "[실무 적용 순서]\n"
+                   "1. 01_시안_미리보기.html 을 크롬으로 열어 MD 검수 (문구·가격·일정 확인)\n"
+                   "2. 02_문구_원고.md 의 [확인 필요]·가격·날짜를 최종 확인\n"
+                   "3. 디자이너에게 이 폴더 전체 전달 → 시안 HTML을 레퍼런스로 실제 PR 이미지/퍼블리싱 작업\n"
+                   "   - 03_이미지 의 AI 이미지는 '방향 시안'입니다. 최종 사용 전 디자이너 보정 및 사내 검수\n"
+                   "   - 강사 사진은 반드시 실제 촬영본 사용 (AI로 인물 생성 금지)\n"
+                   "4. 관리자 '강좌 특징' 영역은 빌더의 📝 강좌 특징 HTML 모드로 별도 제작\n")
+    return buf.getvalue()
 
 def render_editorial_mode():
     for k, v in _ED_DEFAULTS.items():
@@ -5473,6 +5772,55 @@ def render_editorial_mode():
             if newpk != plan.get("pack"):
                 plan["pack"] = newpk
                 st.rerun()
+            # ── [v12] AI 이미지 ─────────────────────────────
+            with st.expander("🎨 AI 이미지 — 히어로 배경 · 키 비주얼 · 텍스처", expanded=not S.ed_imgs):
+                st.caption("컨셉에 맞는 이미지를 만들어 히어로·섹션에 자동으로 넣습니다. 사람 얼굴·글자·로고는 넣지 않아요 (강사 사진은 실제 사진을 사이드바에 올려주세요).")
+                prov_opts = {"gemini": "Gemini (Nano Banana)", "openai": "OpenAI (GPT Image)", "manual": "직접 만들기 (프롬프트 복사 → 앱에서 생성 → 업로드)"}
+                S.ed_img_provider = st.radio("생성 방식", list(prov_opts), index=list(prov_opts).index(S.ed_img_provider),
+                                             format_func=lambda k: prov_opts[k], key="ed_prov")
+                if S.ed_img_provider == "gemini" and not _secret("GEMINI_API_KEY"):
+                    S["gemini_key"] = st.text_input("Gemini API 키", S.get("gemini_key", ""), type="password",
+                                                    help="Google AI Studio(aistudio.google.com) → Get API key")
+                if S.ed_img_provider == "openai" and not _secret("OPENAI_API_KEY"):
+                    S["openai_key"] = st.text_input("OpenAI API 키", S.get("openai_key", ""), type="password",
+                                                    help="platform.openai.com → API keys (결제 등록 필요)")
+                if st.button("✍️ 컨셉으로 이미지 프롬프트 자동 작성", use_container_width=True):
+                    with st.spinner("아트 디렉션 프롬프트 작성 중..."):
+                        S.ed_img_prompts = img_prompts_auto(plan)
+                        for k in IMG_SLOTS:
+                            S.pop(f"ed_ip_{k}", None)
+                        st.rerun()
+                if not S.ed_img_prompts:
+                    S.ed_img_prompts = img_prompts_template(plan)
+                gen_all = (S.ed_img_provider != "manual") and st.button("⚡ 3장 한 번에 생성", type="primary", use_container_width=True)
+                for slot, meta in IMG_SLOTS.items():
+                    st.markdown(f"**{meta['label']}** · {meta['ar']}  \n<small>{meta['help']}</small>", unsafe_allow_html=True)
+                    S.ed_img_prompts[slot] = st.text_area("프롬프트", S.ed_img_prompts.get(slot, ""), height=90,
+                                                          key=f"ed_ip_{slot}", label_visibility="collapsed")
+                    c_a, c_b = st.columns([1, 1])
+                    if S.ed_img_provider != "manual":
+                        do = c_a.button("생성", key=f"ed_gen_{slot}", use_container_width=True)
+                    else:
+                        do = False
+                        c_a.caption("위 프롬프트를 복사해 Gemini·ChatGPT 앱에 붙여넣고, 만든 이미지를 오른쪽에 올리세요.")
+                    upf = c_b.file_uploader("업로드", type=["png", "jpg", "jpeg", "webp"], key=f"ed_up_{slot}",
+                                            label_visibility="collapsed")
+                    if upf is not None and S.get(f"_ed_up_sig_{slot}") != upf.name + str(upf.size):
+                        S.ed_imgs[slot] = _img_to_datauri(upf.getvalue(), keep_png=(slot == "key_visual"))
+                        S[f"_ed_up_sig_{slot}"] = upf.name + str(upf.size)
+                    if do or gen_all:
+                        with st.spinner(f"{meta['label']} 생성 중... (20~60초)"):
+                            try:
+                                S.ed_imgs[slot] = img_generate(S.ed_img_provider, S.ed_img_prompts[slot], slot)
+                            except Exception as e:
+                                st.error(f"{meta['label']} 실패: {e}")
+                    if S.ed_imgs.get(slot):
+                        st.image(S.ed_imgs[slot], use_container_width=True)
+                        if st.button("이 이미지 빼기", key=f"ed_rm_{slot}"):
+                            S.ed_imgs.pop(slot, None)
+                            st.rerun()
+                    st.markdown("---")
+
             st.markdown("**③ 블록 편집** — 순서 바꾸기·삭제·문구 수정·이 블록만 다시 쓰기")
             for i, b in enumerate(list(plan["blocks"])):
                 label = ED_BLOCK_SPECS.get(b.get("type"), (b.get("type"),))[0]
@@ -5521,10 +5869,13 @@ def render_editorial_mode():
                     "· 가격·혜택·비율 같은 숫자는 입력한 값만 쓰입니다.")
             return
         html_out = ed_build_html(S.ed_plan, _ed_ctx())
-        d1, d2 = st.columns(2)
-        d1.download_button("⬇️ HTML 다운로드", ed_build_html(S.ed_plan, _ed_ctx(), export=True).encode("utf-8"),
+        d1, d2, d3 = st.columns([1.1, 1.3, 1])
+        d1.download_button("⬇️ HTML", ed_build_html(S.ed_plan, _ed_ctx(), export=True).encode("utf-8"),
                            file_name=f"{S.ed_label or 'PR'}_시안.html", mime="text/html", type="primary", use_container_width=True)
-        vw = d2.radio("화면", ["PC", "모바일"], horizontal=True, label_visibility="collapsed", key="ed_vw")
+        d2.download_button("📦 실무 전달 패키지", ed_package_zip(S.ed_plan, _ed_ctx()),
+                           file_name=f"{S.ed_label or 'PR'}_전달패키지.zip", mime="application/zip", use_container_width=True,
+                           help="HTML + 이미지 원본 + 섹션별 문구 원고 + 디자이너·퍼블리셔 전달 안내")
+        vw = d3.radio("화면", ["PC", "모바일"], horizontal=True, label_visibility="collapsed", key="ed_vw")
         if hasattr(st, "iframe"):
             st.iframe(html_out, height=1100, width=390 if vw == "모바일" else "stretch")
         else:
@@ -6142,26 +6493,24 @@ with L:
     'grade_stats':'학습효과', 'instructor_philosophy':'강사철학',
     'course_intro':'강좌소개2', 'textbook_sale':'교재소개',
 }
-    regen_secs = [s for s in ordered if s in SEC_LABELS and s != 'custom_section']
+    regen_secs = [s for s in ordered if s in SEC_LABELS and s not in ('custom_section', 'notice')]
     if regen_secs and st.session_state.api_key:
-        for row_start in range(0, len(regen_secs), 4):
-            chunk = regen_secs[row_start:row_start+4]
-            cols_r = st.columns(4)
-            for i, sid in enumerate(chunk):
-                label = SEC_SHORT.get(sid, sid)
-                with cols_r[i]:
-                    if st.button(f"↺ {label}", key=f"regen_{sid}",
-                                 use_container_width=True):
-                        with st.spinner(f"{label} 재생성..."):
-                            try:
-                                r = gen_section(sid)
-                                if st.session_state.custom_copy is None:
-                                    st.session_state.custom_copy = {}
-                                st.session_state.custom_copy.update(r)
-                                st.session_state.preview_key = st.session_state.get("preview_key", 0) + 1
-                                st.rerun()
-                            except Exception as e:
-                                st.error(f"실패: {e}")
+        # [v12] 버튼 4열 → 글자가 잘리던 문제. 섹션 선택 + 버튼 1개 방식으로 변경
+        rc1, rc2 = st.columns([3, 2])
+        sid = rc1.selectbox("다시 쓸 섹션", regen_secs, format_func=lambda x: SEC_LABELS.get(x, x),
+                            label_visibility="collapsed", key="regen_pick")
+        if rc2.button("↺ 다시 쓰기", key="regen_go", use_container_width=True):
+            label = SEC_SHORT.get(sid, sid)
+            with st.spinner(f"{label} 재생성..."):
+                try:
+                    r = gen_section(sid)
+                    if st.session_state.custom_copy is None:
+                        st.session_state.custom_copy = {}
+                    st.session_state.custom_copy.update(r)
+                    st.session_state.preview_key = st.session_state.get("preview_key", 0) + 1
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"실패: {e}")
     elif not st.session_state.api_key:
         st.caption("API 키를 입력하면 활성화됩니다.")
     st.divider()
