@@ -1,5 +1,6 @@
 """
-강사 페이지 빌더 Pro v9 — 실무용 정리판
+강사 페이지 빌더 Pro v10 — 실무용 정리판
+[v10] ✨ 시안형 PR 페이지 모드: 컨셉 키트 + 블록 구성 + 스타일 팩 (실제 PR 시안 문법)
 [v9] 📝 강좌 특징 HTML 모드 추가: 원고 → 관리자 페이지용 인라인 CSS HTML(.txt) + 미리보기(.html)
 [문구]
 - 날짜는 코드가 계산(기준 수능·시즌). D-day 숫자는 100일 이내 + 사이드바 허용 시에만
@@ -653,7 +654,7 @@ def strip_hanja(text: str) -> str:
 
     # 2) 한자·특수문자 제거 (한글, 영문, 숫자, 기본 구두점만 허용)
     # [v8] 마스킹(김*우)·시간(07:00)·대시(—)·따옴표(‘’“”)·별점(★)·원(○)이 지워지던 문제 → 허용 문자 확대
-    allowed_pattern = r'[^\u3131-\u3163\uAC00-\uD7A3a-zA-Z0-9\s\.\,\!\?\'\"\%\[\]\(\)\-\<\>~·/&+\n:;\*—–‘’“”★○→#@=_|]'
+    allowed_pattern = r'[^\u3131-\u3163\uAC00-\uD7A3a-zA-Z0-9\s\.\,\!\?\'\"\%\[\]\(\)\-\<\>~·/&+\n:;\*—–‘’“”★○→#@=_|※「」『』]'
     text = re.sub(allowed_pattern, '', text)
 
     # 3) 인도네시아어/말레이어 금지 단어 제거
@@ -4570,10 +4571,870 @@ def render_feature_mode():
             st.code(fragment, language="html")
 
 
-# ── [v9] 작업 모드 선택 ────────────────────────────────────
-APP_MODE = st.sidebar.radio("작업 모드", ["🖼 PR 페이지 빌더", "📝 강좌 특징 HTML (관리자용)"], key="app_mode")
+# ══════════════════════════════════════════════════════════════════════
+# [v10] ✨ 시안형 PR 페이지 (에디토리얼 모드)
+#
+#  실제 대성마이맥 PR 시안(Deviser · The GUIDANCE · REAL CLOSING · CONTACT)의 문법을 코드로 옮긴 모드.
+#   1) AI가 '컨셉 키트'(컨셉 단어·동사·「키워드」·대구)를 먼저 정하고
+#   2) 블록 라이브러리에서 이번 강좌에 맞는 구성을 골라 문구를 채움 → 페이지마다 구성이 달라짐
+#   3) 디자인은 스타일 팩(세리프 워드마크 + 단일 포인트 컬러)이 담당 → 매번 달라도 늘 정돈됨
+#  가격·혜택·기간은 MD 입력값만 쓰고, AI는 숫자를 지어내지 않습니다.
+# ══════════════════════════════════════════════════════════════════════
+import html as _ehtml
+import random as _erandom
+
+ED_PACKS = {
+    "noir_navy":    {"name": "누아르 네이비 (Deviser형)",   "dark": "#0D0E11", "alt": "#EEF0F4", "accent": "#2C4A8C", "accent2": "#1E3570",
+                     "en": "'Playfair Display'", "wm": "silver"},
+    "silver_mono":  {"name": "실버 모노 (GUIDANCE형)",      "dark": "#1B1B1C", "alt": "#F2F2F2", "accent": "#5E5E5E", "accent2": "#2B2B2B",
+                     "en": "'Bodoni Moda'", "wm": "fade"},
+    "dusty_rose":   {"name": "더스티 로즈 (CONTACT형)",     "dark": "#2F2E2F", "alt": "#F3EFEE", "accent": "#A57A80", "accent2": "#8A6066",
+                     "en": "'Cormorant Garamond'", "wm": "white"},
+    "blue_final":   {"name": "딥 블루 (REAL CLOSING형)",    "dark": "#0C1120", "alt": "#E8EDF6", "accent": "#2F5BEA", "accent2": "#1C3FB8",
+                     "en": "'Playfair Display'", "wm": "white"},
+    "forest_ivory": {"name": "포레스트 아이보리",            "dark": "#13221C", "alt": "#F2F0E8", "accent": "#4E7A5C", "accent2": "#365A42",
+                     "en": "'Cormorant Garamond'", "wm": "silver"},
+    "burgundy":     {"name": "버건디 클래식",                "dark": "#1A0E11", "alt": "#F5EEEF", "accent": "#8C2F42", "accent2": "#6C2232",
+                     "en": "'Bodoni Moda'", "wm": "white"},
+}
+ED_HERO_VARIANTS = {
+    "wordmark_photo": "중앙 워드마크 + 강사 사진 (Deviser형)",
+    "bottom_wordmark": "하단 대형 워드마크 + 풀사진 (GUIDANCE형)",
+    "split_motif": "좌 모티프 / 우 워드마크 (CONTACT형)",
+    "framed_spaced": "자간 넓은 타이틀 + 액자 사진 (REAL CLOSING형)",
+}
+
+ED_STYLE_GUIDE = """
+[대성마이맥 PR 시안 문법 — 이 문법으로 쓴다. 예시는 구조 참고용이며 그대로 베끼지 않는다]
+A. 컨셉 동사 하나를 정해 섹션 제목마다 변주한다.
+   예) 설계하다 → "통합의 시대를 설계하다" / "완성도를 설계하다" / "깊이감을 설계하다"
+B. 영문 타이틀 + 한글 서술 한 줄의 짝.
+   예) "A distinct INSIGHT" + "과목의 본질을 꿰뚫다" / "A clear GUIDELINE" + "개념의 기준을 세우다"
+C. 대구와 단언.
+   예) "허점은 닫고, 감각은 열고" / "파이널은 밸런스 싸움이다" / "무엇을 알고, 어디까지 이해하고, 어떻게 적용할 것인가"
+D. 컨셉 메타포에서 나온 「키워드」 3개를 기획 의도 포인트마다 하나씩 붙인다.
+   예) 강좌명 CONTACT(접촉) → 「직선」「접점」「연결」 — 기하학 이미지로 통일
+E. 짧은 서술형 종결(~하다, ~이다, ~합니다)을 섞고, 본문은 2~3문장 안쪽.
+F. 숫자·가격·기간·비율은 [강좌 정보]에 있는 것만. 없으면 그 블록을 쓰지 않는다.
+G. 쓰지 않는 표현: 체계적인, 최고의, 함께라면, 비법, 여정, 첫걸음, 잠재력, 한계를 넘어, ~하는 당신.
+"""
+
+ED_BLOCK_SPECS = {
+    "hero": ('히어로(항상 첫 블록)',
+             '{"type":"hero","variant":"wordmark_photo|bottom_wordmark|split_motif|framed_spaced","kicker":"워드마크 위/아래 한 줄 — 컨셉 동사 문장 (예: 통합의 시대를 설계하다)",'
+             '"script":"워드마크 앞 필기체 영단어(선택, 예: The)","wordmark":"강좌명 영문 그대로","sub":"한 줄 정의 (20~34자)",'
+             '"band":"사진 위 띠 문구 — 대구 (framed_spaced용, 예: 허점은 닫고, 감각은 열고)","notes":["사진 주변 짧은 문구 2~4개 (12~22자)"],'
+             '"body":["히어로 하단 문장 2~3줄 (framed_spaced용)"]}'),
+    "prologue": ('프롤로그 — 왜 이 강좌인가',
+                 '{"type":"prologue","nav":"프롤로그","script":"Prologue","title":"컨셉 명사구 (예: 통합의 시대)","sub":"한 줄 (예: 새로운 수능, 새로운 설계의 필요성)",'
+                 '"body":["문단 1 (40~80자)","문단 2 (40~80자)"],"closing":"마무리 선언 한 줄 — 컨셉 동사 포함"}'),
+    "index_tiles": ('강좌 라인업 목차 타일 (강좌가 3개 이상일 때)',
+                    '{"type":"index_tiles","nav":"라인업","eyebrow":"영문 (예: DEVISING The METHOD)","title":"컨셉 동사 제목, 핵심어 [[ ]]","sub":"한 줄",'
+                    '"tiles":["강좌/교재명 — 입력 정보에 있는 것만"]}'),
+    "course_stages": ('단계별 강좌 소개 (이론/훈련/실전 등)',
+                      '{"type":"course_stages","nav":"커리큘럼","stages":[{"no":"01","label":"단계명 (예: 이론)","items":[{"badge":"1st Signature 등 (선택)","name":"강좌명(입력값)","title":"강좌 한 줄 정의","desc":"30~70자"}]}]}'),
+    "points": ('기획 의도 포인트 3개 + 「키워드」 (지그재그)',
+               '{"type":"points","nav":"기획 의도","title_en":"강좌명 영문","title_ko":"기획 의도","points":[{"label":"영문 라벨 (예: Contact Point 01)","desc":"설명 1~2문장 (30~60자)","keyword":"컨셉 「키워드」 단어 하나","line":"키워드가 들어가는 한 줄 (예: 추론형 실력 향상으로 향하는)"}]}'),
+    "quote": ('기획 의도 인용형 (큰 따옴표 + 질문형 제목)',
+              '{"type":"quote","nav":"기획 의도","chapter":"Chapter 01. 기획 의도","title":"질문형 대구 제목 (예: 무엇을 알고, 어디까지 이해하고, 어떻게 적용할 것인가)",'
+              '"lead":"첫 줄 (첫 글자를 크게)","body":["문장 1","문장 2"],"closing":"굵게 마무리 1~2문장"}'),
+    "three_col": ('영문 타이틀 + 3열 특징',
+                  '{"type":"three_col","nav":"특징","chapter":"Chapter 02. 설계의 기준","title_en":"영문 (예: A distinct INSIGHT)","title_ko":"서술 한 줄 (예: 과목의 본질을 꿰뚫다)",'
+                  '"items":[{"no":"01","small":"작은 설명 한 줄","title":"특징명 4~8자","desc":"20~50자"}]}'),
+    "balance": ('A vs B 비율 바 (입력 정보에 비율이 있을 때만)',
+                '{"type":"balance","nav":"밸런스","pill":"영문 라벨","title":"단언형 제목 (예: 파이널은 밸런스 싸움이다)","sub":"한 줄",'
+                '"left":{"name":"A","sub":"설명","pct":"입력값"},"right":{"name":"B","sub":"설명","pct":"입력값"},'
+                '"left_title":"A쪽 진단 한 줄","left_tags":["태그"],"right_title":"B쪽 진단 한 줄","right_tags":["태그"],"conclusion":"결론 1~2문장"}'),
+    "combo": ('A + B 조합 다이어그램 (교재·유형 구성)',
+              '{"type":"combo","nav":"구성","no":"01","title":"제목","left":{"tag":"A 이름","items":["항목"]},"right":{"tag":"B 이름","items":["항목"]},'
+              '"left_result":"A 설명 한 줄","right_result":"B 설명 한 줄"}'),
+    "feature_stat": ('핵심 구성 수치 + 특징 3개 (수치가 입력 정보에 있을 때)',
+                     '{"type":"feature_stat","nav":"구성","no":"02","title":"제목","stat":"입력 수치 (예: 20 Sessions · 160 Questions)","tags":["태그"],"caption":"한 줄",'
+                     '"bridge":"아래 특징으로 이어지는 한 줄","features":[{"title":"특징","desc":"설명 한 줄"}]}'),
+    "manifesto": ('대구 선언 + 강조 박스 (강사 사진과 함께)',
+                  '{"type":"manifesto","nav":"메시지","kicker":"대구 한 줄","title":"선언형 제목","box":"강조 박스 문장","body":["문장","문장"],"closing":"마무리 한 줄"}'),
+    "video": ('OT 영상', '{"type":"video","nav":"OT","chapter":"Chapter 00. 오리엔테이션","title":"컨셉 명사구 (예: 설계자의 가이드)","label":"영문 (예: Orientation)"}'),
+    "lineup": ('교재 라인업·구성 (교재 정보가 있을 때)',
+               '{"type":"lineup","nav":"교재","chapter":"Chapter 03. 교재 구성","title_en":"영문 (예: A clear GUIDELINE)","title_ko":"서술 한 줄",'
+               '"books":[{"name":"교재명(입력값)","items":["구성(입력값)"]}],"structure":[{"no":"01","name":"섹션명","desc":"설명"}]}'),
+    "pass_box": ('구매 박스 (가격은 MD 입력값을 코드가 채움)', '{"type":"pass_box","nav":"구매하기","title":"구매 섹션 제목 (예: 2028 Deviser 교재패스)"}'),
+    "benefit": ('혜택 안내 (혜택 정보가 있을 때)', '{"type":"benefit","nav":"혜택","title":"혜택 제목","rows":[["항목","입력값"]]}'),
+}
+
+def _ed_esc(s) -> str:
+    s = strip_hanja(str(s or ""))
+    s = _ehtml.escape(s, quote=False)
+    s = re.sub(r"\[\[(.+?)\]\]", r'<span class="ed-acc">\1</span>', s)
+    s = re.sub(r"「(.+?)」", r'<span class="ed-acc">「\1」</span>', s)
+    s = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", s)
+    return s.replace("\n", "<br>")
+
+def _ed_spaced(s: str) -> str:
+    """한 글자씩 띄운 타이틀 (Deviser 하단 '통 합 의 시 대 를 …' 느낌)"""
+    return " ".join(list(strip_hanja(str(s or "")).replace(" ", " ")))
+
+
+# ── 블록 렌더러 ───────────────────────────────────────────
+def _ed_head(chapter="", title="", sub="", en=False, dark=False) -> str:
+    return ('<div class="ed-head">'
+            + (f'<span class="ed-pill">{_ed_esc(chapter)}</span>' if chapter else "")
+            + (f'<h2 class="ed-h{" ed-en" if en else ""}">{_ed_esc(title)}</h2>' if title else "")
+            + (f'<p class="ed-hsub">{_ed_esc(sub)}</p>' if sub else "")
+            + '<div class="ed-rule"></div></div>')
+
+def _ed_motif_svg(color: str) -> str:
+    """CONTACT 시안의 동심 원호 모티프를 SVG로"""
+    arcs = "".join(f'<circle cx="230" cy="230" r="{120 + i * 7}" fill="none" stroke="{color}" stroke-opacity="{0.15 + i * 0.035:.2f}" stroke-width="1.2" '
+                   f'stroke-dasharray="{560 + i * 30} 2000" transform="rotate({40 + i * 3} 230 230)"/>' for i in range(16))
+    return f'<svg viewBox="0 0 460 460" width="100%" style="max-width:420px">{arcs}</svg>'
+
+def ed_r_hero(b, x):
+    v = b.get("variant") or "wordmark_photo"
+    wm, kicker, sub, script = b.get("wordmark") or x["label"], b.get("kicker", ""), b.get("sub", ""), b.get("script", "")
+    photo, book = x.get("photo"), (x.get("books") or [None])[0]
+    notes = [n for n in (b.get("notes") or []) if str(n).strip()][:4]
+    n = len(strip_hanja(wm))
+    wm_size = "clamp(64px,11vw,150px)" if n <= 9 else "clamp(52px,8vw,112px)" if n <= 16 else "clamp(40px,6vw,80px)"
+    if v == "bottom_wordmark":
+        bg = (f"background:linear-gradient(90deg,var(--dark) 18%,rgba(0,0,0,.25) 60%,rgba(0,0,0,.55)),url('{photo}') right center/auto 100% no-repeat,var(--dark);"
+              if photo else "background:radial-gradient(60% 70% at 70% 30%,rgba(255,255,255,.10),transparent 70%),var(--dark);")
+        corners = (notes + ["", "", "", ""])[:4]
+        return (f'<section class="ed-hero ed-dark" style="{bg}min-height:min(88vh,820px);padding:0">'
+                f'<div class="ed-corner tl">{_ed_esc(corners[0])}</div><div class="ed-corner tr">{_ed_esc(corners[1])}</div>'
+                f'<div class="ed-corner ml">{_ed_esc(corners[2])}</div><div class="ed-corner mr">{_ed_esc(corners[3])}</div>'
+                f'<p class="ed-spaced" style="position:absolute;top:70px;left:0;right:0;text-align:center">{_ed_esc(kicker)}</p>'
+                f'<div style="position:absolute;left:0;right:0;bottom:-0.12em;text-align:center">'
+                + (f'<div class="ed-script" style="font-size:clamp(56px,8vw,110px);color:#fff;line-height:1;margin-bottom:-.25em">{_ed_esc(script)}</div>' if script else "")
+                + f'<h1 class="ed-wm ed-wm-fade" style="font-size:clamp(80px,15vw,210px);line-height:.9">{_ed_esc(wm)}</h1></div></section>')
+    if v == "split_motif":
+        left = (f'<img src="{book}" alt="" style="max-width:100%;max-height:440px;filter:drop-shadow(0 30px 40px rgba(0,0,0,.5))">' if book
+                else _ed_motif_svg("#ffffff"))
+        return (f'<section class="ed-hero ed-dark" style="min-height:min(80vh,720px)"><div class="ed-in ed-split">'
+                f'<div style="text-align:center">{left}</div><div style="text-align:right">'
+                + (f'<p class="ed-serif" style="font-size:clamp(18px,1.8vw,24px);color:var(--muted);margin:0 0 6px">{_ed_esc(kicker)}</p>' if kicker else "")
+                + (f'<p class="ed-serif" style="font-size:clamp(26px,3vw,40px);color:var(--accent-light);margin:0 0 4px">{_ed_esc(sub)}</p>' if sub else "")
+                + f'<h1 class="ed-wm ed-wm-white" style="font-size:{wm_size}">{_ed_esc(wm)}</h1></div></div></section>')
+    if v == "framed_spaced":
+        words = strip_hanja(wm).split()
+        first = _ed_spaced(words[0]) if len(words) > 1 else ""
+        rest = " ".join(words[1:]) if len(words) > 1 else wm
+        frame = (f'<div class="ed-frame" style="background:url(\'{photo}\') center 25%/cover no-repeat">' if photo
+                 else '<div class="ed-frame" style="background:linear-gradient(135deg,#3a3f4f,#151824)">')
+        body = "".join(f"<p>{_ed_esc(t)}</p>" for t in (b.get("body") or []))
+        return (f'<section class="ed-hero ed-dark" style="text-align:center;padding-top:80px"><div class="ed-in" style="max-width:880px">'
+                f'<p class="ed-spaced" style="margin:0 0 22px">{_ed_esc(kicker)}</p>{frame}'
+                + (f'<div class="ed-band">{_ed_esc(_ed_spaced(b.get("band","")))}</div>' if b.get("band") else "")
+                + f'</div><div style="margin-top:-60px;position:relative">'
+                + (f'<div class="ed-wm ed-wm-white" style="font-size:clamp(48px,8vw,104px);letter-spacing:.35em;margin-right:-.35em">{_ed_esc(first)}</div>' if first else "")
+                + f'<h1 class="ed-wm ed-wm-white" style="font-size:clamp(48px,8vw,104px);margin-top:4px">{_ed_esc(rest)}</h1></div>'
+                + (f'<p class="ed-sub-l" style="margin-top:30px">{_ed_esc(sub)}</p>' if sub else "")
+                + (f'<div class="ed-herobody">{body}</div>' if body else "")
+                + '</div></section>')
+    # wordmark_photo (기본)
+    ph = (f'<img src="{photo}" alt="" style="width:min(520px,80%);display:block;margin:-30px auto 0;filter:grayscale(1) contrast(1.05);'
+          f'-webkit-mask-image:linear-gradient(180deg,#000 70%,transparent);mask-image:linear-gradient(180deg,#000 70%,transparent)">' if photo
+          else '<div style="height:260px"></div>')
+    ln = "".join(f'<p class="ed-note" style="top:{38 + i * 22}%">{_ed_esc(t)}</p>' for i, t in enumerate(notes[0::2]))
+    rn = "".join(f'<p class="ed-note r" style="top:{44 + i * 22}%">{_ed_esc(t)}</p>' for i, t in enumerate(notes[1::2]))
+    return (f'<section class="ed-hero ed-dark" style="text-align:center;padding:90px 24px 0;overflow:hidden">'
+            f'<div class="ed-in" style="position:relative">'
+            f'<h1 class="ed-wm ed-wm-silver" style="font-size:{wm_size};position:relative;z-index:2">{_ed_esc(wm)}</h1>'
+            f'<p class="ed-spaced" style="position:relative;z-index:2;margin-top:6px">{_ed_esc(_ed_spaced(kicker))}</p>'
+            + (f'<p class="ed-sub-l" style="position:relative;z-index:2">{_ed_esc(sub)}</p>' if sub else "")
+            + f'{ln}{rn}{ph}</div></section>')
+
+def ed_r_anchor_bar(navs):
+    if not navs:
+        return ""
+    links = "".join(f'<a href="#{i}">{_ed_esc(l)}</a>' for i, l in navs[:4])
+    return f'<nav class="ed-anchor">{links}</nav>'
+
+def ed_r_prologue(b, x):
+    body = "".join(f"<p>{_ed_esc(t)}</p>" for t in (b.get("body") or []))
+    return (f'<section class="ed-sec ed-alt" style="text-align:center"><div class="ed-in" style="max-width:760px">'
+            f'<div class="ed-script" style="font-size:34px;color:var(--accent);margin-bottom:-6px">{_ed_esc(b.get("script") or "Prologue")}</div>'
+            f'<h2 class="ed-h" style="font-size:clamp(34px,4.4vw,56px);color:var(--accent2)">{_ed_esc(b.get("title",""))}</h2>'
+            f'<p class="ed-hsub">{_ed_esc(b.get("sub",""))}</p><div class="ed-body" style="margin-top:44px">{body}</div>'
+            + (f'<p class="ed-closing">{_ed_esc(b.get("closing"))}</p>' if b.get("closing") else "")
+            + '</div></section>')
+
+def ed_r_index_tiles(b, x):
+    tiles = [t for t in (b.get("tiles") or []) if str(t).strip()]
+    cells = "".join(f'<div class="ed-tile"><span>{i + 1:02d}</span><b>{_ed_esc(t)}</b></div>' for i, t in enumerate(tiles))
+    return (f'<section class="ed-sec ed-dark"><div class="ed-in" style="text-align:center">'
+            f'<p class="ed-eyebrow">{_ed_esc(b.get("eyebrow",""))}</p>'
+            f'<h2 class="ed-h" style="color:#fff">{_ed_esc(b.get("title",""))}</h2><p class="ed-hsub">{_ed_esc(b.get("sub",""))}</p>'
+            f'<div class="ed-tiles" style="grid-template-columns:repeat({min(max(len(tiles),1),7)},1fr)">{cells}</div></div></section>')
+
+def ed_r_course_stages(b, x):
+    out = ""
+    for st_ in b.get("stages") or []:
+        items = ""
+        for it in st_.get("items") or []:
+            items += ('<div class="ed-course">'
+                      f'<div class="ed-course-l">'
+                      + (f'<span class="ed-script" style="font-size:20px;color:var(--accent)">{_ed_esc(it.get("badge"))}</span><br>' if it.get("badge") else "")
+                      + f'<b class="ed-serif-en">{_ed_esc(it.get("name",""))}</b></div>'
+                      f'<div class="ed-course-r"><h4>{_ed_esc(it.get("title",""))}</h4><p>{_ed_esc(it.get("desc",""))}</p></div></div>')
+        out += (f'<div class="ed-stage"><div class="ed-stage-h"><span>{_ed_esc(st_.get("no",""))}</span> {_ed_esc(st_.get("label",""))}</div>{items}</div>')
+    return f'<section class="ed-sec ed-dark" style="padding-top:40px"><div class="ed-in ed-boxline">{out}</div></section>'
+
+def ed_r_points(b, x):
+    pts = b.get("points") or []
+    rows = ""
+    for i, p in enumerate(pts):
+        side = "l" if i % 2 == 0 else "r"
+        kw = p.get("keyword", "")
+        rows += (f'<div class="ed-point {side}"><div class="ed-orb"></div><div class="ed-point-t">'
+                 f'<span class="ed-serif-en ed-plabel">{_ed_esc(p.get("label",""))}</span>'
+                 f'<p class="ed-pdesc">{_ed_esc(p.get("desc",""))}</p>'
+                 f'<p class="ed-pline">{_ed_esc(p.get("line",""))}' + (f' <span class="ed-acc">「{_ed_esc(kw)}」</span>' if kw else "") + '</p>'
+                 '</div></div>')
+    return (f'<section class="ed-sec ed-alt ed-diag"><div class="ed-in">'
+            f'<h2 class="ed-h" style="text-align:center;font-size:clamp(34px,4.6vw,58px)"><span class="ed-serif-en ed-acc2">{_ed_esc(b.get("title_en",""))}</span> {_ed_esc(b.get("title_ko",""))}</h2>'
+            f'<div class="ed-points">{rows}</div></div></section>')
+
+def ed_r_quote(b, x):
+    lead = strip_hanja(str(b.get("lead", "")))
+    lead_html = (f'<span style="font-size:1.6em;font-weight:700">{_ed_esc(lead[:1])}</span>{_ed_esc(lead[1:])}' if lead else "")
+    body = "".join(f"<p>{_ed_esc(t)}</p>" for t in (b.get("body") or []))
+    return (f'<section class="ed-sec" style="text-align:center"><div class="ed-in" style="max-width:820px">'
+            + _ed_head(b.get("chapter", ""), b.get("title", ""))
+            + f'<div class="ed-quote"><span class="q l">&ldquo;</span><span class="q r">&rdquo;</span>'
+            f'<p class="ed-serif" style="font-size:20px;margin:0 0 16px">{lead_html}</p><div class="ed-body">{body}</div>'
+            + (f'<p class="ed-closing" style="font-size:17px">{_ed_esc(b.get("closing"))}</p>' if b.get("closing") else "")
+            + '</div></div></section>')
+
+def ed_r_three_col(b, x):
+    items = "".join(f'<div class="ed-col"><span class="ed-num">{_ed_esc(it.get("no", f"{i+1:02d}"))}</span>'
+                    f'<small>{_ed_esc(it.get("small",""))}</small><h4>{_ed_esc(it.get("title",""))}</h4>'
+                    f'<div class="ed-colbar"></div><p>{_ed_esc(it.get("desc",""))}</p></div>'
+                    for i, it in enumerate(b.get("items") or []))
+    return (f'<section class="ed-sec" style="text-align:center"><div class="ed-in">'
+            f'<span class="ed-pill">{_ed_esc(b.get("chapter",""))}</span>'
+            f'<h2 class="ed-h ed-en" style="font-size:clamp(32px,4vw,50px)">{_ed_esc(b.get("title_en",""))}</h2>'
+            f'<p class="ed-hsub ed-serif" style="font-size:20px">{_ed_esc(b.get("title_ko",""))}</p><div class="ed-rule"></div>'
+            f'<div class="ed-cols">{items}</div></div></section>')
+
+def ed_r_balance(b, x):
+    L, R = b.get("left") or {}, b.get("right") or {}
+    def _pct(v):
+        m = re.search(r"\d{1,3}", str(v or ""))
+        return int(m.group(0)) if m else None
+    lp, rp = _pct(L.get("pct")), _pct(R.get("pct"))
+    if lp is None and rp is None:
+        lp, rp = 50, 50
+    lp = lp if lp is not None else 100 - rp
+    rp = rp if rp is not None else 100 - lp
+    def tags(ts, cls):
+        return "".join(f'<span class="ed-bubble {cls}">{_ed_esc(t)}</span>' for t in (ts or []))
+    show_pct = _pct(L.get("pct")) is not None
+    return (f'<section class="ed-sec ed-alt" style="text-align:center;padding-bottom:0"><div class="ed-in" style="max-width:820px">'
+            f'<span class="ed-pillfill">{_ed_esc(b.get("pill",""))}</span>'
+            f'<h2 class="ed-h" style="font-weight:700">{_ed_esc(b.get("title",""))}</h2><p class="ed-hsub">{_ed_esc(b.get("sub",""))}</p>'
+            f'<div class="ed-barlabels"><div><b class="ed-serif-en">{_ed_esc(L.get("name",""))}</b><small>{_ed_esc(L.get("sub",""))}</small></div>'
+            f'<div style="text-align:right"><b class="ed-serif-en">{_ed_esc(R.get("name",""))}</b><small>{_ed_esc(R.get("sub",""))}</small></div></div>'
+            f'<div class="ed-bar"><div style="width:{lp}%;background:var(--accent2)">{f"{lp}%" if show_pct else ""}</div>'
+            f'<div style="width:{rp}%;background:var(--dark)">{f"{rp}%" if show_pct else ""}</div></div></div>'
+            f'<div class="ed-halves"><div><h4>{_ed_esc(b.get("left_title",""))}</h4>{tags(b.get("left_tags"), "on")}</div>'
+            f'<div class="dim"><h4>{_ed_esc(b.get("right_title",""))}</h4>{tags(b.get("right_tags"), "")}</div></div>'
+            + (f'<div class="ed-conclusion ed-dark"><div class="ed-in" style="max-width:760px"><p>{_ed_esc(b.get("conclusion"))}</p></div></div>' if b.get("conclusion") else "")
+            + '</section>')
+
+def ed_r_combo(b, x):
+    L, R = b.get("left") or {}, b.get("right") or {}
+    def box(d, res):
+        lis = "".join(f"<li>{_ed_esc(t)}</li>" for t in (d.get("items") or []))
+        return (f'<div class="ed-combo-c"><div class="ed-combo-box"><span class="ed-tagfill">{_ed_esc(d.get("tag",""))}</span><ul>{lis}</ul></div>'
+                f'<div class="ed-arrow"></div><p class="ed-combo-res">{_ed_esc(res)}</p></div>')
+    return (f'<section class="ed-sec" style="text-align:center;padding-top:80px"><div class="ed-in" style="max-width:860px">'
+            f'<div class="ed-bignum">{_ed_esc(b.get("no",""))}</div><h3 class="ed-h3">{_ed_esc(b.get("title",""))}</h3>'
+            f'<div class="ed-combo">{box(L, b.get("left_result",""))}<div class="ed-plus">+</div>{box(R, b.get("right_result",""))}</div>'
+            '</div></section>')
+
+def ed_r_feature_stat(b, x):
+    tags = "".join(f'<span class="ed-tagline">{_ed_esc(t)}</span>' for t in (b.get("tags") or []))
+    feats = "".join(f'<div class="ed-feat"><div class="ed-feat-o"></div><p>{_ed_esc(f.get("title",""))}<br><b>{_ed_esc(f.get("desc",""))}</b></p></div>'
+                    for f in (b.get("features") or []))
+    return (f'<section class="ed-sec" style="text-align:center;padding-top:80px"><div class="ed-in" style="max-width:860px">'
+            f'<div class="ed-bignum">{_ed_esc(b.get("no",""))}</div><h3 class="ed-h3">{_ed_esc(b.get("title",""))}</h3>'
+            f'<div class="ed-statbox">' + (f'<p class="ed-stat ed-serif-en">{_ed_esc(b.get("stat"))}</p>' if b.get("stat") else "")
+            + f'<div>{tags}</div><p class="ed-hsub">{_ed_esc(b.get("caption",""))}</p></div>'
+            + (f'<div class="ed-arrow" style="margin:0 auto"></div><p class="ed-bridge">{_ed_esc(b.get("bridge"))}</p>' if b.get("bridge") else "")
+            + f'<div class="ed-feats">{feats}</div></div></section>')
+
+def ed_r_manifesto(b, x):
+    photo = x.get("photo")
+    body = "".join(f"<p>{_ed_esc(t)}</p>" for t in (b.get("body") or []))
+    ph = (f'<div class="ed-mani-ph" style="background:url(\'{photo}\') center top/contain no-repeat"></div>' if photo else "")
+    return (f'<section class="ed-sec ed-alt" style="overflow:hidden"><div class="ed-in" style="position:relative">{ph}'
+            f'<div style="max-width:{560 if photo else 820}px;position:relative;z-index:2">'
+            f'<p class="ed-serif" style="color:var(--muted);font-size:20px;margin:0">{_ed_esc(b.get("kicker",""))}</p>'
+            f'<h2 class="ed-h" style="margin-top:4px;font-weight:700">{_ed_esc(b.get("title",""))}</h2>'
+            + (f'<div class="ed-darkbox">{_ed_esc(b.get("box"))}</div>' if b.get("box") else "")
+            + f'<div class="ed-body" style="text-align:left">{body}</div>'
+            + (f'<p class="ed-closing" style="text-align:left">{_ed_esc(b.get("closing"))}</p>' if b.get("closing") else "")
+            + '</div></div></section>')
+
+def ed_r_video(b, x):
+    url = x.get("video", "")
+    m = re.search(r"(?:youtu\.be/|v=|embed/|shorts/)([A-Za-z0-9_-]{11})", url or "")
+    inner = (f'<iframe src="https://www.youtube.com/embed/{m.group(1)}" allowfullscreen style="width:100%;height:100%;border:0"></iframe>' if m else
+             f'<div style="text-align:center"><p class="ed-serif-en" style="font-size:20px;margin:0">{_ed_esc(x["label"])}</p>'
+             f'<p class="ed-serif-en" style="font-size:36px;margin:4px 0 20px">{_ed_esc(b.get("label") or "Orientation")}</p>'
+             '<div class="ed-play"></div></div>')
+    return (f'<section class="ed-sec" style="text-align:center"><div class="ed-in" style="max-width:860px">'
+            + _ed_head(b.get("chapter", ""), b.get("title", ""))
+            + f'<div class="ed-video">{inner}</div></div></section>')
+
+def ed_r_lineup(b, x):
+    imgs = x.get("books") or []
+    books = b.get("books") or []
+    img_html = ("".join(f'<img src="{s}" alt="">' for s in imgs[:3]) if imgs else "")
+    labels = "".join(f'<div class="ed-bk"><span class="ed-tagfill">{_ed_esc(bk.get("name",""))}</span>'
+                     + "".join(f"<p>{_ed_esc(t)}</p>" for t in (bk.get("items") or [])) + "</div>" for bk in books)
+    struct = "".join(f'<div class="ed-struct"><span class="ed-serif-en ed-acc-l">{_ed_esc(s.get("no",""))}</span>'
+                     f'<div><b class="ed-serif-en">{_ed_esc(s.get("name",""))}</b><p>{_ed_esc(s.get("desc",""))}</p></div></div>'
+                     for s in (b.get("structure") or []))
+    return (f'<section class="ed-sec ed-dark"><div class="ed-in" style="text-align:center;max-width:860px">'
+            f'<span class="ed-pill">{_ed_esc(b.get("chapter",""))}</span>'
+            f'<h2 class="ed-h ed-en" style="color:#fff;font-size:clamp(32px,4vw,50px)">{_ed_esc(b.get("title_en",""))}</h2>'
+            f'<p class="ed-hsub ed-serif" style="font-size:20px">{_ed_esc(b.get("title_ko",""))}</p><div class="ed-rule"></div>'
+            f'<div class="ed-lineup"><h4 class="ed-lh">교재 라인업</h4>'
+            + (f'<div class="ed-bookimgs">{img_html}</div>' if img_html else "")
+            + f'<div class="ed-bks" style="grid-template-columns:repeat({max(min(len(books),3),1)},1fr)">{labels}</div>'
+            + (f'<h4 class="ed-lh" style="margin-top:56px">교재 구성</h4><div class="ed-structs">{struct}</div>' if struct else "")
+            + '</div></div></section>')
+
+def ed_r_pass_box(b, x):
+    p = x.get("pass") or {}
+    name = p.get("name") or "[상품명 입력]"
+    inc = [t for t in (p.get("includes") or "").splitlines() if t.strip()]
+    orig, price, disc = p.get("orig", ""), p.get("price", ""), p.get("disc", "")
+    img = (x.get("books") or [None])[0]
+    lis = "".join(f"<li>{_ed_esc(t)}</li>" for t in inc) or "<li>[구성 입력]</li>"
+    return (f'<section class="ed-sec" style="text-align:center"><div class="ed-in" style="max-width:860px">'
+            f'<h2 class="ed-h ed-en" style="font-size:clamp(30px,3.6vw,44px)">{_ed_esc(b.get("title") or name)}</h2><div class="ed-rule"></div>'
+            f'<div class="ed-pass"><div class="ed-pass-top"><div style="text-align:left"><h4>{_ed_esc(name)}</h4><ul>{lis}</ul></div>'
+            + (f'<img src="{img}" alt="" style="max-height:170px">' if img else "")
+            + '</div><div class="ed-pass-bot"><div class="ed-price">'
+            + (f'<span class="ed-disc">{_ed_esc(disc)}</span>' if disc else "")
+            + (f'<s>{_ed_esc(orig)}</s>' if orig else "")
+            + f'<b>{_ed_esc(price or "[판매가 입력]")}</b></div>'
+            f'<a class="ed-buy" href="{_ehtml.escape(p.get("link") or "#")}">구매하기</a></div></div>'
+            + (f'<p class="ed-hsub" style="font-size:13px">{_ed_esc(p.get("note"))}</p>' if p.get("note") else "")
+            + '</div></section>')
+
+def ed_r_benefit(b, x):
+    rows = [r for r in (b.get("rows") or []) if isinstance(r, (list, tuple)) and len(r) >= 2]
+    lis = "".join(f'<li><b>{_ed_esc(k)}</b> : {_ed_esc(v)}</li>' for k, v in rows)
+    img = (x.get("books") or [None, None])[-1] if x.get("books") else None
+    return (f'<section class="ed-sec" style="background:var(--accent2);color:#fff;--ink:#fff;--muted:rgba(255,255,255,.75)">'
+            f'<div class="ed-in" style="text-align:center;max-width:820px"><p class="ed-eyebrow" style="color:#fff">BENEFIT</p>'
+            f'<h2 class="ed-h" style="color:#fff">{_ed_esc(b.get("title",""))}</h2>'
+            f'<div class="ed-benefit">' + (f'<img src="{img}" alt="">' if img else "") + f'<ul>{lis}</ul></div></div></section>')
+
+def ed_r_notice(x):
+    items = [t.strip(" -•") for t in (x.get("notice") or "").splitlines() if t.strip()]
+    if not items:
+        return ""
+    return ('<section class="ed-notice"><div class="ed-in"><h4>ⓘ 유의사항</h4><ul>'
+            + "".join(f"<li>{_ehtml.escape(t)}</li>" for t in items) + "</ul></div></section>")
+
+ED_RENDERERS = {
+    "hero": ed_r_hero, "prologue": ed_r_prologue, "index_tiles": ed_r_index_tiles, "course_stages": ed_r_course_stages,
+    "points": ed_r_points, "quote": ed_r_quote, "three_col": ed_r_three_col, "balance": ed_r_balance, "combo": ed_r_combo,
+    "feature_stat": ed_r_feature_stat, "manifesto": ed_r_manifesto, "video": ed_r_video, "lineup": ed_r_lineup,
+    "pass_box": ed_r_pass_box, "benefit": ed_r_benefit,
+}
+
+def ed_css(pk: dict) -> str:
+    def _mix(h, r, base="#FFFFFF"):
+        return _feat_mix(h, r, base)
+    return f"""
+:root{{--dark:{pk['dark']};--alt:{pk['alt']};--accent:{pk['accent']};--accent2:{pk['accent2']};--accent-light:{_mix(pk['accent'],.55)};
+--ink:#1E2228;--muted:#6B7280;--line:#D9DCE1;--line-strong:#B8BDC6;
+--en:{pk['en']},'Noto Serif KR',serif;--ko:'Noto Serif KR',serif;--sans:'Pretendard Variable',Pretendard,-apple-system,'Apple SD Gothic Neo',sans-serif}}
+*{{box-sizing:border-box}}html{{scroll-behavior:smooth}}
+body{{margin:0;font-family:var(--sans);color:var(--ink);background:#fff;-webkit-font-smoothing:antialiased;word-break:keep-all}}
+.ed-in{{max-width:1000px;margin:0 auto;position:relative}}
+.ed-sec{{padding:120px 24px;position:relative;background:#fff;color:var(--ink)}}
+.ed-alt{{background:var(--alt)}}
+.ed-dark{{background:var(--dark);color:#fff;--ink:#F4F5F7;--muted:rgba(255,255,255,.6);--line:rgba(255,255,255,.18);--line-strong:rgba(255,255,255,.35)}}
+.ed-head{{text-align:center;margin-bottom:48px}}
+.ed-pill{{display:inline-block;border:1px solid var(--line-strong);padding:5px 14px;font-family:var(--ko);font-size:12.5px;color:var(--muted);margin-bottom:6px}}
+.ed-pillfill{{display:inline-block;background:var(--accent2);color:#fff;font-size:11px;letter-spacing:.12em;font-weight:700;padding:7px 18px;border-radius:99px}}
+.ed-h{{font-family:var(--ko);font-weight:500;font-size:clamp(28px,3.6vw,44px);line-height:1.35;letter-spacing:-.02em;margin:14px 0 0;color:var(--ink)}}
+.ed-en{{font-family:var(--en);letter-spacing:0}}
+.ed-h3{{font-family:var(--ko);font-weight:500;font-size:clamp(22px,2.6vw,30px);color:var(--accent2);margin:4px 0 30px}}
+.ed-hsub{{color:var(--muted);font-size:15.5px;margin:10px 0 0;line-height:1.7}}
+.ed-rule{{height:1px;background:var(--line);max-width:620px;margin:26px auto 0}}
+.ed-serif{{font-family:var(--ko)}}.ed-serif-en{{font-family:var(--en)}}
+.ed-script{{font-family:'Great Vibes',cursive;font-weight:400}}
+.ed-acc{{color:var(--accent)}}.ed-acc2{{color:var(--accent)}}.ed-acc-l{{color:var(--accent-light)}}
+.ed-eyebrow{{font-family:var(--en);font-size:15px;letter-spacing:.04em;color:var(--muted);margin:0}}
+.ed-body p{{font-family:var(--ko);font-size:16px;line-height:1.95;color:var(--muted);margin:0 0 18px}}
+.ed-closing{{font-family:var(--ko);font-weight:700;font-size:19px;color:var(--ink);margin-top:28px}}
+/* hero */
+.ed-hero{{position:relative;padding:100px 24px}}
+.ed-wm{{font-family:var(--en);font-weight:600;line-height:.95;margin:0;letter-spacing:-.01em}}
+.ed-wm-silver{{background:linear-gradient(180deg,#FFFFFF 0%,#D9DBE0 45%,#8C9099 100%);-webkit-background-clip:text;background-clip:text;color:transparent}}
+.ed-wm-white{{color:#fff}}
+.ed-wm-fade{{background:linear-gradient(180deg,#FFFFFF 10%,rgba(255,255,255,.55) 70%,rgba(255,255,255,.15));-webkit-background-clip:text;background-clip:text;color:transparent}}
+.ed-spaced{{font-family:var(--ko);font-size:clamp(14px,1.5vw,19px);letter-spacing:.42em;color:rgba(255,255,255,.82);margin:0}}
+.ed-sub-l{{font-family:var(--ko);color:rgba(255,255,255,.7);font-size:16px;margin:16px 0 0}}
+.ed-note{{position:absolute;left:0;max-width:220px;text-align:left;font-family:var(--ko);font-size:13.5px;color:rgba(255,255,255,.72);z-index:2;line-height:1.6}}
+.ed-note.r{{left:auto;right:0;text-align:right}}
+.ed-corner{{position:absolute;font-family:var(--en);font-size:13px;letter-spacing:.08em;color:rgba(255,255,255,.65);text-transform:uppercase}}
+.ed-corner.tl{{top:28px;left:40px}}.ed-corner.tr{{top:28px;right:40px}}.ed-corner.ml{{top:46%;left:40px}}.ed-corner.mr{{top:46%;right:40px}}
+.ed-split{{display:grid;grid-template-columns:1fr 1.2fr;gap:40px;align-items:center}}
+.ed-frame{{height:clamp(220px,32vw,330px);border-radius:14px;position:relative;overflow:hidden;filter:grayscale(.15)}}
+.ed-band{{position:absolute;left:0;right:0;bottom:22%;background:color-mix(in srgb,var(--accent) 72%,transparent);color:#fff;font-family:var(--ko);font-size:clamp(16px,2vw,24px);padding:10px;letter-spacing:.3em}}
+.ed-herobody p{{font-family:var(--ko);color:rgba(255,255,255,.75);font-size:15.5px;margin:6px 0}}
+.ed-anchor{{display:flex;background:var(--accent2)}}
+.ed-anchor a{{flex:1;text-align:center;color:#fff;text-decoration:none;font-family:var(--ko);font-size:15px;padding:20px 8px;border-right:1px solid rgba(255,255,255,.18)}}
+.ed-anchor a:last-child{{border-right:0}}.ed-anchor a:hover{{background:rgba(255,255,255,.08)}}
+/* tiles & courses */
+.ed-tiles{{display:grid;gap:4px;margin-top:44px}}
+.ed-tile{{background:linear-gradient(180deg,#2a2d33,#16181c);border-top:2px solid var(--accent);padding:14px 10px 40px;text-align:left}}
+.ed-tile span{{font-family:var(--en);font-size:13px;color:var(--muted)}}.ed-tile b{{display:block;font-family:var(--en);font-weight:500;font-size:13.5px;margin-top:8px;color:#fff}}
+.ed-boxline{{border:1px solid var(--line);padding:40px 48px}}
+.ed-stage{{margin-bottom:48px}}.ed-stage:last-child{{margin-bottom:0}}
+.ed-stage-h{{text-align:center;font-family:var(--ko);font-size:24px;color:#fff;padding-bottom:16px;border-bottom:1px solid var(--line);margin-bottom:28px}}
+.ed-stage-h span{{font-family:var(--en)}}
+.ed-course{{display:grid;grid-template-columns:1fr 1.4fr;gap:28px;align-items:center;padding:16px 0}}
+.ed-course-l{{text-align:center}}.ed-course-l b{{font-size:clamp(22px,2.6vw,32px);font-weight:600;color:#fff}}
+.ed-course-r h4{{font-family:var(--ko);font-size:18px;margin:0 0 6px;color:#fff}}.ed-course-r p{{margin:0;color:var(--muted);font-size:14.5px;line-height:1.7}}
+/* points */
+.ed-diag{{background:linear-gradient(160deg,transparent 49.8%,var(--line-strong) 50%,transparent 50.2%),var(--alt)}}
+.ed-points{{margin-top:60px}}
+.ed-point{{display:flex;align-items:center;gap:22px;margin:0 0 56px;width:78%}}
+.ed-point.r{{margin-left:auto;flex-direction:row-reverse;text-align:right}}
+.ed-orb{{flex:0 0 58px;height:58px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#fff,var(--accent-light) 60%,var(--accent));box-shadow:0 8px 18px rgba(0,0,0,.08)}}
+.ed-plabel{{color:var(--accent);font-size:19px}}
+.ed-pdesc{{margin:6px 0 4px;color:var(--muted);font-size:14.5px;line-height:1.6}}
+.ed-pline{{margin:0;font-family:var(--ko);font-size:clamp(17px,1.8vw,21px);color:var(--accent2);font-weight:600}}
+/* quote, cols */
+.ed-quote{{position:relative;padding:10px 60px}}
+.ed-quote .q{{position:absolute;top:-30px;font-family:Georgia,serif;font-size:110px;color:var(--line-strong);line-height:1}}
+.ed-quote .q.l{{left:0}}.ed-quote .q.r{{right:0}}
+.ed-cols{{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;margin-top:56px;text-align:left}}
+.ed-num{{font-family:var(--en);font-size:22px;color:var(--ink)}}
+.ed-col small{{display:block;color:var(--muted);font-size:12px;margin:6px 0 2px}}
+.ed-col h4{{font-family:var(--ko);font-size:22px;font-weight:500;margin:0 0 14px}}
+.ed-colbar{{height:46px;background:linear-gradient(90deg,var(--dark),var(--accent-light) 60%,var(--dark));margin-bottom:14px;opacity:.9}}
+.ed-col p{{color:var(--muted);font-size:14px;line-height:1.7;margin:0}}
+/* balance */
+.ed-barlabels{{display:flex;justify-content:space-between;margin:44px 0 10px;text-align:left}}
+.ed-barlabels b{{display:block;font-size:17px}}.ed-barlabels small{{color:var(--muted);font-size:12px}}
+.ed-bar{{display:flex;height:56px;border-radius:99px;overflow:hidden;color:#fff;font-family:var(--en);font-size:22px}}
+.ed-bar div{{display:flex;align-items:center;justify-content:center}}
+.ed-halves{{display:grid;grid-template-columns:1fr 1fr;margin:70px -24px 0}}
+.ed-halves>div{{padding:56px 30px;text-align:center;background:rgba(0,0,0,.03)}}
+.ed-halves>div.dim{{background:rgba(0,0,0,.06);opacity:.7}}
+.ed-halves h4{{font-family:var(--ko);font-weight:500;font-size:22px;color:var(--ink);margin:0 0 26px}}
+.ed-bubble{{display:inline-flex;align-items:center;justify-content:center;width:96px;height:96px;border-radius:50%;margin:5px;font-size:13px;
+  background:#C9CED6;color:#fff}}.ed-bubble.on{{background:var(--accent2)}}
+.ed-conclusion{{padding:64px 24px;text-align:center;margin:0 -24px}}.ed-conclusion p{{font-family:var(--ko);font-size:clamp(18px,2vw,24px);line-height:1.7;margin:0}}
+/* combo, stat */
+.ed-bignum{{font-family:var(--en);font-size:44px;color:var(--line-strong);line-height:1;border-bottom:1px solid var(--line);padding-bottom:6px}}
+.ed-combo{{display:flex;align-items:flex-start;justify-content:center;gap:24px}}
+.ed-combo-c{{flex:0 1 300px}}
+.ed-combo-box{{background:#fff;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.06);padding:26px 30px;min-height:220px}}
+.ed-combo-box ul{{list-style:none;padding:0;margin:18px auto 0;text-align:left;display:table}}
+.ed-combo-box .ed-tagfill{{display:table;margin:0 auto}}
+.ed-combo-box li{{font-size:14.5px;color:var(--muted);margin:5px 0}}.ed-combo-box li:before{{content:'· '}}
+.ed-tagfill{{display:inline-block;background:var(--accent);color:#fff;padding:7px 22px;border-radius:6px;font-weight:700;font-size:14px}}
+.ed-plus{{font-size:40px;color:var(--muted);margin-top:90px;font-weight:200}}
+.ed-arrow{{width:0;height:0;border-left:26px solid transparent;border-right:26px solid transparent;border-top:22px solid var(--line);margin:0 auto 12px}}
+.ed-combo-res{{font-family:var(--ko);color:var(--accent2);font-size:16px;line-height:1.6}}
+.ed-statbox{{background:#fff;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.06);padding:30px;max-width:620px;margin:0 auto 18px}}
+.ed-stat{{font-size:30px;color:var(--accent);margin:0 0 14px}}
+.ed-tagline{{display:inline-block;border:1px solid var(--accent-light);color:var(--accent);padding:5px 16px;margin:3px;font-size:13.5px}}
+.ed-bridge{{font-family:var(--ko);font-size:18px;color:var(--ink);font-weight:600}}
+.ed-feats{{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:30px}}
+.ed-feat-o{{width:120px;height:120px;border-radius:50%;margin:0 auto 14px;background:radial-gradient(circle at 35% 35%,#fff,var(--accent-light) 70%)}}
+.ed-feat p{{font-size:14px;color:var(--muted);line-height:1.6}}.ed-feat b{{color:var(--ink)}}
+/* manifesto, video, lineup, pass */
+.ed-mani-ph{{position:absolute;right:-40px;top:-60px;bottom:-120px;width:46%}}
+.ed-darkbox{{display:inline-block;background:var(--dark);color:#fff;font-family:var(--ko);font-size:clamp(17px,1.8vw,22px);padding:8px 16px;margin:22px 0 10px}}
+.ed-video{{aspect-ratio:16/9;background:#222;display:flex;align-items:center;justify-content:center;color:#fff}}
+.ed-play{{width:0;height:0;margin:0 auto;border-top:26px solid transparent;border-bottom:26px solid transparent;border-left:44px solid rgba(255,255,255,.75)}}
+.ed-lineup{{text-align:left;margin-top:56px}}
+.ed-lh{{font-family:var(--ko);font-weight:500;font-size:22px;color:#fff;border-bottom:1px solid var(--line);padding-bottom:12px;margin:0 0 26px}}
+.ed-bookimgs{{text-align:center;margin-bottom:20px}}.ed-bookimgs img{{height:230px;margin:0 6px;filter:drop-shadow(0 18px 24px rgba(0,0,0,.4))}}
+.ed-bks{{display:grid;gap:14px}}.ed-bk{{text-align:center}}.ed-bk p{{color:var(--muted);font-size:13.5px;margin:6px 0}}
+.ed-structs{{padding-left:30%}}.ed-struct{{display:flex;gap:12px;margin-bottom:22px}}
+.ed-struct span{{font-size:30px;line-height:1}}.ed-struct b{{font-size:22px;color:#fff;font-weight:500}}.ed-struct p{{color:var(--muted);font-size:13.5px;margin:6px 0 0}}
+.ed-pass{{border:1px solid var(--line-strong);border-radius:10px;overflow:hidden;margin:40px auto 14px;text-align:left}}
+.ed-pass-top{{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:28px 34px}}
+.ed-pass-top h4{{font-family:var(--ko);font-size:20px;margin:0 0 10px;color:var(--accent2)}}
+.ed-pass-top ul{{margin:0;padding-left:18px;color:var(--muted);font-size:13.5px;line-height:1.8}}
+.ed-pass-bot{{display:flex;align-items:stretch}}
+.ed-price{{flex:1;display:flex;align-items:center;gap:14px;padding:18px 34px;background:var(--alt)}}
+.ed-price s{{color:var(--muted);font-size:18px}}.ed-price b{{font-size:28px;color:var(--accent2)}}
+.ed-disc{{background:var(--accent2);color:#fff;font-weight:800;font-size:14px;padding:8px 12px;clip-path:polygon(0 0,100% 0,85% 100%,0 100%);padding-right:22px}}
+.ed-buy{{flex:0 0 38%;display:flex;align-items:center;justify-content:center;background:var(--dark);color:#fff;text-decoration:none;font-weight:800;font-size:20px;clip-path:polygon(8% 0,100% 0,100% 100%,0 100%)}}
+.ed-benefit{{display:flex;gap:40px;align-items:center;justify-content:center;margin-top:40px;text-align:left}}
+.ed-benefit img{{width:200px;box-shadow:0 18px 30px rgba(0,0,0,.35)}}.ed-benefit ul{{list-style:none;padding:0;margin:0}}
+.ed-benefit li{{font-size:15px;line-height:1.7;margin:6px 0;color:rgba(255,255,255,.9)}}.ed-benefit li:before{{content:'· '}}
+.ed-notice{{background:#0F0F10;color:rgba(255,255,255,.6);padding:50px 24px}}
+.ed-notice h4{{color:#fff;margin:0 0 14px;font-size:15px}}.ed-notice ul{{margin:0;padding-left:18px}}.ed-notice li{{font-size:13px;line-height:1.9}}
+.ed-side{{position:fixed;right:0;top:40%;z-index:50;background:rgba(20,22,26,.92);padding:10px 0;border-radius:8px 0 0 8px}}
+.ed-side a{{display:block;color:rgba(255,255,255,.75);text-decoration:none;font-size:12px;padding:7px 16px;font-family:var(--ko)}}.ed-side a:hover{{color:#fff}}
+@media(max-width:860px){{
+ .ed-sec{{padding:80px 20px}}.ed-split,.ed-course,.ed-halves,.ed-cols,.ed-feats{{grid-template-columns:1fr!important}}
+ .ed-split div{{text-align:center!important}}.ed-point{{width:100%}}.ed-tiles{{grid-template-columns:repeat(2,1fr)!important}}
+ .ed-split img{{max-height:260px!important}}
+ .ed-note,.ed-corner.ml,.ed-corner.mr,.ed-side,.ed-mani-ph{{display:none}}.ed-boxline{{padding:28px 20px}}
+ .ed-combo{{flex-direction:column;align-items:center}}.ed-plus{{margin:0}}.ed-structs{{padding-left:0}}
+ .ed-pass-top,.ed-pass-bot,.ed-benefit{{flex-direction:column}}.ed-buy{{padding:18px;clip-path:none}}.ed-anchor{{flex-wrap:wrap}}
+}}"""
+
+def ed_build_html(plan: dict, x: dict, export: bool = False) -> str:
+    pk = ED_PACKS.get(plan.get("pack"), ED_PACKS["noir_navy"])
+    blocks = plan.get("blocks") or []
+    navs = [(f"ed-b{i}", b.get("nav")) for i, b in enumerate(blocks) if b.get("nav") and b.get("type") != "hero"]
+    secs = []
+    for i, b in enumerate(blocks):
+        fn = ED_RENDERERS.get(b.get("type"))
+        if not fn:
+            continue
+        try:
+            h = fn(b, x)
+        except Exception as e:
+            h = "" if export else f'<div style="padding:12px;color:#c00;font-size:12px">[{b.get("type")}] 렌더 오류: {_ehtml.escape(str(e))}</div>'
+        if h:
+            secs.append(f'<div id="ed-b{i}">{h}</div>')
+            if b.get("type") == "hero":
+                secs.append(ed_r_anchor_bar(navs))
+    side = ""
+    if len(navs) >= 3:
+        side = '<nav class="ed-side">' + "".join(f'<a href="#{a}">{_ed_esc(l)}</a>' for a, l in navs) + "</nav>"
+    title = strip_hanja(str(x.get("label", "")))
+    return ('<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+            f'<title>{_ehtml.escape(title)}</title>'
+            '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
+            '<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Bodoni+Moda:wght@400;500;600&'
+            'family=Cormorant+Garamond:wght@400;500;600&family=Great+Vibes&family=Noto+Serif+KR:wght@400;500;600;700&display=swap" rel="stylesheet">'
+            '<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">'
+            f'<style>{ed_css(pk)}</style></head><body>{"".join(secs)}{ed_r_notice(x)}{side}</body></html>')
+
+
+# ── AI: 컨셉 키트 + 구성 ──────────────────────────────────
+def _ed_inputs_text() -> str:
+    g = st.session_state.get
+    rows = [
+        f"- 강사: {g('ed_inst') or '(미입력)'} / 과목: {g('ed_subject')} / 대상: {g('ed_target')}",
+        f"- 강좌명(워드마크): {g('ed_label') or '(미입력)'}",
+        f"- 기획 메모·원고: {g('ed_memo') or '(없음)'}",
+        f"- 강좌 라인업(강좌명 목록): {g('ed_courses') or '(없음)'}",
+        f"- 교재 정보: {g('ed_books') or '(없음)'}",
+        f"- 구매 상품: {g('ed_pass_name') or '(없음)'} / 구성: {(g('ed_pass_inc') or '').replace(chr(10), ', ') or '(없음)'}",
+        f"- 혜택·이벤트: {g('ed_benefit') or '(없음)'}",
+    ]
+    return "\n".join(rows)
+
+def ed_brief() -> str:
+    concept = st.session_state.get("ed_concept", "").strip()
+    return "\n".join([
+        "당신은 대성마이맥 컨텐츠기획실의 시니어 카피라이터 겸 PR 페이지 기획자입니다.",
+        ED_STYLE_GUIDE, season_prompt_block(),
+        "[강좌 정보 — 여기에 없는 사실·숫자·가격·기간은 쓰지 않는다]", _ed_inputs_text(),
+        (f"[컨셉 지정] {concept} — 이 단어/이미지로 컨셉 키트를 만든다." if concept else ""),
+    ])
+
+def _ed_block_catalog() -> str:
+    return "\n".join(f"- {k}: {v[0]}\n  {v[1]}" for k, v in ED_BLOCK_SPECS.items())
+
+def ed_generate_plan(avoid: str = "") -> dict:
+    packs = ", ".join(f"{k}({v['name']})" for k, v in ED_PACKS.items())
+    prompt = (
+        f"{ed_brief()}\n\n[블록 라이브러리]\n{_ed_block_catalog()}\n\n"
+        "[구성 규칙]\n"
+        "1. 첫 블록은 hero. 이후 6~9개 블록을 이 강좌의 정보량과 컨셉에 맞게 골라 순서를 정한다.\n"
+        "2. 정보가 없는 블록(lineup, balance, feature_stat, benefit, index_tiles 등)은 쓰지 않는다.\n"
+        "3. 구매 상품 정보가 있으면 pass_box를, 혜택 정보가 있으면 benefit을 뒤쪽에 둔다.\n"
+        "4. 같은 type은 한 번만(combo·feature_stat만 예외).\n"
+        "5. 모든 섹션 제목은 컨셉 키트의 동사·키워드로 이어지게 쓴다.\n"
+        f"6. pack은 다음 중 컨셉에 어울리는 하나: {packs}\n"
+        + (f"7. 이전 구성과 다르게: {avoid}\n" if avoid else "")
+        + '\nJSON 하나만 반환:\n{"kit":{"concept_en":"컨셉 영단어","verb":"컨셉 동사 (예: 설계하다)","motif":"시각 모티프",'
+        '"keywords":["「키워드」1","2","3"],"antithesis":"대구 한 줄"},"pack":"팩 키","blocks":[ {블록}, ... ]}'
+    )
+    st.session_state["_last_ctx"] = _ed_inputs_text()   # 품질 검사에서 '입력된 숫자'로 인정
+    plan = safe_json(call_ai(prompt, max_tokens=7000, temperature=0.85))
+    return ed_polish(plan)
+
+def ed_polish(plan: dict) -> dict:
+    blocks = plan.get("blocks") or []
+    wrapped = {f"b{i}": b for i, b in enumerate(blocks)}
+    wrapped = polish_copy(wrapped, ed_brief())
+    plan["blocks"] = [wrapped[f"b{i}"] for i in range(len(blocks))]
+    if not plan.get("blocks") or plan["blocks"][0].get("type") != "hero":
+        plan["blocks"] = [{"type": "hero", "variant": "wordmark_photo", "wordmark": st.session_state.get("ed_label", "")}] + plan.get("blocks", [])
+    if plan["blocks"][0].get("variant") not in ED_HERO_VARIANTS:
+        plan["blocks"][0]["variant"] = "wordmark_photo"
+    if plan.get("pack") not in ED_PACKS:
+        plan["pack"] = "noir_navy"
+    return plan
+
+def ed_regen_block(plan: dict, idx: int, request: str) -> dict:
+    b = plan["blocks"][idx]
+    spec = ED_BLOCK_SPECS.get(b.get("type"), ("", "{}"))[1]
+    prompt = (f"{ed_brief()}\n\n[이 페이지의 컨셉 키트]\n{json.dumps(plan.get('kit', {}), ensure_ascii=False)}\n\n"
+              f"[현재 블록]\n{json.dumps(b, ensure_ascii=False)}\n\n[요청] {request or '같은 구조로 다른 표현으로 다시 써주세요'}\n\n"
+              f"같은 type의 블록 JSON 하나만 반환. 형식:\n{spec}")
+    st.session_state["_last_ctx"] = _ed_inputs_text()
+    nb = safe_json(call_ai(prompt, max_tokens=2500, temperature=0.9))
+    nb["type"] = b.get("type")
+    if b.get("type") == "hero" and nb.get("variant") not in ED_HERO_VARIANTS:
+        nb["variant"] = b.get("variant", "wordmark_photo")
+    nb = polish_copy({"b": nb}, ed_brief())["b"]
+    for k, v in nb.items():          # 검사에서 비워진 칸은 이전 문구 유지
+        if v in ("", [], None) and b.get(k):
+            nb[k] = b[k]
+    return nb
+
+def ed_restyle(plan: dict) -> dict:
+    """AI 호출 없이 스타일 팩·히어로 변형만 바꿔보기"""
+    keys = [k for k in ED_PACKS if k != plan.get("pack")]
+    plan["pack"] = _erandom.choice(keys)
+    hero = plan["blocks"][0] if plan.get("blocks") else None
+    if hero and hero.get("type") == "hero":
+        hero["variant"] = _erandom.choice([v for v in ED_HERO_VARIANTS if v != hero.get("variant")])
+    return plan
+
+
+# ── 화면 ──────────────────────────────────────────────────
+_ED_DEFAULTS = {"ed_inst": "", "ed_label": "", "ed_subject": "영어", "ed_target": "고3·N수", "ed_memo": "", "ed_courses": "",
+                "ed_books": "", "ed_pass_name": "", "ed_pass_inc": "", "ed_pass_orig": "", "ed_pass_price": "", "ed_pass_disc": "",
+                "ed_pass_link": "", "ed_pass_note": "", "ed_benefit": "", "ed_video": "", "ed_concept": "",
+                "ed_notice": "", "ed_plan": None, "ed_photo": "", "ed_books_img": []}
+
+def _ed_img_b64(f, max_w=1400) -> str:
+    from PIL import Image
+    import io
+    im = Image.open(f)
+    im = im.convert("RGBA") if im.mode in ("RGBA", "LA", "P") else im.convert("RGB")
+    if im.width > max_w:
+        im = im.resize((max_w, int(im.height * max_w / im.width)), Image.LANCZOS)
+    buf = io.BytesIO()
+    if im.mode == "RGBA":
+        im.save(buf, format="PNG", optimize=True); mime = "png"
+    else:
+        im.save(buf, format="JPEG", quality=85); mime = "jpeg"
+    return f"data:image/{mime};base64,{base64.b64encode(buf.getvalue()).decode()}"
+
+def _ed_ctx() -> dict:
+    g = st.session_state.get
+    return {"label": g("ed_label") or "", "photo": g("ed_photo") or "", "books": g("ed_books_img") or [],
+            "video": g("ed_video") or "", "notice": g("ed_notice") or DEFAULT_NOTICE,
+            "pass": {"name": g("ed_pass_name"), "includes": g("ed_pass_inc"), "orig": g("ed_pass_orig"),
+                     "price": g("ed_pass_price"), "disc": g("ed_pass_disc"), "link": g("ed_pass_link"), "note": g("ed_pass_note")}}
+
+def _ed_field_editor(b: dict, i: int):
+    """블록 안의 문구를 종류에 맞는 입력칸으로 보여줌 (복잡한 목록은 JSON으로)"""
+    changed = False
+    for k, v in list(b.items()):
+        if k in ("type",):
+            continue
+        key = f"edf_{i}_{k}"
+        if k == "variant" and b.get("type") == "hero":
+            opts = list(ED_HERO_VARIANTS)
+            nv = st.selectbox("히어로 레이아웃", opts, index=opts.index(v) if v in opts else 0,
+                              format_func=lambda o: ED_HERO_VARIANTS[o], key=key)
+        elif isinstance(v, str):
+            nv = (st.text_area(k, v, key=key, height=80) if len(v) > 40 else st.text_input(k, v, key=key))
+        elif isinstance(v, list) and all(isinstance(t, str) for t in v):
+            nv = [t for t in st.text_area(f"{k} (한 줄에 하나)", "\n".join(v), key=key, height=90).splitlines() if t.strip()]
+        else:
+            raw = st.text_area(f"{k} (JSON)", json.dumps(v, ensure_ascii=False, indent=1), key=key, height=140)
+            try:
+                nv = json.loads(raw)
+            except Exception:
+                st.caption("⚠️ JSON 형식이 맞지 않아 이전 값을 유지합니다.")
+                nv = v
+        if nv != v:
+            b[k] = nv
+            changed = True
+    return changed
+
+def render_editorial_mode():
+    for k, v in _ED_DEFAULTS.items():
+        if k not in st.session_state:
+            st.session_state[k] = v
+    S = st.session_state
+
+    with st.sidebar:
+        st.markdown('<div class="sec-hdr">🔑 Groq API</div>', unsafe_allow_html=True)
+        if not S.api_key:
+            _k = st.text_input("API Key", type="password", placeholder="gsk_...", key="ed_api_in")
+            if _k:
+                S.api_key = _k
+        else:
+            st.caption("✓ API 키 연결됨")
+        st.markdown('<div class="sec-hdr">🖼 이미지</div>', unsafe_allow_html=True)
+        ph = st.file_uploader("강사 사진 (누끼 PNG 권장)", type=["png", "jpg", "jpeg", "webp"], key="ed_photo_up")
+        S.ed_photo = _ed_img_b64(ph) if ph else ""
+        bks = st.file_uploader("교재·키비주얼 이미지 (여러 장)", type=["png", "jpg", "jpeg", "webp"],
+                               accept_multiple_files=True, key="ed_books_up")
+        S.ed_books_img = [_ed_img_b64(f, 900) for f in (bks or [])]
+        st.markdown('<div class="sec-hdr">🎬 OT 영상</div>', unsafe_allow_html=True)
+        S.ed_video = st.text_input("유튜브 링크", S.ed_video, placeholder="https://youtu.be/...", label_visibility="collapsed")
+        st.markdown('<div class="sec-hdr">💾 저장 / 불러오기</div>', unsafe_allow_html=True)
+        save = {k: S[k] for k in _ED_DEFAULTS if k not in ("ed_photo", "ed_books_img")}
+        st.download_button("작업 파일 저장 (.json)", json.dumps(save, ensure_ascii=False, indent=1).encode("utf-8"),
+                           file_name=f"시안형_{S.ed_label or '작업'}.json", mime="application/json", use_container_width=True)
+        up = st.file_uploader("작업 파일 불러오기", type=["json"], key="ed_proj_up", label_visibility="collapsed")
+        if up is not None and S.get("_ed_loaded") != up.name + str(up.size):
+            try:
+                for k, v in json.loads(up.getvalue().decode("utf-8")).items():
+                    if k in _ED_DEFAULTS:
+                        S[k] = v
+                S["_ed_loaded"] = up.name + str(up.size)
+                st.rerun()
+            except Exception as e:
+                st.error(f"불러오기 실패: {e}")
+
+    st.markdown("### ✨ 시안형 PR 페이지")
+    st.caption("컨셉 단어 하나로 히어로부터 구매 박스까지 이어지는 PR 페이지를 만듭니다. 만들 때마다 구성과 스타일이 달라집니다.")
+    L, R = st.columns([1, 1.6], gap="large")
+
+    with L:
+        with st.expander("① 강좌 정보", expanded=S.ed_plan is None):
+            c1, c2 = st.columns(2)
+            S.ed_inst = c1.text_input("강사명", S.ed_inst)
+            S.ed_label = c2.text_input("강좌명 (워드마크)", S.ed_label, placeholder="예: Deviser, CONTACT")
+            c3, c4 = st.columns(2)
+            S.ed_subject = c3.text_input("과목", S.ed_subject)
+            S.ed_target = c4.text_input("대상", S.ed_target)
+            S.ed_concept = st.text_input("컨셉 단어 (선택)", S.ed_concept,
+                                         placeholder="비우면 AI가 강좌명에서 뽑음 · 예: 설계, 접점, 밸런스")
+            S.ed_memo = st.text_area("기획 메모 · 원고", S.ed_memo, height=130,
+                                     placeholder="강좌의 기획 의도, 차별점, 하고 싶은 말을 자유롭게. 비율·회차 같은 숫자는 여기 적은 것만 페이지에 들어갑니다.")
+            S.ed_courses = st.text_area("강좌 라인업 (선택, 한 줄에 하나)", S.ed_courses, height=70,
+                                        placeholder="The GUIDANCE (이론)\nCONTACT Blue (N제)\nBLITZ (실모)")
+            S.ed_books = st.text_area("교재 정보 (선택)", S.ed_books, height=70,
+                                      placeholder="통합과학1: 01 과학의 기초, 02 물질과 규칙성 …")
+        with st.expander("② 구매 · 혜택 (입력값 그대로 표시)", expanded=False):
+            S.ed_pass_name = st.text_input("상품명", S.ed_pass_name, placeholder="예: 홍준용 Deviser 교재패스 (총 7권)")
+            S.ed_pass_inc = st.text_area("구성 (한 줄에 하나)", S.ed_pass_inc, height=80)
+            c5, c6, c7 = st.columns(3)
+            S.ed_pass_orig = c5.text_input("정가", S.ed_pass_orig, placeholder="169,000원")
+            S.ed_pass_price = c6.text_input("판매가", S.ed_pass_price, placeholder="152,100원")
+            S.ed_pass_disc = c7.text_input("할인 표시", S.ed_pass_disc, placeholder="10%")
+            S.ed_pass_link = st.text_input("구매 링크", S.ed_pass_link)
+            S.ed_pass_note = st.text_input("구매 안내 문구", S.ed_pass_note, placeholder="※ 교재패스 구매 후 교재 신청까지 완료해야 배송됩니다.")
+            S.ed_benefit = st.text_area("혜택·이벤트 (기간·대상·내용)", S.ed_benefit, height=70)
+            S.ed_notice = st.text_area("유의사항 (한 줄에 하나)", S.ed_notice or DEFAULT_NOTICE, height=90)
+
+        b1, b2 = st.columns(2)
+        gen = b1.button("✨ 페이지 만들기" if S.ed_plan is None else "🔀 구성 다시 짜기", type="primary", use_container_width=True)
+        restyle = b2.button("🎨 스타일만 바꾸기", use_container_width=True, disabled=S.ed_plan is None)
+        if gen:
+            if not S.ed_label.strip():
+                st.warning("강좌명을 입력해주세요.")
+            elif not S.api_key:
+                st.warning("사이드바에 API 키를 입력해주세요.")
+            else:
+                avoid = ""
+                if S.ed_plan:
+                    avoid = "이전 구성: " + " → ".join(b.get("type", "") for b in S.ed_plan.get("blocks", [])) + \
+                            f" / 이전 컨셉: {S.ed_plan.get('kit', {}).get('verb', '')}"
+                with st.spinner("컨셉 키트를 정하고 페이지를 구성하는 중..."):
+                    try:
+                        S.ed_plan = ed_generate_plan(avoid)
+                        for k in [k for k in S.keys() if str(k).startswith("edf_")]:
+                            del S[k]
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"생성 실패: {e}")
+        if restyle and S.ed_plan:
+            S.ed_plan = ed_restyle(S.ed_plan)
+            for k in [k for k in S.keys() if str(k).startswith("edf_0_")]:
+                del S[k]
+            st.rerun()
+
+        plan = S.ed_plan
+        if plan:
+            kit = plan.get("kit") or {}
+            st.markdown(f"**컨셉 키트** · {kit.get('concept_en','')} / {kit.get('verb','')} / "
+                        f"{' '.join(str(k) for k in (kit.get('keywords') or []))}")
+            if kit.get("antithesis"):
+                st.caption(f"대구: {kit['antithesis']}")
+            pk_keys = list(ED_PACKS)
+            newpk = st.selectbox("스타일 팩", pk_keys, index=pk_keys.index(plan.get("pack", "noir_navy")),
+                                 format_func=lambda k: ED_PACKS[k]["name"])
+            if newpk != plan.get("pack"):
+                plan["pack"] = newpk
+                st.rerun()
+            st.markdown("**③ 블록 편집** — 순서 바꾸기·삭제·문구 수정·이 블록만 다시 쓰기")
+            for i, b in enumerate(list(plan["blocks"])):
+                label = ED_BLOCK_SPECS.get(b.get("type"), (b.get("type"),))[0]
+                with st.expander(f"{i + 1:02d}. {label}", expanded=False):
+                    m1, m2, m3 = st.columns(3)
+                    if m1.button("▲ 위로", key=f"edup{i}", disabled=i <= 1, use_container_width=True):
+                        plan["blocks"][i - 1], plan["blocks"][i] = plan["blocks"][i], plan["blocks"][i - 1]
+                        for k in [k for k in S.keys() if str(k).startswith("edf_")]: del S[k]
+                        st.rerun()
+                    if m2.button("▼ 아래로", key=f"eddn{i}", disabled=i == 0 or i >= len(plan["blocks"]) - 1, use_container_width=True):
+                        plan["blocks"][i + 1], plan["blocks"][i] = plan["blocks"][i], plan["blocks"][i + 1]
+                        for k in [k for k in S.keys() if str(k).startswith("edf_")]: del S[k]
+                        st.rerun()
+                    if m3.button("🗑 삭제", key=f"eddel{i}", disabled=i == 0, use_container_width=True):
+                        plan["blocks"].pop(i)
+                        for k in [k for k in S.keys() if str(k).startswith("edf_")]: del S[k]
+                        st.rerun()
+                    if _ed_field_editor(b, i):
+                        pass
+                    rq = st.text_input("이 블록 다시 쓰기 요청 (선택)", key=f"edrq{i}", placeholder="예: 더 짧게 / 키워드를 '각도'로")
+                    if st.button("✍️ 이 블록만 다시 쓰기", key=f"edrg{i}", use_container_width=True):
+                        with st.spinner("다시 쓰는 중..."):
+                            try:
+                                plan["blocks"][i] = ed_regen_block(plan, i, rq)
+                                for k in [k for k in S.keys() if str(k).startswith(f"edf_{i}_")]: del S[k]
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"실패: {e}")
+            add_opts = [t for t in ED_BLOCK_SPECS if t != "hero"]
+            a1, a2 = st.columns([2, 1])
+            add_t = a1.selectbox("블록 추가", add_opts, format_func=lambda t: ED_BLOCK_SPECS[t][0], label_visibility="collapsed")
+            if a2.button("➕ 추가", use_container_width=True):
+                with st.spinner("새 블록 작성 중..."):
+                    try:
+                        plan["blocks"].append({"type": add_t})
+                        plan["blocks"][-1] = ed_regen_block(plan, len(plan["blocks"]) - 1, "이 블록을 새로 작성")
+                    except Exception as e:
+                        plan["blocks"].pop()
+                        st.error(f"실패: {e}")
+                    st.rerun()
+
+    with R:
+        if not S.ed_plan:
+            st.info("왼쪽에 강좌 정보를 넣고 '✨ 페이지 만들기'를 누르면 여기에 시안이 나타납니다.\n\n"
+                    "· 강사 사진(누끼)과 교재 이미지를 사이드바에 올리면 히어로·교재 섹션에 들어갑니다.\n"
+                    "· 가격·혜택·비율 같은 숫자는 입력한 값만 쓰입니다.")
+            return
+        html_out = ed_build_html(S.ed_plan, _ed_ctx())
+        d1, d2 = st.columns(2)
+        d1.download_button("⬇️ HTML 다운로드", ed_build_html(S.ed_plan, _ed_ctx(), export=True).encode("utf-8"),
+                           file_name=f"{S.ed_label or 'PR'}_시안.html", mime="text/html", type="primary", use_container_width=True)
+        vw = d2.radio("화면", ["PC", "모바일"], horizontal=True, label_visibility="collapsed", key="ed_vw")
+        if hasattr(st, "iframe"):
+            st.iframe(html_out, height=1100, width=390 if vw == "모바일" else "stretch")
+        else:
+            import streamlit.components.v1 as components
+            components.html(html_out, height=1100, width=390 if vw == "모바일" else None, scrolling=True)
+
+
+# ── [v10] 작업 모드 선택 ───────────────────────────────────
+APP_MODE = st.sidebar.radio("작업 모드", ["✨ 시안형 PR 페이지", "🖼 PR 페이지 빌더 (기존)", "📝 강좌 특징 HTML (관리자용)"], key="app_mode")
 if APP_MODE.startswith("📝"):
     render_feature_mode()
+    st.stop()
+if APP_MODE.startswith("✨"):
+    render_editorial_mode()
     st.stop()
 
 # ══════════════════════════════════════════════════════
