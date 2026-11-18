@@ -1249,7 +1249,8 @@ def proofread_copy(obj, label: str = ""):
     prompt = (
         "당신은 출판사 교정 편집자입니다. 아래 JSON 값(한국어 광고 문구)을 교정하세요.\n"
         "[고칠 것] 맞춤법·띄어쓰기, 잘못된 어미·조사(예: '읽은 두려움'→'읽는 두려움'), 뜻이 뒤집히거나 어색한 표현"
-        "(예: '첫 단추를 채우다'→'첫 단추를 끼우다', '내용이 멍들다'→'내용이 흐려지다'), 번역투, 같은 말 반복.\n"
+        "(예: '첫 단추를 채우다'→'첫 단추를 끼우다', '내용이 멍들다'→'내용이 흐려지다'), 번역투, 같은 말 반복, "
+        "억지로 붙인 비유(예: '문장은 파도, 우리는 서퍼다' → 비유를 빼고 평이하게).\n"
         "[고치지 말 것] 의미, 사실, 숫자, 강좌명·영문, [[ ]]·「 」·** 표시, 문장 길이. 새 내용 추가 금지. 이미 자연스러우면 그대로 둡니다.\n"
         f"[강좌명] {label}\n\n"
         f"{json.dumps(flat, ensure_ascii=False)}\n\n"
@@ -4663,6 +4664,7 @@ def render_feature_mode():
 #  가격·혜택·기간은 MD 입력값만 쓰고, AI는 숫자를 지어내지 않습니다.
 # ══════════════════════════════════════════════════════════════════════
 import html as _ehtml
+import math
 import random as _erandom
 
 ED_PACKS = {
@@ -4687,22 +4689,34 @@ ED_HERO_VARIANTS = {
     "fullbleed": "풀배경 이미지 + 중앙 워드마크",
     "light_editorial": "밝은 배경 + 좌 타이포 / 우 키비주얼",
 }
-ED_LAYOUT_BLOCKS = {"prologue": "가운데 정렬 / 이미지+텍스트 2단", "points": "지그재그 / 3열 키워드 카드",
-                    "quote": "밝은 배경 / 어두운 배경", "three_col": "이미지 띠 / 카드형"}
+ED_LAYOUT_BLOCKS = {"prologue": "가운데 정렬 / 이미지+텍스트 2단 / 풀배경 이미지",
+                    "points": "지그재그 / 3열 키워드 카드 / 세로 타임라인",
+                    "quote": "밝은 배경 / 어두운 배경 / 좌우 분할",
+                    "three_col": "이미지 띠 / 카드형 / 지그재그 행",
+                    "statement": "밝은 배경 / 어두운 배경"}
+ED_COPIED_PHRASES = ["통합의 시대를 설계", "파이널은 밸런스 싸움", "허점은 닫고", "감각은 열고", "A distinct INSIGHT",
+                     "A clear GUIDELINE", "완성도를 설계", "깊이감을 설계", "무엇을 알고, 어디까지 이해하고"]
 
 ED_STYLE_GUIDE = """
-[대성마이맥 PR 시안 문법 — 이 문법으로 쓴다. 예시는 구조 참고용이며 그대로 베끼지 않는다]
-A. 컨셉 동사 하나를 정해 섹션 제목마다 변주한다.
-   예) 설계하다 → "통합의 시대를 설계하다" / "완성도를 설계하다" / "깊이감을 설계하다"
-B. 영문 타이틀 + 한글 서술 한 줄의 짝.
-   예) "A distinct INSIGHT" + "과목의 본질을 꿰뚫다" / "A clear GUIDELINE" + "개념의 기준을 세우다"
-C. 대구와 단언.
-   예) "허점은 닫고, 감각은 열고" / "파이널은 밸런스 싸움이다" / "무엇을 알고, 어디까지 이해하고, 어떻게 적용할 것인가"
-D. 컨셉 메타포에서 나온 「키워드」 3개를 기획 의도 포인트마다 하나씩 붙인다.
-   예) 강좌명 CONTACT(접촉) → 「직선」「접점」「연결」 — 기하학 이미지로 통일
-E. 짧은 서술형 종결(~하다, ~이다, ~합니다)을 섞고, 본문은 2~3문장 안쪽.
-F. 숫자·가격·기간·비율은 [강좌 정보]에 있는 것만. 없으면 그 블록을 쓰지 않는다.
-G. 쓰지 않는 표현: 체계적인, 최고의, 함께라면, 비법, 여정, 첫걸음, 잠재력, 한계를 넘어, ~하는 당신.
+[대성마이맥 PR 시안 문법 — 구조만 참고한다. 아래 '패턴'을 이 강좌 내용으로 새로 써야 하며, 다른 강좌의 문장을 가져오지 않는다]
+A. 컨셉 동사 하나를 정해 섹션 '제목'에서만 변주한다. (예: 설계하다 → ~의 시대를 설계하다 / ~을 설계하다)
+B. 영문 타이틀 + 한글 서술 한 줄의 짝. 영문은 강좌 내용과 직접 관련된 단어로, 페이지 안에서 같은 영문 패턴을 두 번 쓰지 않는다.
+C. 대구는 페이지 전체에서 1번만. 두 구절이 모두 '이 강좌가 실제로 하는 일'이어야 한다. 말이 안 되는 대구(예: '해설은 멈춘다')는 쓰지 않는다.
+D. 컨셉 메타포에서 나온 「키워드」 3개를 기획 의도 포인트마다 하나씩 붙인다. 키워드는 학습 내용과 바로 연결돼야 한다.
+
+[★ 메타포 사용 규칙 — AI 티가 나는 가장 큰 원인]
+1. 컨셉 비유어(파도·보드·계단·설계도 같은 단어)는 히어로, 프롤로그 제목, 「키워드」, 마지막 한 줄에만 쓴다. 페이지 전체에서 5번 이하.
+2. 설명(desc)·본문(body)·목록은 비유 없이 '실제로 무엇을 배우고 어떻게 공부하는지'를 평이하게 쓴다.
+   ✗ "파도처럼 흐르는 구문 구조를 배웁니다" → ✓ "문장을 어디서 끊어 읽을지 기준을 세웁니다"
+   ✗ "보드 위 균형처럼 정확히 적용한다" → ✓ "배운 구문을 실제 지문에서 찾아 해석합니다"
+3. '~처럼 ~한다', 'A는 B, 우리는 C다' 같은 직유·은유 문장은 페이지 전체에서 1개 이하.
+
+[자연스러움 규칙]
+- 학생이 실제로 하는 말, 수업에서 실제로 하는 일로 쓴다. 광고 문구처럼 꾸미지 않는다.
+- 지어낸 1인칭 수강생 고백("나는 ~가 필요했습니다")을 쓰지 않는다.
+- 짧은 서술형 종결(~합니다, ~입니다)이 기본. 본문은 2~3문장 안쪽.
+- 숫자·가격·기간·비율은 [강좌 정보]에 있는 것만. 없으면 그 블록을 쓰지 않는다.
+- 쓰지 않는 표현: 체계적인, 최고의, 함께라면, 비법, 여정, 첫걸음, 잠재력, 한계를 넘어, ~하는 당신.
 """
 
 ED_BLOCK_SPECS = {
@@ -4712,7 +4726,7 @@ ED_BLOCK_SPECS = {
              '"band":"사진 위 띠 문구 — 대구 (framed_spaced용, 예: 허점은 닫고, 감각은 열고)","notes":["사진 주변 짧은 문구 2~4개 (12~22자)"],'
              '"body":["히어로 하단 문장 2~3줄 (framed_spaced용)"]}'),
     "prologue": ('프롤로그 — 왜 이 강좌인가',
-                 '{"type":"prologue","layout":"a|b","nav":"프롤로그","script":"Prologue","title":"컨셉 명사구 (예: 통합의 시대)","sub":"한 줄 (예: 새로운 수능, 새로운 설계의 필요성)",'
+                 '{"type":"prologue","layout":"a|b|c","nav":"프롤로그","script":"Prologue","title":"컨셉 명사구 (예: 통합의 시대)","sub":"한 줄 (예: 새로운 수능, 새로운 설계의 필요성)",'
                  '"body":["문단 1 (40~80자)","문단 2 (40~80자)"],"closing":"마무리 선언 한 줄 — 컨셉 동사 포함"}'),
     "index_tiles": ('강좌 라인업 목차 타일 (강좌가 3개 이상일 때)',
                     '{"type":"index_tiles","nav":"라인업","eyebrow":"영문 (예: DEVISING The METHOD)","title":"컨셉 동사 제목, 핵심어 [[ ]]","sub":"한 줄",'
@@ -4720,12 +4734,12 @@ ED_BLOCK_SPECS = {
     "course_stages": ('단계별 강좌 소개 (이론/훈련/실전 등)',
                       '{"type":"course_stages","nav":"커리큘럼","stages":[{"no":"01","label":"단계명 (예: 이론)","items":[{"badge":"1st Signature 등 (선택)","name":"강좌명(입력값)","title":"강좌 한 줄 정의","desc":"30~70자"}]}]}'),
     "points": ('기획 의도 포인트 3개 + 「키워드」 (지그재그)',
-               '{"type":"points","layout":"a|b","nav":"기획 의도","title_en":"강좌명 영문","title_ko":"기획 의도","points":[{"label":"영문 라벨 (예: Contact Point 01)","desc":"설명 1~2문장 (30~60자)","keyword":"컨셉 「키워드」 단어 하나","line":"키워드가 들어가는 한 줄 (예: 추론형 실력 향상으로 향하는)"}]}'),
+               '{"type":"points","layout":"a|b|c","nav":"기획 의도","title_en":"강좌명 영문","title_ko":"기획 의도","points":[{"label":"영문 라벨 (예: Contact Point 01)","desc":"설명 1~2문장 (30~60자)","keyword":"컨셉 「키워드」 단어 하나","line":"키워드가 들어가는 한 줄 (예: 추론형 실력 향상으로 향하는)"}]}'),
     "quote": ('기획 의도 인용형 (큰 따옴표 + 질문형 제목)',
-              '{"type":"quote","layout":"a|b","nav":"기획 의도","chapter":"Chapter 01. 기획 의도","title":"질문형 대구 제목 (예: 무엇을 알고, 어디까지 이해하고, 어떻게 적용할 것인가)",'
+              '{"type":"quote","layout":"a|b|c","nav":"기획 의도","chapter":"Chapter 01. 기획 의도","title":"질문형 대구 제목 (예: 무엇을 알고, 어디까지 이해하고, 어떻게 적용할 것인가)",'
               '"lead":"첫 줄 (첫 글자를 크게)","body":["문장 1","문장 2"],"closing":"굵게 마무리 1~2문장"}'),
     "three_col": ('영문 타이틀 + 3열 특징',
-                  '{"type":"three_col","layout":"a|b","nav":"특징","chapter":"Chapter 02. 설계의 기준","title_en":"영문 (예: A distinct INSIGHT)","title_ko":"서술 한 줄 (예: 과목의 본질을 꿰뚫다)",'
+                  '{"type":"three_col","layout":"a|b|c","nav":"특징","chapter":"Chapter 02. 설계의 기준","title_en":"영문 (예: A distinct INSIGHT)","title_ko":"서술 한 줄 (예: 과목의 본질을 꿰뚫다)",'
                   '"items":[{"no":"01","small":"작은 설명 한 줄","title":"특징명 4~8자","desc":"20~50자"}]}'),
     "balance": ('A vs B 비율 바 (입력 정보에 비율이 있을 때만)',
                 '{"type":"balance","nav":"밸런스","pill":"영문 라벨","title":"단언형 제목 (예: 파이널은 밸런스 싸움이다)","sub":"한 줄",'
@@ -4739,6 +4753,8 @@ ED_BLOCK_SPECS = {
                      '"bridge":"아래 특징으로 이어지는 한 줄","features":[{"title":"특징","desc":"설명 한 줄"}]}'),
     "manifesto": ('대구 선언 + 강조 박스 (강사 사진과 함께)',
                   '{"type":"manifesto","nav":"메시지","kicker":"대구 한 줄","title":"선언형 제목","box":"강조 박스 문장","body":["문장","문장"],"closing":"마무리 한 줄"}'),
+    "statement": ('한 줄 선언 (섹션 사이 전환용, 큰 타이포)',
+                  '{"type":"statement","layout":"a|b","line":"이 강좌의 핵심을 평이하게 말하는 한 문장 (18~32자)","sub":"그 문장을 받는 한 줄 (20~40자)"}'),
     "video": ('OT 영상', '{"type":"video","nav":"OT","chapter":"Chapter 00. 오리엔테이션","title":"컨셉 명사구 (예: 설계자의 가이드)","label":"영문 (예: Orientation)"}'),
     "lineup": ('교재 라인업·구성 (교재 정보가 있을 때)',
                '{"type":"lineup","nav":"교재","chapter":"Chapter 03. 교재 구성","title_en":"영문 (예: A clear GUIDELINE)","title_ko":"서술 한 줄",'
@@ -4768,20 +4784,64 @@ def _ed_head(chapter="", title="", sub="", en=False, dark=False) -> str:
             + (f'<p class="ed-hsub">{_ed_esc(sub)}</p>' if sub else "")
             + '<div class="ed-rule"></div></div>')
 
-def _ed_motif_svg(color: str, motif: str = "") -> str:
-    """키 비주얼 모티프 SVG — 컨셉에 '계단/단계/step'이 있으면 계단, 아니면 CONTACT형 동심 원호"""
-    if re.search(r"계단|단계|디딤|step|stair", motif or "", re.I):
-        lines = ""
+def _ed_motif_kind(motif: str) -> str:
+    m = motif or ""
+    if re.search(r"계단|단계|디딤|step|stair", m, re.I): return "stairs"
+    if re.search(r"파도|물결|서핑|surf|wave|바다|흐름", m, re.I): return "waves"
+    if re.search(r"설계|도면|청사진|blueprint|devis|구조|격자|grid", m, re.I): return "blueprint"
+    if re.search(r"빛|광|light|ray|별|star|태양|sun", m, re.I): return "rays"
+    return "arcs"
+
+def _ed_motif_svg(color: str, motif: str = "", w: str = "100%", maxw: int = 420, op: float = 1.0) -> str:
+    """컨셉 모티프 SVG — 계단 / 파도 / 설계도 / 빛줄기 / 동심 원호(기본)"""
+    kind = _ed_motif_kind(motif)
+    g = ""
+    if kind == "stairs":
         for i in range(8):
             x0, y0 = 40 + i * 48, 420 - i * 46
-            op = 0.18 + i * 0.1
-            lines += (f'<path d="M{x0} {y0} H{x0 + 48} V{y0 - 46}" fill="none" stroke="{color}" stroke-opacity="{min(op,1):.2f}" stroke-width="2"/>'
-                      f'<path d="M{x0} {y0 + 14} H{x0 + 48} V{y0 - 32}" fill="none" stroke="{color}" stroke-opacity="{min(op,1) * .35:.2f}" stroke-width="1"/>')
-        return (f'<svg viewBox="0 0 460 460" width="100%" style="max-width:420px">{lines}'
-                f'<circle cx="{40 + 7 * 48 + 48}" cy="{420 - 7 * 46 - 46}" r="7" fill="{color}"/></svg>')
-    arcs = "".join(f'<circle cx="230" cy="230" r="{120 + i * 7}" fill="none" stroke="{color}" stroke-opacity="{0.15 + i * 0.035:.2f}" stroke-width="1.2" '
-                   f'stroke-dasharray="{560 + i * 30} 2000" transform="rotate({40 + i * 3} 230 230)"/>' for i in range(16))
-    return f'<svg viewBox="0 0 460 460" width="100%" style="max-width:420px">{arcs}</svg>'
+            o = 0.18 + i * 0.1
+            g += (f'<path d="M{x0} {y0} H{x0 + 48} V{y0 - 46}" fill="none" stroke="{color}" stroke-opacity="{min(o,1):.2f}" stroke-width="2"/>'
+                  f'<path d="M{x0} {y0 + 14} H{x0 + 48} V{y0 - 32}" fill="none" stroke="{color}" stroke-opacity="{min(o,1) * .35:.2f}" stroke-width="1"/>')
+        g += f'<circle cx="424" cy="52" r="7" fill="{color}"/>'
+    elif kind == "waves":
+        for i in range(12):
+            y = 120 + i * 22; amp = 18 + i * 2.2; ph = i * 14
+            g += (f'<path d="M0 {y} C {60+ph} {y-amp}, {150+ph} {y+amp}, {230} {y} S {400-ph} {y-amp}, 460 {y}" fill="none" '
+                  f'stroke="{color}" stroke-opacity="{0.12 + i * 0.06:.2f}" stroke-width="{1 + (i % 3) * .4:.1f}"/>')
+    elif kind == "blueprint":
+        for k in range(0, 461, 23):
+            g += (f'<line x1="{k}" y1="0" x2="{k}" y2="460" stroke="{color}" stroke-opacity="{.22 if k % 115 == 0 else .07}" stroke-width="1"/>'
+                  f'<line x1="0" y1="{k}" x2="460" y2="{k}" stroke="{color}" stroke-opacity="{.22 if k % 115 == 0 else .07}" stroke-width="1"/>')
+        g += (f'<circle cx="230" cy="230" r="150" fill="none" stroke="{color}" stroke-opacity=".6" stroke-width="1.4"/>'
+              f'<circle cx="230" cy="230" r="90" fill="none" stroke="{color}" stroke-opacity=".35" stroke-dasharray="6 6"/>'
+              f'<line x1="40" y1="420" x2="420" y2="40" stroke="{color}" stroke-opacity=".5"/>')
+    elif kind == "rays":
+        for k in range(28):
+            a = math.radians(k * (180 / 27))
+            g += (f'<line x1="230" y1="430" x2="{230 + 420 * math.cos(a):.1f}" y2="{430 - 420 * math.sin(a):.1f}" '
+                  f'stroke="{color}" stroke-opacity="{.08 + (k % 4) * .06:.2f}" stroke-width="1"/>')
+        g += f'<circle cx="230" cy="430" r="40" fill="{color}" fill-opacity=".25"/>'
+    else:
+        g = "".join(f'<circle cx="230" cy="230" r="{120 + i * 7}" fill="none" stroke="{color}" stroke-opacity="{0.15 + i * 0.035:.2f}" stroke-width="1.2" '
+                    f'stroke-dasharray="{560 + i * 30} 2000" transform="rotate({40 + i * 3} 230 230)"/>' for i in range(16))
+    return f'<svg viewBox="0 0 460 460" width="{w}" style="max-width:{maxw}px;opacity:{op}" aria-hidden="true">{g}</svg>'
+
+def _ed_deco_motif(x, pos: str = "br", color: str = "var(--accent)", op: float = .5, size: int = 520) -> str:
+    """섹션 안 장식: 모티프 SVG를 모서리에 은은하게"""
+    if not x.get("deco", True):
+        return ""
+    p = {"br": "right:-60px;bottom:-60px", "bl": "left:-60px;bottom:-60px", "tr": "right:-60px;top:-40px", "tl": "left:-60px;top:-40px"}[pos]
+    return f'<div class="ed-deco" style="{p};width:{size}px">{_ed_motif_svg(color, x.get("motif", ""), "100%", size, op)}</div>'
+
+def _ed_deco_word(x, word: str = "", pos: str = "tr", dark: bool = False) -> str:
+    """섹션 안 장식: 아웃라인 대형 영문 (컨셉 단어)"""
+    if not x.get("deco", True):
+        return ""
+    w = strip_hanja(word or x.get("concept_en") or "").upper()[:12]
+    if not w:
+        return ""
+    p = {"tr": "right:-10px;top:30px", "tl": "left:-10px;top:30px", "br": "right:-10px;bottom:10px", "bl": "left:-10px;bottom:10px"}[pos]
+    return f'<div class="ed-deco-word{" on-dark" if dark else ""}" style="{p}">{_ehtml.escape(w)}</div>'
 
 def _ed_img(x, slot):
     return (x.get("imgs") or {}).get(slot) or ""
@@ -4892,17 +4952,25 @@ def ed_r_anchor_bar(navs):
 def ed_r_prologue(b, x):
     body = "".join(f"<p>{_ed_esc(t)}</p>" for t in (b.get("body") or []))
     img = _ed_img(x, "key_visual") or _ed_img(x, "texture")
+    lay = b.get("layout") or "a"
     head = (f'<div class="ed-script" style="font-size:34px;color:var(--accent);margin-bottom:-6px">{_ed_esc(b.get("script") or "Prologue")}</div>'
-            f'<h2 class="ed-h" style="font-size:clamp(34px,4.4vw,56px);color:var(--accent2)">{_ed_esc(b.get("title",""))}</h2>'
+            f'<h2 class="ed-h" style="font-size:clamp(34px,4.4vw,56px);color:{"#fff" if lay == "c" else "var(--accent2)"}">{_ed_esc(b.get("title",""))}</h2>'
             f'<p class="ed-hsub">{_ed_esc(b.get("sub",""))}</p>')
     closing = f'<p class="ed-closing">{_ed_esc(b.get("closing"))}</p>' if b.get("closing") else ""
-    if b.get("layout") == "b":
+    if lay == "b":
         vis = (f'<div class="ed-prolog-img" style="background:url(\'{img}\') center/cover no-repeat"></div>' if img
                else f'<div class="ed-prolog-img" style="background:var(--dark);display:flex;align-items:center;justify-content:center">{_ed_motif_svg("#ffffff", x.get("motif",""))}</div>')
-        return (f'<section class="ed-sec ed-alt"><div class="ed-in ed-split" style="grid-template-columns:1fr 1.15fr;align-items:center">'
+        return (f'<section class="ed-sec ed-alt ed-ov">{_ed_deco_word(x, pos="br")}<div class="ed-in ed-split" style="grid-template-columns:1fr 1.15fr;align-items:center">'
                 f'{vis}<div style="text-align:left">{head}<div class="ed-body" style="margin-top:34px;text-align:left">{body}</div>'
                 f'<div style="text-align:left">{closing}</div></div></div></section>')
-    return (f'<section class="ed-sec ed-alt" style="text-align:center"><div class="ed-in" style="max-width:760px">'
+    if lay == "c":
+        bgimg = _ed_img(x, "texture") or _ed_img(x, "hero_bg")
+        bg = (f"background:linear-gradient(180deg,rgba(0,0,0,.78),rgba(0,0,0,.88)),url('{bgimg}') center/cover no-repeat,var(--dark)" if bgimg
+              else "background:var(--dark)")
+        return (f'<section class="ed-sec ed-dark ed-ov" style="{bg};text-align:center;padding:150px 24px">{_ed_deco_word(x, pos="tl", dark=True)}'
+                f'{_ed_deco_motif(x, "br", "#ffffff", .25)}<div class="ed-in" style="max-width:760px">'
+                f'{head}<div class="ed-body" style="margin-top:44px">{body}</div>{closing}</div></section>')
+    return (f'<section class="ed-sec ed-alt ed-ov" style="text-align:center">{_ed_deco_word(x, pos="tr")}<div class="ed-in" style="max-width:760px">'
             f'{head}<div class="ed-body" style="margin-top:44px">{body}</div>{closing}</div></section>')
 
 def ed_r_index_tiles(b, x):
@@ -4931,16 +4999,25 @@ def ed_r_course_stages(b, x):
 
 def ed_r_points(b, x):
     pts = b.get("points") or []
+    lay = b.get("layout") or "a"
     title = (f'<h2 class="ed-h" style="text-align:center;font-size:clamp(34px,4.6vw,58px)"><span class="ed-serif-en ed-acc2">'
              f'{_ed_esc(b.get("title_en",""))}</span> {_ed_esc(b.get("title_ko",""))}</h2>')
-    if b.get("layout") == "b":
+    if lay == "b":
         cards = "".join(
             f'<div class="ed-pcard"><span class="ed-serif-en ed-plabel">{_ed_esc(p.get("label",""))}</span>'
             f'<div class="ed-pkw">「{_ed_esc(p.get("keyword",""))}」</div>'
             f'<p class="ed-pline" style="font-size:17px">{_ed_esc(p.get("line",""))}</p>'
             f'<p class="ed-pdesc" style="margin-top:10px">{_ed_esc(p.get("desc",""))}</p></div>' for p in pts)
-        return (f'<section class="ed-sec ed-alt"><div class="ed-in">{title}'
+        return (f'<section class="ed-sec ed-alt ed-ov">{_ed_deco_motif(x, "tr", "var(--accent)", .35, 460)}<div class="ed-in">{title}'
                 f'<div class="ed-pcards" style="grid-template-columns:repeat({max(min(len(pts),3),1)},1fr)">{cards}</div></div></section>')
+    if lay == "c":
+        rows = "".join(
+            f'<div class="ed-tl-row"><div class="ed-tl-no">{i + 1:02d}</div><div class="ed-tl-body">'
+            f'<span class="ed-serif-en ed-plabel">{_ed_esc(p.get("label",""))}</span>'
+            f'<div class="ed-pkw" style="margin:6px 0 8px">「{_ed_esc(p.get("keyword",""))}」<small>{_ed_esc(p.get("line",""))}</small></div>'
+            f'<p class="ed-pdesc">{_ed_esc(p.get("desc",""))}</p></div></div>' for i, p in enumerate(pts))
+        return (f'<section class="ed-sec ed-ov">{_ed_deco_word(x, pos="tr")}<div class="ed-in" style="max-width:880px">{title}'
+                f'<div class="ed-tl">{rows}</div></div></section>')
     rows = ""
     for i, p in enumerate(pts):
         side = "l" if i % 2 == 0 else "r"
@@ -4950,17 +5027,31 @@ def ed_r_points(b, x):
                  f'<p class="ed-pdesc">{_ed_esc(p.get("desc",""))}</p>'
                  f'<p class="ed-pline">{_ed_esc(p.get("line",""))}' + (f' <span class="ed-acc">「{_ed_esc(kw)}」</span>' if kw else "") + '</p>'
                  '</div></div>')
-    return f'<section class="ed-sec ed-alt ed-diag"><div class="ed-in">{title}<div class="ed-points">{rows}</div></div></section>'
+    return f'<section class="ed-sec ed-alt ed-diag ed-ov"><div class="ed-in">{title}<div class="ed-points">{rows}</div></div></section>'
 
 def ed_r_quote(b, x):
     lead = strip_hanja(str(b.get("lead", "")))
+    lay = b.get("layout") or "a"
+    body_items = [t for t in (b.get("body") or []) if str(t).strip()]
+    if lay == "c":
+        lis = "".join(f'<li><span class="ed-ck"></span>{_ed_esc(t)}</li>' for t in body_items)
+        return (f'<section class="ed-sec ed-ov">{_ed_deco_motif(x, "bl", "var(--accent)", .22, 380)}'
+                f'<div class="ed-in ed-split" style="grid-template-columns:1fr 1.1fr;align-items:center">'
+                f'<div><span class="ed-pill">{_ed_esc(b.get("chapter",""))}</span>'
+                f'<h2 class="ed-h" style="font-weight:600">{_ed_esc(b.get("title",""))}</h2>'
+                f'<p class="ed-serif ed-acc" style="font-size:clamp(20px,2.2vw,28px);margin:22px 0 0;line-height:1.5">{_ed_esc(lead)}</p></div>'
+                f'<div><ul class="ed-cklist">{lis}</ul>'
+                + (f'<p class="ed-closing" style="text-align:left;font-size:17px">{_ed_esc(b.get("closing"))}</p>' if b.get("closing") else "")
+                + '</div></div></section>')
     lead_html = (f'<span style="font-size:1.6em;font-weight:700">{_ed_esc(lead[:1])}</span>{_ed_esc(lead[1:])}' if lead else "")
-    body = "".join(f"<p>{_ed_esc(t)}</p>" for t in (b.get("body") or []))
-    dark = b.get("layout") == "b"
+    body = "".join(f"<p>{_ed_esc(t)}</p>" for t in body_items)
+    dark = lay == "b"
     tex = _ed_img(x, "texture") if dark else ""
     sec_style = (f"text-align:center;background:linear-gradient(180deg,rgba(0,0,0,.72),rgba(0,0,0,.86)),url('{tex}') center/cover no-repeat,var(--dark)" if tex
                  else "text-align:center")
-    return (f'<section class="ed-sec{" ed-dark" if dark else ""}" style="{sec_style}"><div class="ed-in" style="max-width:820px">'
+    return (f'<section class="ed-sec{" ed-dark" if dark else ""} ed-ov" style="{sec_style}">'
+            + (_ed_deco_motif(x, "br", "#ffffff", .18, 480) if dark else "")
+            + '<div class="ed-in" style="max-width:820px">'
             + _ed_head(b.get("chapter", ""), b.get("title", ""))
             + f'<div class="ed-quote"><span class="q l">&ldquo;</span><span class="q r">&rdquo;</span>'
             f'<p class="ed-serif" style="font-size:20px;margin:0 0 16px">{lead_html}</p><div class="ed-body">{body}</div>'
@@ -4970,7 +5061,23 @@ def ed_r_quote(b, x):
 def ed_r_three_col(b, x):
     items_ = b.get("items") or []
     tex = _ed_img(x, "texture")
-    cards = b.get("layout") == "b"
+    lay = b.get("layout") or "a"
+    head = (f'<span class="ed-pill">{_ed_esc(b.get("chapter",""))}</span>'
+            f'<h2 class="ed-h ed-en" style="font-size:clamp(32px,4vw,50px)">{_ed_esc(b.get("title_en",""))}</h2>'
+            f'<p class="ed-hsub ed-serif" style="font-size:20px">{_ed_esc(b.get("title_ko",""))}</p><div class="ed-rule"></div>')
+    if lay == "c":
+        rows = ""
+        for i, it in enumerate(items_):
+            pos = int(i * 100 / max(len(items_) - 1, 1))
+            vis = (f'<div class="ed-zz-img" style="background:url(\'{tex}\') {pos}% center/cover no-repeat"></div>' if tex else
+                   f'<div class="ed-zz-img" style="background:var(--dark);display:flex;align-items:center;justify-content:center">'
+                   f'{_ed_motif_svg("#ffffff", x.get("motif",""), "70%", 260, .8)}</div>')
+            txt = (f'<div class="ed-zz-t"><span class="ed-bignum2">{_ed_esc(it.get("no") or f"{i+1:02d}")}</span>'
+                   f'<small>{_ed_esc(it.get("small",""))}</small><h4>{_ed_esc(it.get("title",""))}</h4><p>{_ed_esc(it.get("desc",""))}</p></div>')
+            rows += f'<div class="ed-zz{" rev" if i % 2 else ""}">{vis}{txt}</div>'
+        return (f'<section class="ed-sec ed-ov" style="text-align:center">{_ed_deco_word(x, pos="tl")}<div class="ed-in">{head}'
+                f'<div class="ed-zzs">{rows}</div></div></section>')
+    cards = lay == "b"
     out = ""
     for i, it in enumerate(items_):
         pos = int(i * 100 / max(len(items_) - 1, 1))
@@ -4985,11 +5092,19 @@ def ed_r_three_col(b, x):
             out += (f'<div class="ed-col"><span class="ed-num">{num}</span>'
                     f'<small>{_ed_esc(it.get("small",""))}</small><h4>{_ed_esc(it.get("title",""))}</h4>'
                     f'{bar}<p>{_ed_esc(it.get("desc",""))}</p></div>')
-    return (f'<section class="ed-sec{" ed-alt" if cards else ""}" style="text-align:center"><div class="ed-in">'
-            f'<span class="ed-pill">{_ed_esc(b.get("chapter",""))}</span>'
-            f'<h2 class="ed-h ed-en" style="font-size:clamp(32px,4vw,50px)">{_ed_esc(b.get("title_en",""))}</h2>'
-            f'<p class="ed-hsub ed-serif" style="font-size:20px">{_ed_esc(b.get("title_ko",""))}</p><div class="ed-rule"></div>'
-            f'<div class="ed-cols">{out}</div></div></section>')
+    return (f'<section class="ed-sec{" ed-alt" if cards else ""} ed-ov" style="text-align:center">'
+            + (_ed_deco_motif(x, "br", "var(--accent)", .25, 420) if cards else "")
+            + f'<div class="ed-in">{head}<div class="ed-cols">{out}</div></div></section>')
+
+def ed_r_statement(b, x):
+    dark = (b.get("layout") or "a") == "b"
+    return (f'<section class="ed-sec ed-ov{" ed-dark" if dark else ""}" style="text-align:center;padding:130px 24px">'
+            f'{_ed_deco_motif(x, "bl", "#ffffff" if dark else "var(--accent)", .3 if dark else .4, 560)}'
+            f'{_ed_deco_motif(x, "tr", "#ffffff" if dark else "var(--accent)", .15 if dark else .2, 360)}'
+            f'<div class="ed-in" style="max-width:860px"><div class="ed-stline"></div>'
+            f'<h2 class="ed-h" style="font-size:clamp(28px,3.8vw,48px);font-weight:600;line-height:1.45">{_ed_esc(b.get("line",""))}</h2>'
+            + (f'<p class="ed-hsub" style="font-size:18px;margin-top:20px">{_ed_esc(b.get("sub"))}</p>' if b.get("sub") else "")
+            + '</div></section>')
 
 def ed_r_balance(b, x):
     L, R = b.get("left") or {}, b.get("right") or {}
@@ -5118,7 +5233,7 @@ def ed_r_notice(x):
 
 ED_RENDERERS = {
     "hero": ed_r_hero, "prologue": ed_r_prologue, "index_tiles": ed_r_index_tiles, "course_stages": ed_r_course_stages,
-    "points": ed_r_points, "quote": ed_r_quote, "three_col": ed_r_three_col, "balance": ed_r_balance, "combo": ed_r_combo,
+    "points": ed_r_points, "statement": ed_r_statement, "quote": ed_r_quote, "three_col": ed_r_three_col, "balance": ed_r_balance, "combo": ed_r_combo,
     "feature_stat": ed_r_feature_stat, "manifesto": ed_r_manifesto, "video": ed_r_video, "lineup": ed_r_lineup,
     "pass_box": ed_r_pass_box, "benefit": ed_r_benefit,
 }
@@ -5208,6 +5323,28 @@ body{{margin:0;font-family:var(--sans);color:var(--ink);background:#fff;-webkit-
 .ed-pcards{{display:grid;gap:18px;margin-top:56px}}
 .ed-pcard{{background:#fff;padding:34px 28px;border-bottom:3px solid var(--accent);text-align:left}}
 .ed-pkw{{font-family:var(--ko);font-size:clamp(28px,3vw,38px);font-weight:600;color:var(--accent2);margin:10px 0 14px}}
+.ed-ov{{overflow:hidden}}
+.ed-deco{{position:absolute;z-index:0;pointer-events:none;line-height:0}}
+.ed-deco-word{{position:absolute;z-index:0;pointer-events:none;font-family:var(--en);font-weight:600;font-size:clamp(110px,17vw,230px);line-height:1;
+  color:transparent;-webkit-text-stroke:1px var(--line-strong);opacity:.55;letter-spacing:-.02em;white-space:nowrap}}
+.ed-deco-word.on-dark{{-webkit-text-stroke:1px rgba(255,255,255,.16);opacity:1}}
+.ed-sec>.ed-in,.ed-hero>.ed-in{{z-index:1}}
+.ed-pkw small{{display:block;font-size:16px;font-weight:500;color:var(--ink);margin-top:6px}}
+.ed-tl{{margin-top:56px;border-left:2px solid var(--accent);padding-left:0}}
+.ed-tl-row{{display:grid;grid-template-columns:120px 1fr;gap:10px;padding:26px 0 26px 0;border-bottom:1px solid var(--line);text-align:left}}
+.ed-tl-no{{font-family:var(--en);font-size:56px;line-height:1;color:transparent;-webkit-text-stroke:1.2px var(--accent);padding-left:28px}}
+.ed-cklist{{list-style:none;margin:0;padding:0;border-top:2px solid var(--ink)}}
+.ed-cklist li{{display:flex;gap:14px;align-items:flex-start;padding:20px 4px;border-bottom:1px solid var(--line);font-family:var(--ko);font-size:18px;color:var(--ink);line-height:1.55}}
+.ed-ck{{flex:0 0 22px;height:22px;border-radius:50%;border:1.5px solid var(--accent);position:relative;margin-top:3px}}
+.ed-ck:after{{content:'';position:absolute;left:6px;top:3px;width:6px;height:10px;border:solid var(--accent);border-width:0 2px 2px 0;transform:rotate(45deg)}}
+.ed-zzs{{margin-top:56px;display:grid;gap:28px}}
+.ed-zz{{display:grid;grid-template-columns:1.1fr 1fr;gap:40px;align-items:center;text-align:left}}
+.ed-zz.rev .ed-zz-img{{order:2}}
+.ed-zz-img{{height:260px;border-radius:4px;overflow:hidden}}
+.ed-zz-t small{{display:block;color:var(--muted);font-size:13px;margin-bottom:4px}}
+.ed-zz-t h4{{font-family:var(--ko);font-size:26px;font-weight:600;margin:0 0 12px;color:var(--ink)}}
+.ed-zz-t p{{color:var(--muted);font-size:15.5px;line-height:1.8;margin:0}}
+.ed-stline{{width:1px;height:70px;background:var(--accent);margin:0 auto 34px}}
 /* balance */
 .ed-barlabels{{display:flex;justify-content:space-between;margin:44px 0 10px;text-align:left}}
 .ed-barlabels b{{display:block;font-size:17px}}.ed-barlabels small{{color:var(--muted);font-size:12px}}
@@ -5271,7 +5408,8 @@ body{{margin:0;font-family:var(--sans);color:var(--ink);background:#fff;-webkit-
  .ed-sec{{padding:80px 20px}}.ed-split,.ed-course,.ed-halves,.ed-cols,.ed-feats{{grid-template-columns:1fr!important}}
  .ed-split div{{text-align:center!important}}.ed-point{{width:100%}}.ed-tiles{{grid-template-columns:repeat(2,1fr)!important}}
  .ed-split img{{max-height:260px!important}}
- .ed-pcards{{grid-template-columns:1fr!important}}.ed-prolog-img{{min-height:260px}}
+ .ed-pcards{{grid-template-columns:1fr!important}}.ed-zz{{grid-template-columns:1fr!important}}.ed-zz.rev .ed-zz-img{{order:0}}
+ .ed-tl-row{{grid-template-columns:70px 1fr}}.ed-tl-no{{font-size:38px;padding-left:14px}}.ed-deco-word{{font-size:90px}}.ed-prolog-img{{min-height:260px}}
  .ed-note,.ed-corner.ml,.ed-corner.mr,.ed-side,.ed-mani-ph{{display:none}}.ed-boxline{{padding:28px 20px}}
  .ed-combo{{flex-direction:column;align-items:center}}.ed-plus{{margin:0}}.ed-structs{{padding-left:0}}
  .ed-pass-top,.ed-pass-bot,.ed-benefit{{flex-direction:column}}.ed-buy{{padding:18px;clip-path:none}}.ed-anchor{{flex-wrap:wrap}}
@@ -5281,6 +5419,7 @@ def ed_build_html(plan: dict, x: dict, export: bool = False) -> str:
     pk = ED_PACKS.get(plan.get("pack"), ED_PACKS["noir_navy"])
     blocks = plan.get("blocks") or []
     x = dict(x); x["motif"] = " ".join(str((plan.get("kit") or {}).get(k, "")) for k in ("motif", "concept_en"))
+    x["concept_en"] = str((plan.get("kit") or {}).get("concept_en", "")); x["deco"] = plan.get("deco", True)
     navs = [(f"ed-b{i}", b.get("nav")) for i, b in enumerate(blocks) if b.get("nav") and b.get("type") != "hero"]
     secs = []
     for i, b in enumerate(blocks):
@@ -5349,7 +5488,8 @@ def ed_generate_plan(avoid: str = "") -> dict:
         "1. 첫 블록은 hero. 이후 6~9개 블록을 이 강좌의 정보량과 컨셉에 맞게 골라 순서를 정한다.\n"
         "2. 정보가 없는 블록(lineup, balance, feature_stat, benefit, index_tiles 등)은 쓰지 않는다.\n"
         "3. 구매 상품 정보가 있으면 pass_box를, 혜택 정보가 있으면 benefit을 뒤쪽에 둔다.\n"
-        "4. 같은 type은 한 번만(combo·feature_stat만 예외). layout은 a/b를 섞어 밝은 섹션과 어두운 섹션이 번갈아 나오게.\n"
+        "4. 같은 type은 한 번만(combo·feature_stat만 예외). layout은 a/b/c를 섞어 밝은 섹션과 어두운 섹션이 번갈아 나오게. statement는 섹션 사이 전환용으로 1번.\n"
+        "4-1. 순서: hero → prologue → (points/quote/statement/three_col 등 강좌 설명) → video → lineup → pass_box → benefit. 구매 박스는 맨 뒤.\n"
         "5. 모든 섹션 제목은 컨셉 키트의 동사·키워드로 이어지게 쓴다.\n"
         f"6. pack은 다음 중 컨셉에 어울리는 하나: {packs}\n"
         + (f"7. 이전 구성과 다르게: {avoid}\n" if avoid else "")
@@ -5372,10 +5512,109 @@ def ed_polish(plan: dict) -> dict:
     if plan["blocks"][0].get("variant") not in ED_HERO_VARIANTS:
         plan["blocks"][0]["variant"] = "wordmark_photo"
     for b in plan["blocks"]:
-        if b.get("type") in ED_LAYOUT_BLOCKS and b.get("layout") not in ("a", "b"):
+        if b.get("type") in ED_LAYOUT_BLOCKS and b.get("layout") not in ("a", "b", "c"):
             b["layout"] = "a"
     if plan.get("pack") not in ED_PACKS:
         plan["pack"] = "noir_navy"
+    plan = ed_naturalize(plan)
+    return ed_arrange(plan)
+
+ED_DESC_KEYS = {"desc", "body", "items", "closing", "sub", "line", "left_result", "right_result", "caption", "box", "lead", "structure"}
+
+def _ed_metaphor_words(plan: dict) -> list:
+    """비유어 = 모티프 단어 (「키워드」는 학습 내용어일 수 있어 제외)"""
+    kit = plan.get("kit") or {}
+    words = re.split(r"[·,/\s]+", str(kit.get("motif", "")))
+    return [w for w in words if len(w) >= 2]
+
+def ed_metaphor_report(plan: dict) -> dict:
+    """설명·본문에 비유어가 몇 번 쓰였는지 (블록 인덱스 → 횟수)"""
+    words = _ed_metaphor_words(plan)
+    rep = {}
+    for i, b in enumerate(plan.get("blocks") or []):
+        if b.get("type") == "hero":
+            continue
+        n = 0
+        def _scan(v, key=""):
+            nonlocal n
+            if isinstance(v, str):
+                if key in ED_DESC_KEYS:
+                    n += sum(v.count(w) for w in words) + len(re.findall(r"처럼|듯이|듯 ", v))
+            elif isinstance(v, dict):
+                for k, vv in v.items():
+                    _scan(vv, k if k in ED_DESC_KEYS else key)
+            elif isinstance(v, list):
+                for vv in v:
+                    _scan(vv, key)
+        for k, v in b.items():
+            if k not in ("type", "layout", "nav"):
+                _scan(v, k)
+        if n:
+            rep[i] = n
+    return rep
+
+def ed_naturalize(plan: dict) -> dict:
+    """[v13] AI 티 제거: 비유 남발 · 예시 문장 베끼기 · 근거 없는 비율 블록 · 영문 타이틀 중복"""
+    blocks = plan.get("blocks") or []
+    facts = _user_facts()
+    # 1) 근거 없는 비율 블록 제거
+    keep = []
+    for b in blocks:
+        if b.get("type") == "balance":
+            pcts = [str((b.get(side) or {}).get("pct", "")) for side in ("left", "right")]
+            nums = [re.sub(r"\D", "", p) for p in pcts if re.search(r"\d", p)]
+            if not nums or not all(n and n in facts for n in nums):
+                continue
+        keep.append(b)
+    blocks = keep
+    # 2) 영문 타이틀 중복 → 뒤쪽은 비움(렌더러가 한글만 표시)
+    seen = set()
+    for b in blocks:
+        t = str(b.get("title_en", "")).strip()
+        pat = re.sub(r"\s+\S+$", "", t.lower())
+        if t and pat in seen:
+            b["title_en"] = ""
+        elif t:
+            seen.add(pat)
+    plan["blocks"] = blocks
+    # 3) 비유 남발·베낀 문장 → 해당 블록만 평이하게 다시 쓰기
+    rep = ed_metaphor_report(plan)
+    total = sum(rep.values())
+    copied = {i for i, b in enumerate(blocks) if any(p in json.dumps(b, ensure_ascii=False) for p in ED_COPIED_PHRASES)}
+    targets = sorted(set([i for i, n in rep.items() if n >= 2] if total > 5 else []) | copied)
+    if targets and st.session_state.get("api_key"):
+        sub = {f"b{i}": blocks[i] for i in targets}
+        prompt = (
+            f"{ed_brief()}\n\n아래 블록들의 문구가 AI가 쓴 것처럼 어색합니다. 같은 키·같은 구조로 다시 쓰세요.\n"
+            f"- 설명·본문·목록(desc, body, items, line, sub, closing 등)에서 비유어({', '.join(_ed_metaphor_words(plan))})와 '~처럼/~듯이' 직유를 빼고, "
+            "실제로 무엇을 배우고 어떻게 공부하는지 평이하게 쓰세요.\n"
+            "- 「키워드」와 제목(title)은 유지해도 됩니다.\n"
+            f"- 다음 표현은 다른 강좌의 문장이므로 쓰지 마세요: {', '.join(ED_COPIED_PHRASES)}\n\n"
+            f"{json.dumps(sub, ensure_ascii=False)}\n\nJSON만 반환:")
+        try:
+            fixed = safe_json(call_ai(prompt, max_tokens=4000, temperature=0.6))
+            for i in targets:
+                nb = fixed.get(f"b{i}")
+                if isinstance(nb, dict) and nb.get("type", blocks[i]["type"]) == blocks[i]["type"]:
+                    nb["type"] = blocks[i]["type"]
+                    for k in ("layout", "variant", "nav"):
+                        if k in blocks[i]:
+                            nb.setdefault(k, blocks[i][k])
+                    blocks[i] = nb
+        except Exception:
+            pass
+    plan["blocks"] = blocks
+    return plan
+
+ED_ORDER_TAIL = ["video", "lineup", "pass_box", "benefit"]
+
+def ed_arrange(plan: dict) -> dict:
+    """[v13] 순서 보정: 히어로 맨 앞, (영상) → 교재 → 구매 → 혜택은 뒤쪽으로"""
+    blocks = plan.get("blocks") or []
+    hero = [b for b in blocks if b.get("type") == "hero"][:1]
+    body = [b for b in blocks if b.get("type") not in ED_ORDER_TAIL and b.get("type") != "hero"]
+    tail = sorted([b for b in blocks if b.get("type") in ED_ORDER_TAIL], key=lambda b: ED_ORDER_TAIL.index(b["type"]))
+    plan["blocks"] = hero + body + tail
     return plan
 
 def ed_regen_block(plan: dict, idx: int, request: str) -> dict:
@@ -5537,7 +5776,8 @@ def ed_restyle(plan: dict) -> dict:
         if b.get("type") == "hero":
             b["variant"] = _erandom.choice([v for v in ED_HERO_VARIANTS if v != b.get("variant")])
         elif b.get("type") in ED_LAYOUT_BLOCKS:
-            b["layout"] = _erandom.choice(["a", "b"])
+            n = len(ED_LAYOUT_BLOCKS[b["type"]].split(" / "))
+            b["layout"] = _erandom.choice(["a", "b", "c"][:n])
     return plan
 
 
@@ -5579,8 +5819,9 @@ def _ed_field_editor(b: dict, i: int):
         key = f"edf_{i}_{k}"
         if k == "layout" and b.get("type") in ED_LAYOUT_BLOCKS:
             labels = ED_LAYOUT_BLOCKS[b["type"]].split(" / ")
-            nv = st.radio("레이아웃", ["a", "b"], index=1 if v == "b" else 0, horizontal=True,
-                          format_func=lambda o: labels[0] if o == "a" else labels[1], key=key)
+            opts = ["a", "b", "c"][:len(labels)]
+            nv = st.radio("레이아웃", opts, index=opts.index(v) if v in opts else 0, horizontal=True,
+                          format_func=lambda o: labels[opts.index(o)], key=key)
         elif k == "variant" and b.get("type") == "hero":
             opts = list(ED_HERO_VARIANTS)
             nv = st.selectbox("히어로 레이아웃", opts, index=opts.index(v) if v in opts else 0,
@@ -5772,6 +6013,13 @@ def render_editorial_mode():
             if newpk != plan.get("pack"):
                 plan["pack"] = newpk
                 st.rerun()
+            deco = st.checkbox("섹션 장식 (아웃라인 영문 · 컨셉 모티프 그래픽)", value=plan.get("deco", True), key="ed_deco_ck")
+            if deco != plan.get("deco", True):
+                plan["deco"] = deco
+                st.rerun()
+            _mrep = ed_metaphor_report(plan)
+            if sum(_mrep.values()) > 5:
+                st.warning(f"설명 문구에 비유가 {sum(_mrep.values())}번 쓰였어요. AI 티가 날 수 있으니 해당 블록을 '이 블록만 다시 쓰기'로 평이하게 바꿔보세요.")
             # ── [v12] AI 이미지 ─────────────────────────────
             with st.expander("🎨 AI 이미지 — 히어로 배경 · 키 비주얼 · 텍스처", expanded=not S.ed_imgs):
                 st.caption("컨셉에 맞는 이미지를 만들어 히어로·섹션에 자동으로 넣습니다. 사람 얼굴·글자·로고는 넣지 않아요 (강사 사진은 실제 사진을 사이드바에 올려주세요).")
