@@ -356,8 +356,8 @@ SEC_LABELS = {
     "banner":"🏠 메인 배너","intro":"📖 강좌의 정체(솔루션)","why":"💡 문제 제기",
     "curriculum":"📚 커리큘럼","target":"🎯 수강 대상","reviews":"⭐ 수강평",
     "faq":"❓ FAQ","cta":"📣 수강신청","notice":"📄 유의사항",
-    "video":"🎬 OT 영상","before_after":"🔄 수강 전/후","method":"🧪 학습법 시각화","package":"📦 구성 안내",
-    "grade_stats":"📊 학습 변화",
+    "video":"🎬 OT 영상",
+    # [v11] '수강 전/후·학습법 시각화·구성 안내·학습 변화'는 내용이 겹치고 지어낸 문구(1~2주차, 수능 당일 등)가 많아 목록에서 뺐습니다.
     "event_overview":"📅 이벤트 개요","event_benefits":"🎁 이벤트 혜택",
     "event_deadline":"⏰ 마감 안내",
     "fest_hero":"🏆 기획전 히어로","fest_lineup":"👥 강사 라인업",
@@ -588,31 +588,39 @@ KO_BG = {
 # ══════════════════════════════════════════════════════
 import re
 
-def fix_korean_particles(text: str) -> str:
-    if not text:
+def _tail_batchim(word: str) -> str:
+    """단어 끝소리 → 'none' | 'rieul' | 'other'. 영문·숫자는 발음 기준 추정 (LOGIC→ㄱ, KISS→없음, STEP→ㅂ)"""
+    w = (word or "").strip()
+    if not w:
+        return "none"
+    c = w[-1]
+    if "가" <= c <= "힣":
+        jong = (ord(c) - ord("가")) % 28
+        return "none" if jong == 0 else "rieul" if jong == 8 else "other"
+    if c.isdigit():
+        return {"0": "other", "1": "rieul", "3": "other", "6": "other", "7": "rieul", "8": "rieul"}.get(c, "none")
+    lw = w.lower()
+    if lw.endswith(("ck", "ng", "mb")) or lw[-1] in "bcdgkmnpqtx":
+        return "other"
+    if lw[-1] == "l":
+        return "rieul"
+    return "none"
+
+def fix_korean_particles(text: str, word: str = "") -> str:
+    """[v11] 조사 보정은 '특정 단어(강좌명) 바로 뒤'에만 적용.
+    예전 버전은 모든 단어 뒤의 '는/을/와'를 바꿔서 '읽는→읽은', '카드들을→카드들를', '효과→효와' 같은 오류를 만들었습니다."""
+    if not text or not word or word not in text:
         return text
-    def _has_batchim(char):
-        if not char or not ('가' <= char <= '힣'): return False
-        return (ord(char) - ord('가')) % 28 != 0
-    def _is_rieul(char):
-        if not char or not ('가' <= char <= '힣'): return False
-        return (ord(char) - ord('가')) % 28 == 8
-    def _fix(m, no_batchim, batchim):
-        word = m.group(1)
-        if not word: return m.group(0)
-        last = word[-1]
-        if _has_batchim(last) and not _is_rieul(last): return word + batchim
-        return word + no_batchim
-    W   = r'([가-힣a-zA-Z0-9]+)'
-    SEP = r'(?=[\s,\.·!\?\"\'()\-]|$)'
-    rules = [
-        (W + r'(으로|로)' + SEP, lambda m: _fix(m, '로',   '으로')),
-        (W + r'(을|를)'   + SEP, lambda m: _fix(m, '를',   '을'  )),
-        (W + r'(은|는)'   + SEP, lambda m: _fix(m, '는',   '은'  )),
-        (W + r'(과|와)'   + SEP, lambda m: _fix(m, '와',   '과'  )),
-    ]
-    for pattern, repl in rules:
-        text = re.sub(pattern, repl, text)
+    tail = _tail_batchim(word)
+    pairs = [("으로", "로"), ("을", "를"), ("은", "는"), ("과", "와"), ("이", "가"), ("이라", "라")]
+    esc = re.escape(word)
+    for with_b, without_b in pairs:
+        if with_b == "으로":
+            target = "로" if tail in ("none", "rieul") else "으로"
+        else:
+            target = without_b if tail == "none" else with_b
+        text = re.sub(esc + r"(?:" + re.escape(with_b) + "|" + re.escape(without_b) + r")(?=[\s,\.·!\?\"\'()\-]|$)",
+                      word + target, text)
     return text
 
 def remove_series_suffix(text: str, plabel: str) -> str:
@@ -631,8 +639,7 @@ def _has_batchim_char(char: str) -> bool:
 
 def postprocess_copy(text: str, plabel: str) -> str:
     text = remove_series_suffix(text, plabel)
-    text = fix_korean_particles(text)
-    text = re.sub(r'([가-힣])으로', lambda m: m.group(0) if _has_batchim_char(m.group(1)) else m.group(1) + '로', text)
+    text = fix_korean_particles(text, plabel)   # [v11] 강좌명 바로 뒤 조사만 보정
     return text
 
 def strip_hanja(text: str) -> str:
@@ -646,7 +653,7 @@ def strip_hanja(text: str) -> str:
         word = m.group(1)
         last = word[-1] if word else ''
         if not ('가' <= last <= '힣'):
-            return word + '로'
+            return m.group(0)   # [v11] 영문·숫자 뒤(LOGIC으로 등)는 건드리지 않음
         code = ord(last) - ord('가')
         jongseong = code % 28
         return word + '로' if jongseong == 0 or jongseong == 8 else word + '으로'
@@ -1215,6 +1222,57 @@ def polish_copy(cp: dict, brief: str) -> dict:
     return cp
 
 # ═══════════════════════════════════════════════════════
+# [v11] 교정 패스 — 맞춤법·어법·어색한 표현만 고치는 마지막 단계
+#  (예: '지문을 읽은 게 두려워졌습니다', '내용이 멍들어서', '첫 단추를 채우세요' 같은 오류)
+# ═══════════════════════════════════════════════════════
+PROOF_SKIP_KEYS = {"type", "variant", "nav", "pack", "pct", "no", "concept_en", "_reviews_sample", "videoUrl", "bg_photo_url"}
+
+def proofread_copy(obj, label: str = ""):
+    """문자열만 골라 교정 → 같은 구조로 되돌림. 실패하면 원본 그대로."""
+    if not st.session_state.get("api_key"):
+        return obj
+    flat = {}
+    def _collect(o, path):
+        if isinstance(o, str):
+            if re.search(r"[가-힣]", o) and len(o) >= 4:
+                flat[path] = o
+        elif isinstance(o, dict):
+            for k, v in o.items():
+                if k not in PROOF_SKIP_KEYS:
+                    _collect(v, f"{path}/{k}")
+        elif isinstance(o, list):
+            for i, v in enumerate(o):
+                _collect(v, f"{path}/{i}")
+    _collect(obj, "")
+    if not flat:
+        return obj
+    prompt = (
+        "당신은 출판사 교정 편집자입니다. 아래 JSON 값(한국어 광고 문구)을 교정하세요.\n"
+        "[고칠 것] 맞춤법·띄어쓰기, 잘못된 어미·조사(예: '읽은 두려움'→'읽는 두려움'), 뜻이 뒤집히거나 어색한 표현"
+        "(예: '첫 단추를 채우다'→'첫 단추를 끼우다', '내용이 멍들다'→'내용이 흐려지다'), 번역투, 같은 말 반복.\n"
+        "[고치지 말 것] 의미, 사실, 숫자, 강좌명·영문, [[ ]]·「 」·** 표시, 문장 길이. 새 내용 추가 금지. 이미 자연스러우면 그대로 둡니다.\n"
+        f"[강좌명] {label}\n\n"
+        f"{json.dumps(flat, ensure_ascii=False)}\n\n"
+        "같은 키를 가진 JSON 하나만 반환:"
+    )
+    try:
+        fixed = safe_json(call_ai(prompt, max_tokens=max(1500, len(prompt)), temperature=0.2))
+    except Exception:
+        return obj
+    def _apply(o, path):
+        if isinstance(o, str):
+            v = fixed.get(path)
+            if isinstance(v, str) and v.strip() and 0.6 <= len(v) / max(len(o), 1) <= 1.5:
+                return v
+            return o
+        if isinstance(o, dict):
+            return {k: (v if k in PROOF_SKIP_KEYS else _apply(v, f"{path}/{k}")) for k, v in o.items()}
+        if isinstance(o, list):
+            return [_apply(v, f"{path}/{i}") for i, v in enumerate(o)]
+        return o
+    return _apply(obj, "")
+
+# ═══════════════════════════════════════════════════════
 # [v8] 공통 브리프 — 전체 생성·섹션 재생성이 같은 기준을 쓰도록
 # ═══════════════════════════════════════════════════════
 def build_copy_brief(ctx: str = "") -> str:
@@ -1332,6 +1390,7 @@ def gen_copy(ctx: str, ptype: str, tgt: str, plabel: str) -> dict:
     if isinstance(result.get("concept"), dict):
         st.session_state["_concept"] = result["concept"]
     result = polish_copy(result, brief)
+    result = proofread_copy(result, plabel)
     if result.get("reviews"):
         result["_reviews_sample"] = True   # AI 예시 후기 표시(실제 후기로 교체 전까지 미리보기에 안내 노출)
     return result
@@ -1579,6 +1638,7 @@ def gen_section(sec_id: str) -> dict:
             if sec_id == "banner" and ptype != "이벤트":
                 result = ensure_course_name_in_title(result, plabel)
             result = polish_copy(result, brief)
+            result = proofread_copy(result, plabel)
             if sec_id == "reviews":
                 result["_reviews_sample"] = True
             return result
@@ -3963,6 +4023,28 @@ span[data-baseweb="tag"] {
 .sec-hdr {font-size:9.5px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:#3A4868; padding:10px 16px 5px;}
 </style>""", unsafe_allow_html=True)
 
+
+def _model_quality_note():
+    m = st.session_state.get("_last_model", "")
+    if m:
+        st.caption(f"사용 모델: `{m}`")
+        if m != GROQ_MODELS[0]:
+            st.warning("메인 모델(gpt-oss-120b)이 응답하지 않아 보조 모델로 생성됐어요. 문구 품질이 떨어질 수 있으니 잠시 후 다시 생성해 보세요.")
+
+# ── [v11] 구형 생성기(강좌 소개·교재·기타 섹션)도 품질 검사 + 교정 패스를 거치도록 감쌈 ──
+def _wrap_quality(fn):
+    def inner(*a, **k):
+        r = fn(*a, **k)
+        if isinstance(r, dict) and r:
+            plabel = st.session_state.get("purpose_label", "")
+            r = polish_copy(r, build_copy_brief(st.session_state.get("_last_ctx", "")))
+            r = proofread_copy(r, plabel)
+        return r
+    return inner
+gen_course_copy   = _wrap_quality(gen_course_copy)
+gen_textbook_copy = _wrap_quality(gen_textbook_copy)
+gen_custom_sec    = _wrap_quality(gen_custom_sec)
+
 # ══════════════════════════════════════════════════════════════════════
 # [v9] 📝 강좌 특징 HTML 모드 — 관리자 페이지 '강좌 특징' 영역 삽입용
 #
@@ -4682,8 +4764,17 @@ def _ed_head(chapter="", title="", sub="", en=False, dark=False) -> str:
             + (f'<p class="ed-hsub">{_ed_esc(sub)}</p>' if sub else "")
             + '<div class="ed-rule"></div></div>')
 
-def _ed_motif_svg(color: str) -> str:
-    """CONTACT 시안의 동심 원호 모티프를 SVG로"""
+def _ed_motif_svg(color: str, motif: str = "") -> str:
+    """키 비주얼 모티프 SVG — 컨셉에 '계단/단계/step'이 있으면 계단, 아니면 CONTACT형 동심 원호"""
+    if re.search(r"계단|단계|디딤|step|stair", motif or "", re.I):
+        lines = ""
+        for i in range(8):
+            x0, y0 = 40 + i * 48, 420 - i * 46
+            op = 0.18 + i * 0.1
+            lines += (f'<path d="M{x0} {y0} H{x0 + 48} V{y0 - 46}" fill="none" stroke="{color}" stroke-opacity="{min(op,1):.2f}" stroke-width="2"/>'
+                      f'<path d="M{x0} {y0 + 14} H{x0 + 48} V{y0 - 32}" fill="none" stroke="{color}" stroke-opacity="{min(op,1) * .35:.2f}" stroke-width="1"/>')
+        return (f'<svg viewBox="0 0 460 460" width="100%" style="max-width:420px">{lines}'
+                f'<circle cx="{40 + 7 * 48 + 48}" cy="{420 - 7 * 46 - 46}" r="7" fill="{color}"/></svg>')
     arcs = "".join(f'<circle cx="230" cy="230" r="{120 + i * 7}" fill="none" stroke="{color}" stroke-opacity="{0.15 + i * 0.035:.2f}" stroke-width="1.2" '
                    f'stroke-dasharray="{560 + i * 30} 2000" transform="rotate({40 + i * 3} 230 230)"/>' for i in range(16))
     return f'<svg viewBox="0 0 460 460" width="100%" style="max-width:420px">{arcs}</svg>'
@@ -4708,7 +4799,7 @@ def ed_r_hero(b, x):
                 + f'<h1 class="ed-wm ed-wm-fade" style="font-size:clamp(80px,15vw,210px);line-height:.9">{_ed_esc(wm)}</h1></div></section>')
     if v == "split_motif":
         left = (f'<img src="{book}" alt="" style="max-width:100%;max-height:440px;filter:drop-shadow(0 30px 40px rgba(0,0,0,.5))">' if book
-                else _ed_motif_svg("#ffffff"))
+                else _ed_motif_svg("#ffffff", x.get("motif", "")))
         return (f'<section class="ed-hero ed-dark" style="min-height:min(80vh,720px)"><div class="ed-in ed-split">'
                 f'<div style="text-align:center">{left}</div><div style="text-align:right">'
                 + (f'<p class="ed-serif" style="font-size:clamp(18px,1.8vw,24px);color:var(--muted);margin:0 0 6px">{_ed_esc(kicker)}</p>' if kicker else "")
@@ -5022,7 +5113,7 @@ body{{margin:0;font-family:var(--sans);color:var(--ink);background:#fff;-webkit-
 .ed-num{{font-family:var(--en);font-size:22px;color:var(--ink)}}
 .ed-col small{{display:block;color:var(--muted);font-size:12px;margin:6px 0 2px}}
 .ed-col h4{{font-family:var(--ko);font-size:22px;font-weight:500;margin:0 0 14px}}
-.ed-colbar{{height:46px;background:linear-gradient(90deg,var(--dark),var(--accent-light) 60%,var(--dark));margin-bottom:14px;opacity:.9}}
+.ed-colbar{{height:2px;background:linear-gradient(90deg,var(--accent),transparent);margin-bottom:14px}}
 .ed-col p{{color:var(--muted);font-size:14px;line-height:1.7;margin:0}}
 /* balance */
 .ed-barlabels{{display:flex;justify-content:space-between;margin:44px 0 10px;text-align:left}}
@@ -5080,7 +5171,8 @@ body{{margin:0;font-family:var(--sans);color:var(--ink);background:#fff;-webkit-
 .ed-benefit li{{font-size:15px;line-height:1.7;margin:6px 0;color:rgba(255,255,255,.9)}}.ed-benefit li:before{{content:'· '}}
 .ed-notice{{background:#0F0F10;color:rgba(255,255,255,.6);padding:50px 24px}}
 .ed-notice h4{{color:#fff;margin:0 0 14px;font-size:15px}}.ed-notice ul{{margin:0;padding-left:18px}}.ed-notice li{{font-size:13px;line-height:1.9}}
-.ed-side{{position:fixed;right:0;top:40%;z-index:50;background:rgba(20,22,26,.92);padding:10px 0;border-radius:8px 0 0 8px}}
+.ed-side{{position:fixed;right:0;top:40%;z-index:50;opacity:0;pointer-events:none;transition:opacity .3s;background:rgba(20,22,26,.92);padding:10px 0;border-radius:8px 0 0 8px}}
+.ed-side.on{{opacity:1;pointer-events:auto}}
 .ed-side a{{display:block;color:rgba(255,255,255,.75);text-decoration:none;font-size:12px;padding:7px 16px;font-family:var(--ko)}}.ed-side a:hover{{color:#fff}}
 @media(max-width:860px){{
  .ed-sec{{padding:80px 20px}}.ed-split,.ed-course,.ed-halves,.ed-cols,.ed-feats{{grid-template-columns:1fr!important}}
@@ -5094,6 +5186,7 @@ body{{margin:0;font-family:var(--sans);color:var(--ink);background:#fff;-webkit-
 def ed_build_html(plan: dict, x: dict, export: bool = False) -> str:
     pk = ED_PACKS.get(plan.get("pack"), ED_PACKS["noir_navy"])
     blocks = plan.get("blocks") or []
+    x = dict(x); x["motif"] = " ".join(str((plan.get("kit") or {}).get(k, "")) for k in ("motif", "concept_en"))
     navs = [(f"ed-b{i}", b.get("nav")) for i, b in enumerate(blocks) if b.get("nav") and b.get("type") != "hero"]
     secs = []
     for i, b in enumerate(blocks):
@@ -5118,7 +5211,10 @@ def ed_build_html(plan: dict, x: dict, export: bool = False) -> str:
             '<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Bodoni+Moda:wght@400;500;600&'
             'family=Cormorant+Garamond:wght@400;500;600&family=Great+Vibes&family=Noto+Serif+KR:wght@400;500;600;700&display=swap" rel="stylesheet">'
             '<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">'
-            f'<style>{ed_css(pk)}</style></head><body>{"".join(secs)}{ed_r_notice(x)}{side}</body></html>')
+            f'<style>{ed_css(pk)}</style></head><body>{"".join(secs)}{ed_r_notice(x)}{side}'
+            '<script>(function(){var s=document.querySelector(".ed-side");if(!s)return;'
+            'function f(){s.classList.toggle("on",window.scrollY>window.innerHeight*0.8)}'
+            'window.addEventListener("scroll",f,{passive:true});f();})();</script></body></html>')
 
 
 # ── AI: 컨셉 키트 + 구성 ──────────────────────────────────
@@ -5135,6 +5231,8 @@ def _ed_inputs_text() -> str:
     ]
     return "\n".join(rows)
 
+ED_EXAMPLE = json.dumps({'kit': {'concept_en': 'STEP', 'verb': '오르다', 'motif': '계단·디딤돌', 'keywords': ['첫 칸', '디딤', '한 걸음'], 'antithesis': '어려운 건 덜고, 쉬운 것부터 쌓고'}, 'blocks': [{'type': 'hero', 'variant': 'split_motif', 'kicker': '영어가 가장 막막한 과목이라면', 'sub': '수능 영어, 첫 계단부터 다시', 'wordmark': 'KEY STEP'}, {'type': 'prologue', 'nav': '프롤로그', 'script': 'Prologue', 'title': '첫 계단의 영어', 'sub': '6~8등급에게 필요한 건 더 높은 계단이 아닙니다', 'body': ['단어가 낯설고 문장이 끊겨 보이면, 수능 지문은 펼치는 순간부터 벽이 됩니다.', 'KEY STEP은 중학 영어 수준에서 출발해 어휘, 구문, 독해를 한 칸씩 쌓아 올리는 입문 강좌입니다.'], 'closing': '높이보다 순서. 한 계단씩 오릅니다.'}, {'type': 'points', 'nav': '기획 의도', 'title_en': 'KEY STEP', 'title_ko': '기획 의도', 'points': [{'label': 'Step Point 01', 'desc': '수능에 반복해서 나오는 기초 어휘부터 정리합니다.', 'line': '낯선 단어를 줄이는', 'keyword': '첫 칸'}, {'label': 'Step Point 02', 'desc': '주어와 동사를 찾아 문장의 뼈대를 세웁니다.', 'line': '문장 위에 발을 딛는', 'keyword': '디딤'}, {'label': 'Step Point 03', 'desc': '짧은 지문부터 끝까지 읽어 내는 경험을 쌓습니다.', 'line': '지문 끝까지 나아가는', 'keyword': '한 걸음'}]}]}, ensure_ascii=False)
+
 def ed_brief() -> str:
     concept = st.session_state.get("ed_concept", "").strip()
     return "\n".join([
@@ -5142,6 +5240,8 @@ def ed_brief() -> str:
         ED_STYLE_GUIDE, season_prompt_block(),
         "[강좌 정보 — 여기에 없는 사실·숫자·가격·기간은 쓰지 않는다]", _ed_inputs_text(),
         (f"[컨셉 지정] {concept} — 이 단어/이미지로 컨셉 키트를 만든다." if concept else ""),
+        "[모범 예시 — 6~8등급 입문 강좌 'KEY STEP'의 앞부분. 컨셉 동사·「키워드」가 이어지는 방식과 말맛만 참고하고, 문장은 재사용하지 말 것]",
+        ED_EXAMPLE,
     ])
 
 def _ed_block_catalog() -> str:
@@ -5164,7 +5264,9 @@ def ed_generate_plan(avoid: str = "") -> dict:
     )
     st.session_state["_last_ctx"] = _ed_inputs_text()   # 품질 검사에서 '입력된 숫자'로 인정
     plan = safe_json(call_ai(prompt, max_tokens=7000, temperature=0.85))
-    return ed_polish(plan)
+    plan = ed_polish(plan)
+    plan["blocks"] = proofread_copy(plan["blocks"], st.session_state.get("ed_label", ""))
+    return plan
 
 def ed_polish(plan: dict) -> dict:
     blocks = plan.get("blocks") or []
@@ -5191,6 +5293,7 @@ def ed_regen_block(plan: dict, idx: int, request: str) -> dict:
     if b.get("type") == "hero" and nb.get("variant") not in ED_HERO_VARIANTS:
         nb["variant"] = b.get("variant", "wordmark_photo")
     nb = polish_copy({"b": nb}, ed_brief())["b"]
+    nb = proofread_copy(nb, st.session_state.get("ed_label", ""))
     for k, v in nb.items():          # 검사에서 비워진 칸은 이전 문구 유지
         if v in ("", [], None) and b.get(k):
             nb[k] = b[k]
@@ -5358,6 +5461,7 @@ def render_editorial_mode():
 
         plan = S.ed_plan
         if plan:
+            _model_quality_note()
             kit = plan.get("kit") or {}
             st.markdown(f"**컨셉 키트** · {kit.get('concept_en','')} / {kit.get('verb','')} / "
                         f"{' '.join(str(k) for k in (kit.get('keywords') or []))}")
@@ -5914,7 +6018,11 @@ with st.sidebar:
 # ══════════════════════════════════════════════════════
 # MAIN
 # ══════════════════════════════════════════════════════
-ordered = list(st.session_state.active_sections)   # [v8] 멀티셀렉트에서 고른 순서 그대로
+# [v11] 섹션은 항상 정해진 흐름대로 정렬 (나중에 추가한 섹션이 유의사항 뒤에 붙던 문제)
+SECTION_CANON = ["banner", "fest_hero", "why", "intro", "course_intro", "video", "curriculum", "target",
+                 "instructor_philosophy", "reviews", "textbook_sale", "event_overview", "event_benefits",
+                 "event_deadline", "fest_lineup", "fest_benefits", "faq", "custom_section", "cta", "fest_cta", "notice"]
+ordered = sorted([s for s in st.session_state.active_sections if s in SECTION_CANON], key=SECTION_CANON.index)
 if st.session_state.custom_section_on and "custom_section" not in ordered:
     if st.session_state.custom_copy and st.session_state.custom_copy.get("custom_section_data"):
         ordered.append("custom_section")
@@ -6010,7 +6118,7 @@ with L:
     if st.session_state.custom_copy:
         st.success("✓ AI 문구 적용됨", icon="✅")
         if st.session_state.get("_last_model"):
-            st.caption(f"사용 모델: `{st.session_state['_last_model']}`")
+            _model_quality_note()
             if st.session_state.get("_last_model_errors"):
                 with st.expander("앞 순위 모델이 실패한 이유", expanded=False):
                     for _e in st.session_state["_last_model_errors"]:
